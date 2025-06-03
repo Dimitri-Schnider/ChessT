@@ -1,5 +1,4 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Components/CardActivationAnimation.razor.css */
-.card-animation-overlay {
+﻿.card-animation-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -79,19 +78,21 @@
 }
 
 .card-back {
-    background-image: url('/img/cards/templateback.png');
+    /* ENTFERNT: background-image: url('/img/cards/templateback.png'); */
+    /* Die Anzeige der Rückseite erfolgt nun ausschliesslich über das <img>-Tag in CardActivationAnimation.razor */
     transform: rotateY(180deg);
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: transparent; /* Sicherstellen, dass kein unerwünschter Hintergrund vorhanden ist */
 }
 
     .card-back img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        display: block;
-        border-radius: 15px;
+        object-fit: cover; /* Stellt sicher, dass das Bild den Bereich füllt, ggf. mit Beschnitt */
+        display: block; /* Verhindert zusätzlichen Leerraum unter dem Bild */
+        border-radius: 15px; /* Passt zur Rundung der Karte */
     }
 
 /* Visuelle Darstellung der Karte (Vorderseite) - Styles von CardInfoPanel übernehmen/anpassen */
