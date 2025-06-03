@@ -49,10 +49,12 @@
 .card-flipper {
     width: 100%;
     height: 100%;
-    /* NEU: Flip-Dauer angepasst auf 0.4s (passend zu 400ms) */
     transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
     transform-style: preserve-3d;
     position: relative;
+    /* Hinzugefügt: Versucht, die Hardwarebeschleunigung zu erzwingen und Rendering-Glitches vorzubeugen */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
 
     .card-flipper.is-flipped {
@@ -63,7 +65,13 @@
     position: absolute;
     width: 100%;
     height: 100%;
+    /* Hinzugefügt: Webkit-Präfix und erneutes translateZ(0) für die einzelnen Seiten */
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    -webkit-transform-style: preserve-3d; /* Stellt sicher, dass Kindelemente im 3D-Raum bleiben */
+    transform-style: preserve-3d;
+    -webkit-transform: translateZ(0); /* Kann helfen, die Seite auf eine eigene Kompositionsebene zu heben */
+    transform: translateZ(0);
     border-radius: 15px;
     overflow: hidden;
     box-sizing: border-box;
@@ -78,24 +86,25 @@
 }
 
 .card-back {
-    /* ENTFERNT: background-image: url('/img/cards/templateback.png'); */
-    /* Die Anzeige der Rückseite erfolgt nun ausschliesslich über das <img>-Tag in CardActivationAnimation.razor */
     transform: rotateY(180deg);
+    background-color: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: transparent; /* Sicherstellen, dass kein unerwünschter Hintergrund vorhanden ist */
 }
 
     .card-back img {
         width: 100%;
         height: 100%;
-        object-fit: cover; /* Stellt sicher, dass das Bild den Bereich füllt, ggf. mit Beschnitt */
-        display: block; /* Verhindert zusätzlichen Leerraum unter dem Bild */
-        border-radius: 15px; /* Passt zur Rundung der Karte */
+        object-fit: cover;
+        display: block;
+        border-radius: 15px;
+        /* Hinzugefügt: Ein minimaler 3D-Transform direkt auf das Bild kann das Rendering erzwingen */
+        -webkit-transform: translateZ(0.1px);
+        transform: translateZ(0.1px);
     }
 
-/* Visuelle Darstellung der Karte (Vorderseite) - Styles von CardInfoPanel übernehmen/anpassen */
+/* Visuelle Darstellung der Karte (Vorderseite) */
 .card-visual-representation-animated {
     position: relative;
     width: 100%;
@@ -165,18 +174,14 @@
     border-radius: 3px;
 }
 
-/* Glow Effekt - Farbe auf Weiss geändert, Dauer angepasst */
+/* Glow Effekt */
 .card-animation-container.glow-animation-active .card-flipper .card-face.card-front {
-    /* NEU: Schnellere Glow-Animation, z.B. 0.4s pro Puls */
     animation: cardGlowEffectAnimated 0.4s ease-in-out infinite alternate;
 }
 
 @keyframes cardGlowEffectAnimated {
     from {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3), /* Basisschatten */
-        0 0 15px #ffffff, /* Starker innerer weisser Glow */
-        0 0 25px rgba(255, 255, 255, 0.8), /* Mittlerer weisser Glow */
-        0 0 35px rgba(255, 255, 255, 0.6); /* Äusserer weisser Glow */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 15px #ffffff, 0 0 25px rgba(255, 255, 255, 0.8), 0 0 35px rgba(255, 255, 255, 0.6);
     }
 
     to {
@@ -184,9 +189,8 @@
     }
 }
 
-/* Animation für das Wegfliegen zur History - Dauer angepasst */
+/* Animation für das Wegfliegen zur History */
 .card-animation-container.animate-to-history {
-    /* NEU: Schnellere End-Animation (0.25s, passend zu MoveToHistoryAnimDurationMs) */
     animation: moveToHistoryAndFade 0.25s ease-in forwards;
 }
 
