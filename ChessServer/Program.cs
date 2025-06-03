@@ -23,7 +23,9 @@ builder.Services.AddCors(options =>
                            "https://localhost:7224", // Typischer ChessClient Kestrel HTTPS Port (pruefe deine launchSettings.json)
                            "http://localhost:5170",  // Typischer ChessClient Kestrel HTTP Port (pruefe deine launchSettings.json)
                            "https://localhost:7144", // Dein ChessServer Port (falls Client und Server auf derselben Maschine fuer lokale Tests laufen)
-                           "http://localhost:5245")  // Dein ChessServer HTTP Port (falls Client und Server auf derselben Maschine fuer lokale Tests laufen)
+                           "http://localhost:5245",  // Dein ChessServer HTTP Port (falls Client und Server auf derselben Maschine fuer lokale
+                           "https://localhost:7276", // Typischer ChessClient Kestrel HTTPS Port (pruefe deine launchSettings.json)
+                           "http://localhost:7144")  // Typischer ChessClient Kestrel HTTP Port (pruefe deine launchSettings.json) Tests laufen)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Wichtig für SignalR mit Authentifizierung oder sitzungsbasierten Szenarien

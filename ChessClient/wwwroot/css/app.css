@@ -179,8 +179,8 @@ code {
 
 /* Container für die Timer-Anzeigen. */
 .timers-container {
-    margin-bottom: 0.75rem;
-    max-width: min(65vh, 600px);
+    /*  margin-bottom: 0.75rem;
+    max-width: min(65vh, 600px);*/
     margin-left: 0;
     margin-right: 0;
     padding-left: 0;
@@ -189,14 +189,14 @@ code {
 
 /* Box für einzelne Timer. */
 .timer-box {
-    padding: 0.3rem 0.5rem;
+    /*   padding: 0.3rem 0.5rem; */
     border: 1px solid #ccc;
     border-radius: 4px;
     background-color: #f8f9fa;
 }
 
 /* Anzeige der verbleibenden Zeit. */
-.time-display {
+    .time-display {
     font-size: 1.2rem;
     font-weight: bold;
     line-height: 1.4;
