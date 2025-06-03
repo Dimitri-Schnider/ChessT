@@ -79,13 +79,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover; /* Oder contain, je nach Bild */
-        }
-
-        .card-back {
-            background-image: url('/img/cards/templateback.png'); /* Pfad anpassen, falls nötig */
-            background-size: cover;
-            background-position: center;
-            transform: rotateY(180deg); /* Diese Zeile bleibt wichtig */
+            border-radius: 10px; /* Passend zum card-face Radius */
         }
 
 
