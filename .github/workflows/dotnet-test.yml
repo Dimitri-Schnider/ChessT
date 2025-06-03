@@ -1,0 +1,33 @@
+name: Run ChessLogic Tests
+
+on:
+  push:
+    branches: [ master ]
+    paths: # Optional: Löst die Action nur aus, wenn sich Dateien in diesen Pfaden ändern
+      - 'ChessLogic/**'
+      - 'ChessLogic.Tests/**'
+      - '.github/workflows/dotnet-test.yml' # Damit Änderungen an der Action selbst auch getestet werden
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest 
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x' # Stellen Sie sicher, dass dies mit der TargetFramework-Version in Ihrer ChessLogic.Tests.csproj übereinstimmt
+
+    - name: Restore dependencies for ChessLogic.Tests
+      # Passen Sie den Pfad zur .csproj-Datei an, falls Ihre Ordnerstruktur anders ist.
+      # Wenn Ihr .github-Ordner im Stammverzeichnis der Solution liegt, ist dieser Pfad wahrscheinlich korrekt.
+      run: dotnet restore ChessLogic.Tests/ChessLogic.Tests.csproj
+
+    - name: Build ChessLogic.Tests (optional, da 'dotnet test' auch baut)
+      run: dotnet build ChessLogic.Tests/ChessLogic.Tests.csproj --no-restore
+
+    - name: Run ChessLogic.Tests
+      run: dotnet test ChessLogic.Tests/ChessLogic.Tests.csproj --no-build --verbosity normal
