@@ -1,0 +1,205 @@
+﻿/* File: [SolutionDir]/ChessClient/Pages/Components/CardSwapSpecificAnimation.razor.css */
+.card-swap-specific-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1900;
+    opacity: 0;
+    animation: swapOverlayFadeIn 0.3s ease-out forwards;
+}
+
+@keyframes swapOverlayFadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.card-swap-specific-container {
+    position: relative;
+    width: 600px; /* Genug Platz für nebeneinanderliegende Karten */
+    height: 450px; /* Höhe des Animationsbereichs */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1200px;
+}
+
+.swapping-card {
+    /* NEU: Kartengrösse angepasst, z.B. auf 220px Breite */
+    width: 220px;
+    height: calc(220px * 1050 / 750); /* Proportion beibehalten */
+    position: absolute;
+    transform-style: preserve-3d;
+    opacity: 0;
+    transform: scale(0.7); /* Startskalierung für Einfliegeeffekt */
+}
+
+    .swapping-card .card-flipper {
+        width: 100%;
+        height: 100%;
+        transition: transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
+        transform-style: preserve-3d;
+        position: relative;
+    }
+
+        .swapping-card .card-flipper.is-flipped {
+            transform: rotateY(-180deg);
+        }
+
+    .swapping-card .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 10px; /* Etwas grösserer Radius für grössere Karten */
+        overflow: hidden;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.25); /* Etwas stärkerer Schatten */
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .swapping-card .card-front {
+        background-color: transparent;
+    }
+
+    .swapping-card .card-back {
+        /* KORREKTUR: Kein background-image hier, da das <img> Tag im Markup die Quelle setzt */
+        /* background-image: url('/img/cards/templateback.png'); */
+        transform: rotateY(180deg);
+    }
+        /* Stellt sicher, dass das <img> Tag in .card-back korrekt angezeigt wird */
+        .swapping-card .card-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Oder contain, je nach Bild */
+            border-radius: 10px; /* Passend zum card-face Radius */
+        }
+
+
+    .swapping-card .swap-card-art {
+        position: absolute;
+        /* Genaue Werte für top/left/width/height hängen von deinem template.png ab.
+           Diese Werte sind Beispiele und müssen evtl. angepasst werden,
+           um die Kunst korrekt im transparenten Bereich des Rahmens zu platzieren. */
+        width: 68%;
+        height: auto;
+        top: 15%;
+        left: 16%;
+        object-fit: contain;
+        z-index: 1;
+    }
+
+    .swapping-card .swap-card-frame {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .swapping-card .swap-card-title {
+        position: absolute;
+        /* Genaue Werte anpassen für grössere Karten und dein template.png */
+        bottom: 22%;
+        left: 10%;
+        width: 80%;
+        font-size: 0.85em; /* Evtl. Schriftgrösse leicht anpassen */
+        font-weight: bold;
+        color: #402C1A;
+        text-align: center;
+        z-index: 3;
+        background-color: rgba(255, 255, 255, 0.65); /* Etwas mehr Deckkraft für bessere Lesbarkeit */
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+
+    /* Phase 1: Einfliegen - Karten kommen von den Seiten/Ecken und landen nebeneinander in der Mitte */
+    .swapping-card.fly-in-from-bottom-to-left-center { /* Eigene Karte (gegeben) */
+        animation: flyInBottomToLeftCenter 1s forwards cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    .swapping-card.fly-in-from-top-to-right-center { /* Gegnerkarte (erhalten) */
+        animation: flyInTopToRightCenter 1s forwards cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+/* Von unten (links beginnend) nach links-mittig */
+@keyframes flyInBottomToLeftCenter {
+    from {
+        transform: translateY(280px) translateX(-200px) scale(0.7);
+        opacity: 0;
+    }
+    /* Startet weiter unten und links aussen */
+    to {
+        transform: translateY(0px) translateX(-70px) scale(1);
+        opacity: 1;
+    }
+    /* Landet links von der Mitte, Y ist zentriert */
+}
+/* Von oben (rechts beginnend) nach rechts-mittig */
+@keyframes flyInTopToRightCenter {
+    from {
+        transform: translateY(-280px) translateX(200px) scale(0.7);
+        opacity: 0;
+    }
+    /* Startet weiter oben und rechts aussen */
+    to {
+        transform: translateY(0px) translateX(70px) scale(1);
+        opacity: 1;
+    }
+    /* Landet rechts von der Mitte, Y ist zentriert */
+}
+
+/* Haltepositionen für die Pause (angepasst an die Landepositionen) */
+.swapping-card.in-center-left {
+    transform: translateY(0px) translateX(-70px) scale(1);
+    opacity: 1;
+}
+
+.swapping-card.in-center-right {
+    transform: translateY(0px) translateX(70px) scale(1);
+    opacity: 1;
+}
+
+/* Phase 3: Ausfliegen - Von ihren Mittelpositionen zu den Zielbereichen */
+.swapping-card.fly-out-to-opponent-from-left { /* Eigene Karte (gegeben), war links-mittig, fliegt nach oben-rechts */
+    animation: flyOutToOpponentFromLeftCenter 1s forwards cubic-bezier(0.75, 0, 0.75, 0.9);
+}
+
+.swapping-card.fly-out-to-player-from-right { /* Gegnerkarte (erhalten), war rechts-mittig, fliegt nach unten-links */
+    animation: flyOutToPlayerFromRightCenter 1s forwards cubic-bezier(0.75, 0, 0.75, 0.9);
+}
+
+@keyframes flyOutToOpponentFromLeftCenter {
+    from {
+        transform: translateY(0px) translateX(-70px) scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(-280px) translateX(200px) scale(0.7);
+        opacity: 0;
+    }
+    /* Fliegt nach oben-rechts weg */
+}
+
+@keyframes flyOutToPlayerFromRightCenter {
+    from {
+        transform: translateY(0px) translateX(70px) scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(280px) translateX(-200px) scale(0.7);
+        opacity: 0;
+    }
+    /* Fliegt nach unten-links weg */
+}

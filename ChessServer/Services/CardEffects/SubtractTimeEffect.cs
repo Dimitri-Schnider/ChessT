@@ -1,0 +1,53 @@
+﻿using System;
+using ChessLogic;
+using ChessServer.Services;
+using ChessNetwork.Configuration;
+using ChessNetwork.DTOs;
+using Chess.Logging;
+
+namespace ChessServer.Services.CardEffects
+{
+    public class SubtractTimeEffect : ICardEffect
+    {
+        private readonly IChessLogger _logger;
+
+        public SubtractTimeEffect(IChessLogger logger)
+        {
+            _logger = logger;
+        }
+
+        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            string cardTypeId,
+                                            string? fromSquareAlg,
+                                            string? toSquareAlg)
+        {
+            if (cardTypeId != CardConstants.SubtractTime)
+            {
+                return new CardActivationResult(false, ErrorMessage: $"SubtractTimeEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+            }
+
+            Player opponentColor = playerDataColor.Opponent();
+            Guid? opponentId = session.GetPlayerIdByColor(opponentColor);
+            if (!opponentId.HasValue)
+            {
+                return new CardActivationResult(false, ErrorMessage: "Gegner nicht gefunden für Zeitdiebstahl.");
+            }
+
+            TimeSpan opponentTime = session.TimerService.GetCurrentTimeForPlayer(opponentColor);
+
+            // Effekt wird abgelehnt, wenn der Gegner WENIGER als 3 Minuten hat.
+            if (opponentTime < TimeSpan.FromMinutes(3))
+            {
+                return new CardActivationResult(false, ErrorMessage: "Zeitdiebstahl kann nur eingesetzt werden, wenn der Gegner 3 Minuten oder mehr Zeit hat.");
+            }
+
+
+            if (session.TimerService.SubtractTime(opponentColor, TimeSpan.FromMinutes(2)))
+            {
+                _logger.LogSubtractTimeEffectApplied(opponentColor, playerDataColor, playerId, session.GameId);
+                return new CardActivationResult(true, BoardUpdatedByCardEffect: false);
+            }
+            return new CardActivationResult(false, ErrorMessage: "Zeit konnte nicht abgezogen werden (Timer-Fehler).");
+        }
+    }
+}

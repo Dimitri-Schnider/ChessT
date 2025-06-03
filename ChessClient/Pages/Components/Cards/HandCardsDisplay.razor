@@ -1,0 +1,42 @@
+﻿@using ChessClient.Models
+@using ChessClient.State
+@using ChessNetwork.DTOs
+@inject ICardState CardStateLocal
+
+<div class="hand-cards-display-wrapper">
+    <button @onclick="ScrollLeft" class="scroll-arrow left-arrow" disabled="@(!canScrollLeft)" title="Nach links scrollen">
+        <i class="bi bi-arrow-left-circle"></i>
+    </button>
+
+    <div @ref="handCardsContainerRef" class="hand-cards-container snaps-inline @(IsSelectionDisabled ? "selection-disabled" : "")" @onscroll="HandleScroll">
+        @if (PlayerHand != null && PlayerHand.Any())
+        {
+            @foreach (var card in PlayerHand)
+            {
+                <div @key="card.InstanceId"
+                     class="card-in-hand-wrapper @(CardStateLocal.SelectedCardInstanceIdInHand == card.InstanceId ? "selected" : "") @(IsSelectionDisabled ? "disabled" : "")"
+                     @onclick="() => HandleCardClick(card)" title="@card.Name: @card.Description">
+                    <div class="card-visual-representation-hand">
+                        <div class="card-art-layer-hand">
+                            <img src="@card.ImageUrl" alt="Kartenkunst für @card.Name" class="card-art-actual-image-hand" />
+                        </div>
+                        <img src="/img/cards/template.png" alt="Kartenrahmen" class="card-frame-image-hand" />
+                        <div class="card-content-layer-hand">
+                            <div class="card-title-section-hand">
+                                <span class="card-title-text-hand">@card.Name</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="no-cards-text">Keine Karten auf der Hand</div>
+        }
+    </div>
+
+    <button @onclick="ScrollRight" class="scroll-arrow right-arrow" disabled="@(!canScrollRight)" title="Nach rechts scrollen">
+        <i class="bi bi-arrow-right-circle"></i>
+    </button>
+</div>

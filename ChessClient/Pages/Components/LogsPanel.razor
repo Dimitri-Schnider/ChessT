@@ -1,0 +1,55 @@
+﻿@inject ChessClient.Services.LoggingService Logger
+
+@* Container für das API-Log-Panel *@
+<div class="logs-panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5>API-Logs</h5>
+        // Button zum Pausieren/Fortsetzen des Loggings
+        <button class="btn btn-sm btn-outline-secondary"
+                @onclick="Logger.TogglePause">
+            @(Logger.IsPaused ? "Resume" : "Pause")
+        </button>
+    </div>
+
+    @* Checkbox zum Filtern von Polling-Requests *@
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox"
+               id="pollingFilter"
+               checked="@Logger.IncludePolling"
+               @onchange="OnPollingFilterChanged" />
+        <label class="form-check-label" for="pollingFilter">
+            Zeige Polling-Requests
+        </label>
+    </div>
+
+    @* Button zum Leeren der Logs *@
+    <button class="btn btn-sm btn-outline-danger mb-2" @onclick="Logger.Clear">
+        Clear
+    </button>
+
+    @* Bereich zur Anzeige der Log-Einträge *@
+    <div class="entries">
+        @foreach (var e in Logger.Entries)
+        {
+            <div class="entry">
+                <small>@e.Timestamp.ToLongTimeString()</small>
+                <pre>@e.RequestInfo</pre>
+                <pre>@e.ResponseInfo</pre>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // Abonniert das OnChange-Ereignis des Loggers bei Initialisierung
+    protected override void OnInitialized()
+    {
+        Logger.OnChange += StateHasChanged;
+    }
+
+    // Wird aufgerufen, wenn der Polling-Filter geändert wird
+    private void OnPollingFilterChanged(ChangeEventArgs e)
+    {
+        Logger.TogglePolling();
+    }
+}

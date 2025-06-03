@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- .NET-Analyzers einschalten -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!-- neuesten Regelensatz verwenden -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Warnungen nicht automatisch als Errors behandeln, damit Du sie erst sichtest -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,100 @@
+﻿@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
+{
+    // Überlagerung für den Modal-Dialog
+    <div class="modal-backdrop show" @onclick="CloseModal"></div>
+    // Hauptcontainer des Modal-Dialogs
+    <div class="modal show" tabindex="-1" style="display: block;" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Gegner einladen</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Dein Spiel wurde erstellt! Teile diesen Link mit deinem Gegner, damit er beitreten kann:</p>
+                    <div class="input-group mt-1 mb-3">
+                        <input id="inviteLinkInput" type="text" class="form-control" value="@InviteLink" readonly @ref="inviteLinkInputRef" />
+                        <button class="btn btn-outline-primary" type="button" @onclick="CopyToClipboard">
+                            <i class="bi bi-clipboard me-1"></i> Link kopieren
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(CopyMessage))
+                    {
+                        <div class="alert alert-success alert-sm py-1 px-2 mt-2" role="alert" style="font-size: 0.85em;">
+                            @CopyMessage
+                        </div>
+                    }
+                    <p class="mt-3 mb-0 text-muted"><small>Das Spiel beginnt, sobald dein Gegner beigetreten ist.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Schliessen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Parameter zur Steuerung der Sichtbarkeit des Modals
+    [Parameter] public bool IsVisible { get; set; }
+    // Der zu teilende Einladungslink
+    [Parameter] public string InviteLink { get; set; } = "";
+    // Event-Callback beim Schliessen des Modals
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    // Nachricht, die nach dem Kopieren angezeigt wird
+    private string CopyMessage = "";
+    // Referenz zum Eingabefeld für den Einladungslink
+    private ElementReference inviteLinkInputRef;
+
+    // Methode zum Schliessen des Modals
+    private async Task CloseModal()
+    {
+        CopyMessage = "";
+        await OnClose.InvokeAsync();
+    }
+
+    // Methode zum Kopieren des Links in die Zwischenablage
+    private async Task CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(InviteLink))
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", $"document.getElementById('inviteLinkInput').select()");
+                await JSRuntime.InvokeVoidAsync("clipboardCopy.copyText", InviteLink);
+                CopyMessage = "Link in die Zwischenablage kopiert!";
+                _ = Task.Delay(3000).ContinueWith(async _ =>
+                {
+                    CopyMessage = "";
+                    await InvokeAsync(StateHasChanged);
+                });
+            }
+            catch
+            {
+                CopyMessage = "Fehler beim Kopieren.";
+            }
+            StateHasChanged();
+        }
+    }
+
+    // Lifecycle-Methode: Wird nach dem Rendern der Komponente aufgerufen
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (IsVisible && firstRender)
+        {
+        }
+    }
+
+    // Lifecycle-Methode: Wird aufgerufen, wenn Parameter gesetzt werden
+    protected override void OnParametersSet()
+    {
+        if (!IsVisible)
+        {
+            CopyMessage = "";
+        }
+    }
+}

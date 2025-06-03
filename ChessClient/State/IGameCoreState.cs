@@ -1,0 +1,39 @@
+﻿using System;
+using System.Collections.Generic;
+using ChessLogic;
+using ChessNetwork.DTOs;
+
+namespace ChessClient.State
+{
+    public interface IGameCoreState
+    {
+        event Action? StateChanged;
+        PlayerDto? CurrentPlayerInfo { get; } 
+        BoardDto? BoardDto { get; }
+        Player MyColor { get; }
+        Guid GameId { get; }
+        string? GameIdFromQueryString { get; }
+        bool IsGameIdFromQueryValidAndExists { get; }
+        Player? CurrentTurnPlayer { get; }
+        bool OpponentJoined { get; }
+        string EndGameMessage { get; }
+        Dictionary<Player, string> PlayerNames { get; }
+        bool IsGameSpecificDataInitialized { get; }
+        string WhiteTimeDisplay { get; }
+        string BlackTimeDisplay { get; }
+
+        void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes);
+        void InitializeJoinedGame(JoinGameResultDto result, Guid gameId, Player assignedColor);
+        void SetGameIdFromQuery(string? gameIdQuery, bool isValidAndExists);
+        void UpdatePlayerNames(Dictionary<Player, string> names);
+        void SetPlayerName(Player color, string name);
+        void UpdateBoard(BoardDto newBoard);
+        void SetCurrentTurnPlayer(Player? player);
+        void SetOpponentJoined(bool joined);
+        void SetEndGameMessage(string message);
+        void ClearEndGameMessage();
+        void SetGameSpecificDataInitialized(bool initialized);
+        void UpdateDisplayedTimes(TimeSpan whiteTime, TimeSpan blackTime, Player? activeTimerPlayer);
+        void ResetForNewGame(int initialTimeMinutes = 15);
+    }
+}

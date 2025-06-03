@@ -1,0 +1,181 @@
+﻿
+/* Stellt sicher, dass das Panel im Modal-Body korrekt angezeigt wird */
+.card-info-panel-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    /* Entferne oder kommentiere den festen Hintergrund hier aus,
+       wenn der Modal-Hintergrund (.modal-content) das steuern soll */
+    /* background-color: #fff; */
+    border-radius: 0.5rem;
+}
+
+.card-info-modal .modal-dialog {
+    /* max-width kann hier gesetzt werden, wenn modal-lg nicht ausreicht oder spezifischer sein soll */
+    /* z.B. max-width: 400px; für ein kompakteres Karten-Modal. modal-lg ist ca. 800px */
+    max-width: 450px; /* Machen wir es etwas kompakter als modal-lg */
+}
+
+.card-info-modal .modal-content {
+    background-color: rgba(50, 50, 50, 0.85); /* Dunkler, leicht transparenter Hintergrund für das Modal-Fenster selbst */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem; /* Etwas grössere Rundung */
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+    color: #f8f9fa; /* Helle Textfarbe für den Kontrast */
+}
+
+    .card-info-modal .modal-content .text-muted small {
+        color: #adb5bd !important; /* Helleres Grau für den Text auf dunklem Hintergrund */
+    }
+
+/* Visuelle Darstellung der Karte */
+.card-visual-representation {
+    position: relative;
+    width: 280px;
+    height: calc(280px * 1050 / 750);
+    background-color: transparent; /* Sicherstellen, dass kein eigener Hintergrund die Karte überdeckt */
+    border: none;
+    box-sizing: border-box;
+    margin: 0 auto 20px auto;
+}
+
+.card-art-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-art-actual-image {
+    width: 68%;
+    margin-top: -40%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.card-frame-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.card-content-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.card-title-section {
+    position: absolute;
+    top: 69%;
+    left: 10%;
+    width: 80%;
+    height: 10%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: auto;
+}
+
+.card-title-text {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #f0e0c0; /* Hellerer, warmer Ton für den Titel auf dunklem Hintergrund */
+    margin: 0;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7); /* Stärkerer Schatten für Lesbarkeit */
+}
+
+.card-description-section {
+    position: absolute;
+    top: 76%;
+    left: 15%;
+    width: 70%;
+    height: 15%;
+    color: #e0e0e0; /* Hellere Textfarbe für die Beschreibung */
+    font-size: 0.85em;
+    line-height: 1.3;
+    overflow-y: auto;
+    padding: 2% 3%;
+    box-sizing: border-box;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+.card-description-text {
+    font-size: inherit;
+    color: inherit;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    max-height: 100%;
+}
+
+.action-buttons-cip {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    width: 100%;
+    max-width: 320px;
+    margin-top: 15px;
+}
+
+    .action-buttons-cip .btn {
+        flex-grow: 1;
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+    }
+
+.close-modal-button-cip {
+    position: absolute;
+    top: 15px; /* Etwas mehr Abstand vom Rand */
+    right: 15px; /* Etwas mehr Abstand vom Rand */
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.2); /* Hellt den Button leicht auf, damit er sichtbar ist */
+    color: #fff; /* Weisse Schrift für den Button */
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 50%;
+    width: 32px; /* Leicht grösser */
+    height: 32px; /* Leicht grösser */
+    padding: 0;
+    font-size: 1.2rem; /* Grösseres X */
+    line-height: 30px;
+    text-align: center;
+    opacity: 0.8;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+    .close-modal-button-cip:hover {
+        opacity: 1;
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+/* Styling für den Preview-Modus, falls du Textfarben anpassen musst */
+.card-info-panel-content.preview-only-mode .card-visual-representation .card-title-text,
+.card-info-panel-content.preview-only-mode .card-visual-representation .card-description-text {
+    color: #a09070; /* Angepasste Farbe für Preview auf dunklem Hintergrund */
+}
+
+.card-info-panel-content.preview-only-mode .text-muted small {
+    color: #9a9fa5 !important; /* Helleres Grau für Preview-Text */
+}

@@ -1,0 +1,60 @@
+﻿@using ChessClient.Models
+@using ChessNetwork.DTOs
+
+@* Panel zur Anzeige der Historie gespielter Karten. *@
+<div class="played-cards-history-panel">
+    @* Abschnitt für vom Gegner gespielte Karten. *@
+    <div class="history-section opponent-history">
+        <h6>Gegnerische gespielte Karten</h6>
+        @if (OpponentPlayedCards != null && OpponentPlayedCards.Any())
+        {
+            <div class="cards-list">
+                @* Zeigt Karten in umgekehrter Reihenfolge an (neueste zuerst).*@
+                @foreach (var playedInfo in OpponentPlayedCards.Reverse<PlayedCardInfo>())
+                {
+                    <div class="played-card-entry" @onclick="() => SelectCard(playedInfo.CardDefinition)" title="@playedInfo.CardDefinition.Name: @playedInfo.CardDefinition.Description">
+                        <img src="@playedInfo.CardDefinition.ImageUrl" alt="@playedInfo.CardDefinition.Name" class="played-card-history-image" />
+                        <span class="played-card-history-name">@playedInfo.CardDefinition.Name</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-cards-played-text">Noch keine Karten vom Gegner gespielt.</div>
+        }
+    </div>
+
+    @* Abschnitt für eigene gespielte Karten. *@
+    <div class="history-section my-history">
+        <h6>Meine gespielten Karten</h6>
+        @if (MyPlayedCards != null && MyPlayedCards.Any())
+        {
+            <div class="cards-list">
+                @foreach (var playedInfo in MyPlayedCards.Reverse<PlayedCardInfo>())
+                {
+                    <div class="played-card-entry" @onclick="() => SelectCard(playedInfo.CardDefinition)" title="@playedInfo.CardDefinition.Name: @playedInfo.CardDefinition.Description">
+                        <img src="@playedInfo.CardDefinition.ImageUrl" alt="@playedInfo.CardDefinition.Name" class="played-card-history-image" />
+                        <span class="played-card-history-name">@playedInfo.CardDefinition.Name</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-cards-played-text">Noch keine eigenen Karten gespielt.</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<PlayedCardInfo> MyPlayedCards { get; set; } = new List<PlayedCardInfo>(); // Liste meiner gespielten Karten.
+    [Parameter] public List<PlayedCardInfo> OpponentPlayedCards { get; set; } = new List<PlayedCardInfo>(); // Liste der vom Gegner gespielten Karten.
+    [Parameter] public EventCallback<CardDto> OnPlayedCardSelected { get; set; } // Event-Callback, wenn eine gespielte Karte ausgewählt wird.
+
+    // Löst das Event aus, wenn eine Karte aus der Historie ausgewählt wird.
+    private async Task SelectCard(CardDto card)
+    {
+        await OnPlayedCardSelected.InvokeAsync(card);
+    }
+}

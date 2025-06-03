@@ -1,0 +1,43 @@
+﻿@* File: [SolutionDir]/ChessClient/Pages/Components/CardActivationAnimation.razor *@
+@using ChessClient.Models
+@using ChessNetwork.Configuration
+
+@if (IsVisible && CardToDisplay != null)
+{
+    <div class="card-animation-overlay" @onclick="TryCloseAnimation">
+        @* Die CSS-Klasse "animate-to-history" wird später für die End-Animation hinzugefügt *@
+        <div class="card-animation-container @(GlowEffect ? "glow-animation-active" : "") @(IsMovingToHistory ? "animate-to-history" : "")" @onclick:stopPropagation>
+            <div class="class_flipper_wrapper_for_perspective">
+                <div class="card-flipper @(IsFlipped ? "is-flipped" : "")">
+                    @* VORDERSEITE - Struktur wie in CardInfoPanel *@
+                    <div class="card-face card-front">
+                        @* Wiederverwendung der Struktur und Klassen aus CardInfoPanel, ggf. mit Suffix "-animated", falls Styles nicht global sind *@
+                        <div class="card-visual-representation-animated">
+                            <div class="card-art-layer-animated">
+                                <img src="@CardToDisplay.ImageUrl" alt="Kartenkunst für @CardToDisplay.Name" class="card-art-actual-image-animated" />
+                            </div>
+                            <img src="/img/cards/template.png" alt="Kartenrahmen" class="card-frame-image-animated" />
+                            <div class="card-content-layer-animated">
+                                <div class="card-title-section-animated">
+                                    @if (!string.IsNullOrWhiteSpace(CardToDisplay.Name) && !CardToDisplay.Name.StartsWith(CardConstants.FallbackCardIdPrefix))
+                                    {
+                                        <h5 class="card-title-text-animated">@CardToDisplay.Name</h5>
+                                    }
+                                </div>
+                                @* Beschreibung für die Animation eventuell zu viel, aber hier wäre der Platz *@
+                                @* <div class="card-description-section-animated">
+                                    <p class="card-description-text-animated">@CardToDisplay.Description</p>
+                                </div> *@
+                            </div>
+                        </div>
+                    </div>
+
+                    @* RÜCKSEITE *@
+                    <div class="card-face card-back">
+                        <img src="@CardConstants.DefaultCardBackImageUrl" alt="Kartenrückseite" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

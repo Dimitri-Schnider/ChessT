@@ -1,0 +1,48 @@
+﻿/* File: [SolutionDir]/ChessClient/Pages/Components/TimersDisplay.razor.css */
+.timers-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%; /* Nimmt standardmässig die Breite des Wrappers ein */
+    max-width: 600px; /* Begrenzt die maximale Breite der Timer-Leiste */
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 10px; /* Beibehaltung des unteren Abstands */
+}
+
+.timer-box {
+    padding: 0.5rem 0.75rem; /* Etwas mehr Padding für bessere Lesbarkeit */
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    flex-grow: 1; /* Erlaubt den Boxen, sich den Platz zu teilen */
+    margin: 0 5px; /* Kleiner horizontaler Abstand zwischen den Boxen */
+    min-width: 120px; /* Mindestbreite pro Timer-Box */
+}
+
+.time-display {
+    font-size: 1.4rem; /* Etwas grössere Schrift für die Zeit */
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.timer-box.timer-active .time-display {
+    color: green;
+}
+
+.timer-box.timer-active {
+    border-color: green;
+    box-shadow: 0 0 8px rgba(0, 128, 0, 0.5); /* Weicherer Schatten */
+}
+
+@media (max-width: 480px) { /* Speziell für sehr kleine Bildschirme */
+    .timers-container {
+        flex-direction: column; /* Timer untereinander auf sehr kleinen Screens */
+        gap: 8px;
+        max-width: 100%;
+    }
+
+    .timer-box {
+        margin: 0;
+        width: 100%; /* Volle Breite pro Timer */
+    }
+}

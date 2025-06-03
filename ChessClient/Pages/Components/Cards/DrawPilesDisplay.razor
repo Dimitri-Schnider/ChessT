@@ -1,0 +1,10 @@
+﻿<div class="draw-piles-wrapper">
+    <div class="draw-pile my-pile" title="Dein Nachziehstapel">
+        <img src="img/cards/templateback.png" alt="Nachziehstapel" class="draw-pile-image" />
+        <span>@MyDrawPileCount</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int MyDrawPileCount { get; set; } // Anzahl der Karten im eigenen Nachziehstapel.
+}

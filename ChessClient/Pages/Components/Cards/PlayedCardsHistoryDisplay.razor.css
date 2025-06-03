@@ -1,0 +1,93 @@
+﻿/* File: [SolutionDir]/ChessClient/Pages/Components/Cards/PlayedCardsHistoryDisplay.razor.css */
+.played-cards-history-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.history-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 0; /* Padding wird durch innere Elemente gehandhabt */
+    background-color: #f8f9fa;
+    width: 100%;
+    box-sizing: border-box;
+    /* Die Höhe dieser Sektionen wird jetzt durch den Wrapper in Chess.razor.css gesteuert,
+       aber wenn sie individuell scrollen sollen, kann hier eine max-height gesetzt werden.
+       Für den Fall, dass der Wrapper scrollt, setzen wir hier overflow-y auf visible. */
+    overflow-y: visible; /* Damit der Parent scrollt, wenn .played-cards-history-display-wrapper scrollt */
+}
+
+    .history-section h6 {
+        margin: 0; /* Entfernt default margin */
+        font-weight: bold;
+        color: #333;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+        padding: 8px; /* Padding für die Überschrift selbst */
+        background-color: #e9ecef;
+        border-top-left-radius: 5px; /* Rundet Ecken des Headers mit dem Container */
+        border-top-right-radius: 5px;
+    }
+
+.cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    padding: 8px; /* Padding für die Liste, nicht für die Sektion */
+}
+
+.played-card-entry {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+    .played-card-entry:hover {
+        background-color: #e9ecef;
+    }
+
+.played-card-history-image {
+    width: 30px; /* Etwas kleiner für Mobile */
+    height: auto;
+    aspect-ratio: 75 / 105;
+    object-fit: cover;
+    border-radius: 3px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.played-card-history-name {
+    font-size: 0.85em;
+    color: #2c3e50;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+}
+
+.no-cards-played-text {
+    font-size: 0.9em;
+    color: #6c757d; /* Etwas dunkler */
+    text-align: center;
+    padding: 15px 10px; /* Mehr Padding */
+}
+
+/* Keine spezifische Media Query hier nötig, da die Änderungen für Mobile
+   primär durch den Wrapper in Chess.razor.css gesteuert werden sollen. */

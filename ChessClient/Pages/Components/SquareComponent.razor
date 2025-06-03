@@ -1,0 +1,41 @@
+﻿@using ChessNetwork.DTOs
+@using ChessClient.Extensions
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using ChessClient.Utils
+@implements IAsyncDisposable
+@* Diese Komponente stellt ein einzelnes Feld auf dem Schachbrett dar. *@
+
+@* Das einzelne Feld auf dem Schachbrett *@
+<div @ref="squareElementRef"
+     class="square @(IsDarkSquare() ? "dark" : "") @GetHighlightClass() @(!IsBoardEnabledOverall && !IsSquareSelectionModeActiveForCard ? "board-disabled" : "")"
+     @onclick="HandleGeneralClick"
+     data-coord-for-debug="@Coord">
+
+    @* Rank-Beschriftung (Zahlen 1-8) *@
+    @if (ShowRankLabel)
+    {
+        <span class="rank-label">@RankDisplay</span>
+    }
+
+    @* File-Beschriftung (Buchstaben a-h) *@
+    @if (ShowFileLabel)
+    {
+        <span class="file-label">@FileDisplay</span>
+    }
+
+    @{
+        // Lokale Variable, um den Zugriff auf das PieceDto zu vereinfachen.
+        var sq = Board.Squares[Rank][File];
+    }
+    @* Anzeige der Schachfigur, falls vorhanden *@
+    @if (sq.HasValue)
+    {
+        <img @key="sq.Value"
+             @ref="pieceImageElementRef"
+             src="@sq.Value.ToImagePath()"
+             alt="@Coord"
+             class="@(IsBeingDraggedOriginal ? "piece-being-dragged-original" : "") @((IsBoardEnabledOverall && CanThisPieceBeDragged && !IsSquareSelectionModeActiveForCard) ? "" : "piece-not-interactive")"
+             data-piece-coord-original="@Coord" />
+    }
+</div>

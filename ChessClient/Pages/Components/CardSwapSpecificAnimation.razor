@@ -1,0 +1,39 @@
+﻿@using ChessNetwork.DTOs
+@using ChessNetwork.Configuration
+
+@if (IsVisible && CardGiven != null && CardReceived != null)
+{
+    <div class="card-swap-specific-overlay" @onclick="TryCloseAnimation">
+        <div class="card-swap-specific-container @AnimationStepClass" @onclick:stopPropagation>
+
+            @* Karte, die der Spieler abgibt *@
+            <div class="swapping-card given-card @GivenCardAnimationClass">
+                <div class="card-flipper @(IsGivenCardFlipped ? "is-flipped" : "")">
+                    <div class="card-face card-front">
+                        <img src="@CardGiven.ImageUrl" alt="@CardGiven.Name" class="swap-card-art" />
+                        <img src="/img/cards/template.png" alt="Kartenrahmen" class="swap-card-frame" />
+                        <div class="swap-card-title">@CardGiven.Name</div>
+                    </div>
+                    <div class="card-face card-back">
+                        <img src="@CardConstants.DefaultCardBackImageUrl" alt="Kartenrückseite" />
+                    </div>
+                </div>
+            </div>
+
+            @* Karte, die der Spieler erhält *@
+            <div class="swapping-card received-card @ReceivedCardAnimationClass">
+                <div class="card-flipper @(IsReceivedCardFlipped ? "is-flipped" : "")">
+                    <div class="card-face card-front">
+                        <img src="@CardReceived.ImageUrl" alt="@CardReceived.Name" class="swap-card-art" />
+                        <img src="/img/cards/template.png" alt="Kartenrahmen" class="swap-card-frame" />
+                        <div class="swap-card-title">@CardReceived.Name</div>
+                    </div>
+                    <div class="card-face card-back">
+                        <img src="@CardConstants.DefaultCardBackImageUrl" alt="Kartenrückseite" />
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

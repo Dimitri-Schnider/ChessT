@@ -1,0 +1,30 @@
+﻿.info-box-wrapper { /* Neuer Wrapper für Flex-Layout */
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    z-index: 1060; 
+    transition: opacity 0.3s ease-in-out;
+    display: flex; 
+    align-items: center;
+    gap: 10px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+    .info-box-wrapper[hidden] { 
+        opacity: 0;
+        pointer-events: none;
+    }
+
+.info-box-message {
+    flex-grow: 1;
+}
+
+.info-box-action-button {
+    flex-shrink: 0; 
+}

@@ -1,0 +1,25 @@
+﻿/* Style for the piece actively being dragged to make it slightly larger */
+.piece-drag-active {
+    transform: scale(1.2); /* Make piece 20% larger */
+    z-index: 1000; /* Ensure it's above other pieces */
+    cursor: grabbing !important;
+    /* Optional: Add a subtle box-shadow or other effects */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s ease-out; /* Smooth scaling */
+}
+
+/* The .piece-being-dragged-original class (making the original piece on board transparent) 
+   is already defined in SquareComponent.razor.css and applied by Blazor:
+   .square img.dragged-piece-original { opacity: 0.4; } 
+*/
+
+/* Optional: Style for squares that are active drop targets during a drag */
+/* This is usually handled by the .highlight class from Blazor based on legal moves */
+/*
+.drop-target-active {
+    background-color: rgba(0, 255, 0, 0.1); 
+}
+.can-drop-js {
+    outline: 2px dashed green;
+}
+*/

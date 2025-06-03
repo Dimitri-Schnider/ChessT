@@ -1,0 +1,39 @@
+﻿@inherits LayoutComponentBase
+@using ChessClient.Services
+@using ChessClient.Pages.Components
+@implements IDisposable
+
+<div class="page d-flex @(isMobileView && isNavMenuOverlayOpen ? "mobile-nav-is-open" : "") @GameStatusCssClass">
+
+    @if (ShouldShowGlobalBurgerButton())
+    {
+        <button class="btn btn-outline-secondary global-burger-button" @onclick="ToggleNavMenuOverlay" title="Menü öffnen">
+            <i class="bi bi-list"></i>
+        </button>
+    }
+
+    <NavMenu IsPinnedModeRequest="@GetIsNavMenuPinned()"
+             IsOpenAsOverlayRequest="@isNavMenuOverlayOpen"
+             OnRequestCloseMenu="HandleRequestCloseMenuFromNav" />
+
+    <div class="main-content-wrapper flex-grow-1">
+        @if (ActiveGameIdForDrawer != Guid.Empty)
+        {
+            <button class="btn btn-outline-secondary btn-sm settings-button-relocated" @onclick="ToggleRightDrawer" title="Einstellungen und Logs">
+                <i class="bi bi-gear-fill"></i>
+            </button>
+        }
+
+        <div class="content-area d-flex">
+            <article class="content px-4 flex-grow-1">
+                <CascadingValue Value="this" Name="MyMainLayout">
+                    @Body
+                </CascadingValue>
+            </article>
+        </div>
+    </div>
+</div>
+
+<RightSideDrawer @ref="rightSideDrawerInstance"
+                 CurrentGameId="@ActiveGameIdForDrawer"
+                 CanDownloadHistory="CanDownloadGameHistory" />

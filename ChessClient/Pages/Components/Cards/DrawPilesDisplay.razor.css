@@ -1,0 +1,101 @@
+﻿/* File: [SolutionDir]/ChessClient/Pages/Components/Cards/DrawPilesDisplay.razor.css */
+/* (-und spezifische Media Queries) */
+.draw-piles-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 0;
+    flex-shrink: 0;
+    height: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.draw-pile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    border-radius: 6px;
+    width: 85px;
+    height: 100%;
+    padding: 5px 0;
+    box-sizing: border-box;
+}
+
+.draw-pile-image {
+    max-width: 90%;
+    height: 100px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+    border-radius: 4px;
+}
+
+.draw-pile span {
+    font-weight: bold;
+    font-size: 0.85em;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.65);
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-top: 5px;
+    line-height: 1.2;
+    text-align: center;
+    min-width: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Für Mobile-Ansichten (bis 992px), wo die Höhe durch .bottom-game-elements bestimmt wird */
+@media (max-width: 992px) {
+    .draw-piles-wrapper {
+        height: auto; /* Passt sich an die Höhe von .bottom-game-elements an, falls diese fix ist, oder an den Inhalt */
+    }
+
+    .draw-pile {
+        width: 80px; /* Etwas schmaler */
+        padding: 5px 0;
+    }
+
+    .draw-pile-image {
+        height: 90px; /* Bild etwas kleiner */
+    }
+
+    .draw-pile span {
+        font-size: 0.8em;
+        margin-top: 4px;
+    }
+}
+
+/* Spezifische Anpassungen für sehr kleine Mobile-Screens */
+@media (max-width: 420px) {
+    .draw-pile {
+        width: 60px; /* Nachziehstapel noch schmaler */
+    }
+
+    .draw-pile-image {
+        height: 70px; /* Bildhöhe angepasst */
+    }
+
+    .draw-pile span {
+        font-size: 0.65em;
+        margin-top: 2px;
+        padding: 1px 3px;
+    }
+}
+
+/* Für Screens zwischen 421px und 992px (Standard Mobile) */
+@media (min-width: 421px) and (max-width: 992px) {
+    .draw-pile {
+        width: 75px;
+    }
+
+    .draw-pile-image {
+        height: 85px;
+    }
+
+    .draw-pile span {
+        font-size: 0.75em;
+    }
+}

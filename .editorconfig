@@ -1,0 +1,13 @@
+# Legt diese Datei als Root-Konfigurationsdatei für Editor-Einstellungen fest.
+root = true
+
+[*.cs]
+# Aktiviert Leistungs- und Stilregeln von FxCop für C#-Dateien.
+dotnet_analyzer_diagnostic.category-Performance.severity = warning
+dotnet_analyzer_diagnostic.category-Style.severity = suggestion
+
+# Definiert, dass unbenutzte private Member als Fehler behandelt werden.
+dotnet_diagnostic.CA1823.severity = error
+
+# Behandelt alle Analysewarnungen global als Fehler.
+dotnet_analyzer_diagnostic.severity = error

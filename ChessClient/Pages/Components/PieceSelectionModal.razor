@@ -1,0 +1,62 @@
+﻿@* File: [SolutionDir]/ChessClient/Pages/Components/PieceSelectionModal.razor *@
+@using ChessLogic
+@using ChessNetwork.DTOs
+@using ChessClient.Extensions
+@using ChessClient.Models
+
+@if (IsVisible)
+{
+    // Modal-Überlagerung
+    <div class="modal-backdrop show" @onclick="HandleCancel"></div>
+    // Hauptcontainer des Modals
+    <div class="modal show piece-selection-modal" tabindex="-1" style="display: block;" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    @* Kein Schliessen-Button im Header, um Auswahl zu erzwingen oder definierten Abbruch-Pfad zu nutzen *@
+                </div>
+                <div class="modal-body">
+                    <p>@PromptMessage</p>
+                    @if (Choices != null && Choices.Any())
+                    {
+                        <div class="piece-choices">
+                            @foreach (var choiceInfo in Choices) @* Iteriert nun über PieceSelectionChoiceInfo *@
+                            {
+                                var pieceDtoToDisplay = GetPieceDtoForDisplay(PlayerColor, choiceInfo.Type);
+                                if (pieceDtoToDisplay.HasValue)
+                                {
+                                    <div class="piece-choice @(SelectedPieceType == choiceInfo.Type ? "selected" : "") @(!choiceInfo.CanBeRevivedOnBoard ? "disabled-choice" : "")"
+                                         @onclick="() => SelectPieceType(choiceInfo)"
+                                         title="@(choiceInfo.TooltipMessage ?? choiceInfo.Type.ToString())">
+                                        <img src="@pieceDtoToDisplay.Value.ToImagePath()" alt="@choiceInfo.Type.ToString()" />
+                                        <span>@choiceInfo.Type.ToString()</span>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Keine gültigen Optionen verfügbar.</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(ModalErrorMessage))
+                    {
+                        <div class="alert alert-warning mt-2">@ModalErrorMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (ShowCancelButton)
+                    {
+                        <button type="button" class="btn btn-secondary" @onclick="HandleCancel">Abbrechen</button>
+                    }
+                    @* Bestätigen-Button ist deaktiviert, wenn nichts ausgewählt oder das Ausgewählte nicht wiederbelebt werden kann *@
+                    <button type="button" class="btn btn-primary" @onclick="HandleConfirm"
+                            disabled="@(SelectedPieceType == null || (Choices != null && Choices.FirstOrDefault(c => c.Type == SelectedPieceType)?.CanBeRevivedOnBoard == false))">
+                        Bestätigen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

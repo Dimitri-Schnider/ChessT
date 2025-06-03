@@ -1,0 +1,237 @@
+﻿/* File: [SolutionDir]/ChessClient/Pages/Components/SquareComponent.razor.css */
+/* Bestehendes CSS bleibt erhalten */
+.square {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; /* Wichtig für korrekte Darstellung der Hintergrund-Highlights und Labels */
+    box-sizing: border-box;
+}
+
+    /* Standard-Cursor für leere Felder, wenn das Brett für Züge aktiv ist (Spieler am Zug) */
+    .square:not(.board-disabled) {
+        cursor: default;
+    }
+
+    /* Wenn das gesamte Brett für Züge gesperrt ist (z.B. Spieler nicht am Zug) */
+    .square.board-disabled {
+        cursor: not-allowed !important; /* Wichtig, um andere Cursor zu überschreiben */
+    }
+
+        .square.board-disabled img {
+            cursor: not-allowed !important; /* Auch für Bilder auf gesperrten Feldern */
+        }
+
+    /* Basis-Styling für Figuren-Bilder */
+    .square img {
+        max-width: 80%;
+        max-height: 80%;
+        object-fit: contain;
+        touch-action: none;
+        position: relative;
+        z-index: 10;
+        transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+    }
+
+    /* --- ANGEPASSTE CURSOR LOGIK FÜR FIGUREN --- */
+
+    /* 1. Spieler ist AM ZUG und Figur IST ZIEHBAR */
+    /* Die Klasse .piece-not-interactive ist NICHT vorhanden */
+    .square:not(.board-disabled) img:not(.piece-not-interactive) {
+        cursor: grab !important; /* HAND-CURSOR ERZWINGEN */
+    }
+
+        .square:not(.board-disabled) img:not(.piece-not-interactive):active {
+            cursor: grabbing !important; /* Greif-Hand-Cursor erzwingen, wenn aktiv geklickt */
+        }
+
+    /* 2. Spieler ist AM ZUG, aber Figur ist NICHT ZIEHBAR (z.B. gegnerische Figur) */
+    /* Die Klasse .piece-not-interactive ist vorhanden */
+    .square:not(.board-disabled) img.piece-not-interactive {
+        cursor: default !important; /* DEFAULT-CURSOR für nicht-ziehbare Figuren bei aktivem Spieler */
+    }
+
+    /*
+   Hinweis: Wenn .square.board-disabled aktiv ist (Spieler nicht am Zug),
+   greift .square.board-disabled img { cursor: not-allowed !important; }
+   und überschreibt die spezifischeren Regeln für .piece-not-interactive oder :not(.piece-not-interactive),
+   was das gewünschte Verhalten ist (alles ist not-allowed).
+    */
+
+
+    /* Styling für hervorgehobene Felder (z.B. legale Züge). */
+    .square.highlight {
+        outline: 3px solid rgba(255, 215, 0, 0.7); /* Goldene Hervorhebung für legale Züge */
+        outline-offset: -3px;
+    }
+
+    /* CSS-Klasse, wenn ein ziehbares Element über diese Dropzone gezogen wird (von JS angewendet). */
+    .square.drag-over-target-js {
+        background-color: rgba(144, 238, 144, 0.5); /* Hellgrün, wenn über Ziel gezogen wird */
+    }
+
+    /* Styling, wenn die Originalfigur auf dem Brett ausgeblendet wird (Blazor-gesteuert). */
+    .square img.piece-being-dragged-original {
+        opacity: 0.3;
+    }
+
+    /* Styling für das Figurenbild, das aktiv von interact.js gezogen wird. */
+    .square img.dragging-active-piece { /* Diese Klasse wird von chessDnD.js dynamisch gesetzt */
+        z-index: 1000;
+        box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
+        opacity: 0.9;
+        transition: none;
+        /* Hier keinen Cursor setzen, da der Cursor des Klon-Elements von interact.js gehandhabt wird. */
+        /* Das Original-Element unter der Maus sollte weiterhin den 'grabbing' Cursor haben, wenn :active. */
+    }
+
+    /* Styling für das erste ausgewählte Feld bei einer Kartenaktivierung. */
+    .square.highlight-card-first-selection {
+        outline: 3px solid rgba(0, 128, 255, 0.8);
+        outline-offset: -3px;
+        background-color: rgba(0, 128, 255, 0.1);
+    }
+
+        .square.highlight-card-first-selection img {
+            box-shadow: 0 0 8px 3px rgba(0, 128, 255, 0.7); /* Standard-Figur-Cursor-Logik soll hier weiterhin gelten (grab, wenn eigene Figur im Auswahlmodus) */
+        }
+
+    /* Styling für Felder, die von Karten zur Figurenauswahl hervorgehoben werden */
+    .square.highlight-card-piece-selection {
+        background-color: rgba(255, 165, 0, 0.3);
+        outline: 2px dashed rgba(255, 165, 0, 0.7);
+        outline-offset: -2px;
+        cursor: pointer !important; /* Wichtig für klickbare Kartenaktionen */
+    }
+
+        .square.highlight-card-piece-selection img {
+            cursor: pointer !important; /* Wichtig für klickbare Kartenaktionen */
+        }
+
+
+    /* Spezifisches Highlighting für auswählbare Zielfelder von Karteneffekten (z.B. Rebirth) */
+    .square.highlight-card-actionable-target {
+        background-color: rgba(30, 144, 255, 0.25);
+        outline: 2px solid rgba(30, 144, 255, 0.6);
+        outline-offset: -2px;
+        cursor: pointer !important; /* Expliziter Cursor für klickbare Karten-Aktionsziele */
+    }
+
+        .square.highlight-card-actionable-target img { /* Falls ein Bild auf dem Zielfeld wäre */
+            cursor: pointer !important;
+        }
+
+
+    /* ----- STYLES FÜR LETZTEN ZUG UND KARTENEFFEKTE (Hintergründe, Cursor-neutral) ----- */
+    .square.highlight-last-move-to-strong {
+        background-color: rgba(255, 255, 0, 0.6);
+    }
+
+    .square.highlight-last-move-from-strong {
+        background-color: rgba(255, 255, 0, 0.5);
+    }
+
+    .square.highlight-last-move-to-weaker {
+        background-color: rgba(255, 255, 0, 0.4);
+    }
+
+    .square.highlight-last-move-from-weaker {
+        background-color: rgba(255, 255, 0, 0.3);
+    }
+
+    .square.highlight-card-teleport-from {
+        background-color: rgba(0, 191, 255, 0.3);
+    }
+
+    .square.highlight-card-teleport-to {
+        background-color: rgba(0, 191, 255, 0.6);
+    }
+
+    .square.highlight-card-swap-1,
+    .square.highlight-card-swap-2 {
+        background-color: rgba(173, 216, 230, 0.5);
+    }
+
+    .square.highlight-card-rebirth {
+        background-color: rgba(152, 251, 152, 0.5);
+        outline: 2px dashed rgba(60, 179, 113, 0.7);
+        outline-offset: -2px;
+    }
+
+    /* NEUES CSS für die Koordinaten-Labels */
+    .square .rank-label {
+        position: absolute;
+        top: 2px; /* Kleiner Abstand vom oberen Rand */
+        left: 3px; /* Kleiner Abstand vom linken Rand */
+        font-size: 0.7em; /* Kleinere Schriftgrösse */
+        font-weight: bold;
+        color: rgba(0, 0, 0, 0.4); /* Dezente Farbe */
+        pointer-events: none; /* Labels sollen Klicks nicht abfangen */
+        z-index: 1; /* Unter den Figuren, aber über dem Feldhintergrund */
+    }
+
+    .square .file-label {
+        position: absolute;
+        bottom: 1px; /* Kleiner Abstand vom unteren Rand */
+        right: 4px; /* Kleiner Abstand vom rechten Rand */
+        font-size: 0.7em;
+        font-weight: bold;
+        color: rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    /* Anpassung der Label-Farbe für dunkle Felder für bessere Lesbarkeit */
+    .square.dark .rank-label,
+    .square.dark .file-label {
+        color: rgba(255, 255, 255, 0.5); /* Hellere Farbe auf dunklen Feldern */
+    }
+
+    /* Um die .dark Klasse zu nutzen, müsstest du sie in SquareComponent.razor setzen,
+   basierend auf der Feldfarbe. Beispiel:
+   <div class="square @(IsDarkSquare() ? "dark" : "") ...">
+   Und eine Methode IsDarkSquare() in SquareComponent.razor.cs:
+   private bool IsDarkSquare() => (Rank + File) % 2 != 0; // Oder == 0, je nachdem wie du hell/dunkel definierst
+*/
+
+    /* Da die `.square` Klasse bereits in `ChessBoard.razor.css` definiert ist
+   und das Bild für das Schachbrett (`Board.png`) dort als Hintergrund gesetzt wird,
+   müssen wir hier keine `.dark` oder `.light` Klassen für die FeldFARBE definieren,
+   sondern nur für die TEXTFARBE der Labels, FALLS das Schachbrettbild selbst keine
+   unterschiedlichen Feldfraben hat oder die Textfarbe schwer lesbar ist.
+
+   Wenn dein Board.png bereits helle und dunkle Felder hat, kannst du die
+   .dark Klasse und die zugehörige Logik/CSS oben weglassen oder anpassen,
+   um die Textfarbe so zu wählen, dass sie auf BEIDEN Feldtypen gut lesbar ist.
+   Eine universellere Farbe könnte sein:
+*/
+    .square .rank-label,
+    .square .file-label {
+        position: absolute;
+        font-size: clamp(8px, 1.5vmin, 10px); /* Responsive Schriftgrösse */
+        font-weight: bold;
+        color: #808080; /* Mittelgrau, sollte auf den meisten Hintergründen lesbar sein */
+        /* Alternativ: Verwende eine Farbe mit Transparenz, die sich anpasst */
+        /* color: rgba(0, 0, 0, 0.3); */ /* Für helle Bretter */
+        /* color: rgba(255, 255, 255, 0.3); */ /* Für dunkle Bretter */
+        pointer-events: none;
+        z-index: 1;
+        padding: 1px; /* Kleiner Innenabstand, um nicht ganz am Rand zu kleben */
+        line-height: 1; /* Kann helfen, die vertikale Positionierung zu stabilisieren */
+    }
+
+    .square .rank-label {
+        top: 0;
+        left: 0;
+        margin-top: 3px;
+        margin-left: 3px;
+    }
+
+    .square .file-label {
+        bottom: 0;
+        right: 0;
+        margin-bottom: 3px;
+        margin-right: 3px;
+    }

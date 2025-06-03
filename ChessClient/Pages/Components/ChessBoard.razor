@@ -1,0 +1,117 @@
+﻿@using ChessNetwork.DTOs
+@using ChessNetwork
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using ChessLogic
+@using ChessClient.Utils
+@using ChessClient.Models
+@using ChessClient.Extensions
+@using ChessClient.State
+@inject IHighlightState HighlightStateLocal
+
+<div class="chessboard-grid">
+    @if (!FlipBoard)
+    {
+        @for (int rank = 0; rank < 8; rank++)
+        {
+            <div class="rank-row" @key="'r' + rank">
+                @for (int file = 0; file < 8; file++)
+                {
+                    var currentCoord = PositionHelper.ToAlgebraic(rank, file);
+                    var pieceOnCurrentSquare = Board.Squares[rank][file];
+                    bool nhuHighlightForCardPieceSelection = false;
+                    if (IsSquareSelectionModeActiveForCard && PlayerColorForCardPieceSelection.HasValue && pieceOnCurrentSquare.HasValue)
+                    {
+                        nhuHighlightForCardPieceSelection = pieceOnCurrentSquare.Value.IsOfPlayerColor(PlayerColorForCardPieceSelection.Value);
+                    }
+                    bool nhuHighlightAsCardActionableTarget = IsSquareSelectionModeActiveForCard &&
+                    HighlightedCardTargetSquaresForSelection != null &&
+                    HighlightedCardTargetSquaresForSelection.Contains(currentCoord);
+
+                
+                    bool showRank = file == 0;
+                    bool showFile = rank == 7;
+
+                    <SquareComponent @key="currentCoord"
+                                     Board="@Board"
+                                     Rank="@rank"
+                                     File="@file"
+                                     IsHighlightedInternal="@(IsSquareSelectionModeActiveForCard && !nhuHighlightAsCardActionableTarget ? false : (IsEnabled && legalMovesForHighlight.Contains(currentCoord)))"
+                                     IsHighlightedForCardPieceSelection="@nhuHighlightForCardPieceSelection"
+                                     IsHighlightedForCardTargetSelection="@nhuHighlightAsCardActionableTarget"
+                                     IsFirstSelectedForCardEffect="@(IsSquareSelectionModeActiveForCard && FirstSelectedSquareForCard == currentCoord)"
+                                     OnClick="OnSquareClick"
+                                     OnClickForCard="OnSquareClickForCard"
+                                     IsSquareSelectionModeActiveForCard="IsSquareSelectionModeActiveForCard"
+                                     OnPieceDragStartInternal="HandlePieceDragStart"
+                                     OnSquareDropInternal="async (draggedPieceCoord) => await HandleSquareDrop(currentCoord, draggedPieceCoord)"
+                                     OnPieceDragEndInternal="HandlePieceDragEnd"
+                                     IsBeingDraggedOriginal="@(_isCurrentlyDragging && selectedFrom == currentCoord)"
+                                     IsBoardEnabledOverall="@IsEnabled"
+                                     CanThisPieceBeDragged="@(!IsSquareSelectionModeActiveForCard && pieceOnCurrentSquare.HasValue && pieceOnCurrentSquare.Value.IsOfPlayerColor(MyPlayerColor) && IsEnabled)"
+                                     CardEffectHighlightType="@(HighlightStateLocal.HighlightCardEffectSquares?.FirstOrDefault(s => s.Square == currentCoord).Type)"
+                                     CurrentStrongMoveFrom="@HighlightStateLocal.MostRecentMoveFrom"
+                                     CurrentStrongMoveTo="@HighlightStateLocal.MostRecentMoveTo"
+                                     PreviousSequenceMoveFrom="@HighlightStateLocal.PenultimateMoveFrom"
+                                     PreviousSequenceMoveTo="@HighlightStateLocal.PenultimateMoveTo"
+                                     IsCurrentMoveTheThirdInSequence="@HighlightStateLocal.IsThirdMoveOfSequence"
+                                     ShowRankLabel="showRank"
+                                     ShowFileLabel="showFile" />
+                }
+            </div>
+        }
+    }
+    else // FlipBoard == true
+    {
+        @for (int rank = 7; rank >= 0; rank--)
+        {
+            <div class="rank-row" @key="'r' + rank">
+                @for (int file = 7; file >= 0; file--)
+                {
+                    var currentCoord = PositionHelper.ToAlgebraic(rank, file);
+                    var pieceOnCurrentSquare = Board.Squares[rank][file];
+                    bool nhuHighlightForCardPieceSelection = false;
+                    if (IsSquareSelectionModeActiveForCard && PlayerColorForCardPieceSelection.HasValue && pieceOnCurrentSquare.HasValue)
+                    {
+                        nhuHighlightForCardPieceSelection = pieceOnCurrentSquare.Value.IsOfPlayerColor(PlayerColorForCardPieceSelection.Value);
+                    }
+                    bool nhuHighlightAsCardActionableTarget = IsSquareSelectionModeActiveForCard &&
+                    HighlightedCardTargetSquaresForSelection != null &&
+                    HighlightedCardTargetSquaresForSelection.Contains(currentCoord);
+
+                    // NEU: Logik für die Anzeige der Labels (angepasst für FlipBoard)
+                    // Wenn das Brett gedreht ist, ist die 'linke' Spalte die h-Linie (file == 7)
+                    // und die 'unterste' Reihe ist die 8. Reihe (rank == 0)
+                    bool showRank = file == 7; // Zahlen nur in der 'ersten' Spalte (jetzt rechts)
+                    bool showFile = rank == 0; // Buchstaben nur in der 'untersten' Zeile (jetzt oben)
+
+                    <SquareComponent @key="currentCoord"
+                                     Board="@Board"
+                                     Rank="@rank"
+                                     File="@file"
+                                     IsHighlightedInternal="@(IsSquareSelectionModeActiveForCard && !nhuHighlightAsCardActionableTarget ? false : (IsEnabled && legalMovesForHighlight.Contains(currentCoord)))"
+                                     IsHighlightedForCardPieceSelection="@nhuHighlightForCardPieceSelection"
+                                     IsHighlightedForCardTargetSelection="@nhuHighlightAsCardActionableTarget"
+                                     IsFirstSelectedForCardEffect="@(IsSquareSelectionModeActiveForCard && FirstSelectedSquareForCard == currentCoord)"
+                                     OnClick="OnSquareClick"
+                                     OnClickForCard="OnSquareClickForCard"
+                                     IsSquareSelectionModeActiveForCard="IsSquareSelectionModeActiveForCard"
+                                     OnPieceDragStartInternal="HandlePieceDragStart"
+                                     OnSquareDropInternal="async (draggedPieceCoord) => await HandleSquareDrop(currentCoord, draggedPieceCoord)"
+                                     OnPieceDragEndInternal="HandlePieceDragEnd"
+                                     IsBeingDraggedOriginal="@(_isCurrentlyDragging && selectedFrom == currentCoord)"
+                                     IsBoardEnabledOverall="@IsEnabled"
+                                     CanThisPieceBeDragged="@(!IsSquareSelectionModeActiveForCard && pieceOnCurrentSquare.HasValue && pieceOnCurrentSquare.Value.IsOfPlayerColor(MyPlayerColor) && IsEnabled)"
+                                     CardEffectHighlightType="@(HighlightStateLocal.HighlightCardEffectSquares?.FirstOrDefault(s => s.Square == currentCoord).Type)"
+                                     CurrentStrongMoveFrom="@HighlightStateLocal.MostRecentMoveFrom"
+                                     CurrentStrongMoveTo="@HighlightStateLocal.MostRecentMoveTo"
+                                     PreviousSequenceMoveFrom="@HighlightStateLocal.PenultimateMoveFrom"
+                                     PreviousSequenceMoveTo="@HighlightStateLocal.PenultimateMoveTo"
+                                     IsCurrentMoveTheThirdInSequence="@HighlightStateLocal.IsThirdMoveOfSequence"
+                                     ShowRankLabel="showRank"
+                                     ShowFileLabel="showFile" />
+                }
+            </div>
+        }
+    }
+</div>

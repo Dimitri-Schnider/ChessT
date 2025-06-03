@@ -1,0 +1,90 @@
+﻿// File: [SolutionDir]\ChessServer\Services\CardEffects\SacrificeEffect.cs
+using System;
+using System.Collections.Generic;
+using ChessLogic;
+using ChessLogic.Utilities;
+using ChessNetwork.Configuration;
+using ChessNetwork.DTOs;
+using Chess.Logging;
+
+namespace ChessServer.Services.CardEffects
+{
+    public class SacrificeEffect : ICardEffect
+    {
+        private readonly IChessLogger _logger;
+
+        public SacrificeEffect(IChessLogger logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            string cardTypeId,
+                                            string? fromSquareAlg,
+                                            string? toSquareAlg)
+        {
+            if (cardTypeId != CardConstants.SacrificeEffect)
+            {
+                return new CardActivationResult(false, ErrorMessage: $"SacrificeEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+            }
+
+            if (string.IsNullOrEmpty(fromSquareAlg))
+            {
+                _logger.LogSacrificeEffectFailedPawnNotFound(session.GameId, playerId, fromSquareAlg ?? "NULL");
+                return new CardActivationResult(false, ErrorMessage: "Kein Bauer für Opfergabe ausgewählt.");
+            }
+
+            Position pawnPos;
+            try
+            {
+                pawnPos = GameSession.ParsePos(fromSquareAlg);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogSacrificeEffectFailedPawnNotFound(session.GameId, playerId, fromSquareAlg);
+                return new CardActivationResult(false, ErrorMessage: $"Ungültige Koordinate für Bauernopfer: {ex.Message}");
+            }
+
+            Piece? pieceToSacrifice = session.CurrentGameState.Board[pawnPos];
+
+            if (pieceToSacrifice == null)
+            {
+                _logger.LogSacrificeEffectFailedPawnNotFound(session.GameId, playerId, fromSquareAlg);
+                return new CardActivationResult(false, ErrorMessage: $"Keine Figur auf dem Feld {fromSquareAlg} für Opfergabe gefunden.");
+            }
+
+            if (pieceToSacrifice.Type != PieceType.Pawn)
+            {
+                _logger.LogSacrificeEffectFailedNotAPawn(session.GameId, playerId, fromSquareAlg, pieceToSacrifice.Type);
+                return new CardActivationResult(false, ErrorMessage: $"Die Figur auf {fromSquareAlg} ist kein Bauer und kann nicht geopfert werden.");
+            }
+
+            if (pieceToSacrifice.Color != playerDataColor)
+            {
+                _logger.LogSacrificeEffectFailedWrongColor(session.GameId, playerId, fromSquareAlg, pieceToSacrifice.Color);
+                return new CardActivationResult(false, ErrorMessage: $"Der Bauer auf {fromSquareAlg} gehört nicht dir.");
+            }
+
+            Board boardCopy = session.CurrentGameState.Board.Copy();
+            boardCopy[pawnPos] = null;
+            if (boardCopy.IsInCheck(playerDataColor))
+            {
+                // Verwendet die spezifische IChessLogger Methode
+                _logger.LogSacrificeEffectFailedWouldCauseCheck(session.GameId, playerId, fromSquareAlg);
+                return new CardActivationResult(false, ErrorMessage: "Opfergabe nicht möglich, da dies deinen König ins Schach stellen würde.");
+            }
+
+            session.CurrentGameState.Board[pawnPos] = null;
+            // Verwendet die spezifische IChessLogger Methode
+            _logger.LogSacrificeEffectExecuted(session.GameId, playerId, fromSquareAlg);
+
+            return new CardActivationResult(
+                Success: true,
+                EndsPlayerTurn: true,
+                PlayerIdToSignalDraw: playerId,
+                BoardUpdatedByCardEffect: true,
+                AffectedSquaresByCard: new List<AffectedSquareInfo> { new AffectedSquareInfo { Square = fromSquareAlg, Type = "card-sacrifice" } }
+            );
+        }
+    }
+}

@@ -1,0 +1,16 @@
+﻿@implements IDisposable
+
+@if (Visible && !string.IsNullOrEmpty(Message))
+{
+    <div class="info-box-wrapper">
+        <div class="info-box-message">
+            @Message
+        </div>
+        @if (ShowActionButton)
+        {
+            <button class="btn btn-sm btn-warning info-box-action-button" @onclick="HandleActionButtonClick">
+                @ActionButtonText
+            </button>
+        }
+    </div>
+}

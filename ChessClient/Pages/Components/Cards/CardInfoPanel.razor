@@ -1,0 +1,61 @@
+﻿@using ChessClient.Models
+@using ChessNetwork.DTOs
+
+@if (IsVisible && CardToDisplay != null)
+{
+    <div class="modal-backdrop show" @onclick="HandleCancelClick"></div>
+    <div class="modal show card-info-modal" tabindex="-1" style="display: block;" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <div class="card-info-panel-content @(IsPreviewOnly ? "preview-only-mode" : "")">
+                        <button class="btn btn-sm @(!IsPreviewOnly ? "btn-danger" : "btn-secondary") close-modal-button-cip" @onclick="HandleCancelClick" title="Schliessen">X</button>
+
+                        @* --- START KARTENINHALT (VISUELLE DARSTELLUNG) --- *@
+                        <div class="card-visual-representation">
+                            <div class="card-art-layer">
+                                @if (!string.IsNullOrEmpty(CardToDisplay.ImageUrl))
+                                {
+                                    <img src="@CardToDisplay.ImageUrl" alt="Kartenkunst für @CardToDisplay.Name" class="card-art-actual-image" />
+                                }
+                                else
+                                {
+                                    <div class="image-missing-placeholder">Bild nicht verfügbar</div>
+                                }
+                            </div>
+                            <img src="/img/cards/template.png" alt="Kartenrahmen" class="card-frame-image" />
+                            <div class="card-content-layer">
+                                <div class="card-title-section">
+                                    <h5 class="card-title-text">@CardToDisplay.Name</h5>
+                                </div>
+                                <div class="card-description-section">
+                                    <p class="card-description-text">@CardToDisplay.Description</p>
+                                </div>
+                            </div>
+                        </div>
+                        @* --- ENDE KARTENINHALT --- *@
+
+                        @if (IsActivatable && !IsPreviewOnly)
+                        {
+                            <div class="action-buttons-cip mt-3">
+                                <button class="btn btn-primary" @onclick="HandleActivateClick">Aktivieren</button>
+                                <button class="btn btn-secondary" @onclick="HandleCancelClick">Abbrechen</button>
+                            </div>
+                        }
+                        else if (!IsActivatable && !IsPreviewOnly)
+                        {
+                            <p class="text-muted mt-3"><small>Kann nicht aktiviert werden (nicht am Zug oder Spiel beendet).</small></p>
+                        }
+                        else if (IsPreviewOnly)
+                        {
+                            <p class="text-muted mt-3"><small>Vorschau einer bereits gespielten Karte.</small></p>
+                            <div class="action-buttons-cip mt-3">
+                                <button class="btn btn-outline-secondary" @onclick="HandleCancelClick">Schliessen</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

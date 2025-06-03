@@ -1,0 +1,98 @@
+﻿@using ChessLogic
+@using ChessClient.Models
+
+@* Zeigt das Modal nur an, wenn IsVisible true ist.*@
+@if (IsVisible)
+{
+    @* Modal-Backdrop zum Abdunkeln des Hintergrunds.*@
+    <div class="modal-backdrop show" @onclick="CloseModal"></div>
+    @* Hauptcontainer des Modals.*@
+    <div class="modal show" tabindex="-1" style="display: block;" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Neues Spiel erstellen</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @* Eingabefeld für den Spielernamen.*@
+                    <div class="mb-3">
+                        <label for="playerName" class="form-label">Dein Name:</label>
+                        @* Geändert: @bind="PlayerName" zu @bind-value="PlayerName" @bind-value:event="oninput" *@
+                        <input id="playerName" class="form-control" @bind-value="PlayerName" @bind-value:event="oninput" />
+                    </div>
+                    @* Auswahlfeld für die Spielerfarbe.*@
+                    <div class="mb-3">
+                        <label for="playerColor" class="form-label">Deine Farbe:</label>
+                        <select id="playerColor" class="form-select" @bind="SelectedColor">
+                            <option value="@Player.White">Weiss</option>
+                            <option value="@Player.Black">Schwarz</option>
+                        </select>
+                    </div>
+                    @* Auswahlfeld für die Bedenkzeit.*@
+                    <div class="mb-3">
+                        <label for="initialTime" class="form-label">Bedenkzeit pro Spieler:</label>
+                        <select id="initialTime" class="form-select" @bind="InitialTimeMinutes">
+                            <option value="1">1 Minute</option>
+                            <option value="3">3 Minuten</option>
+                            <option value="5">5 Minuten</option>
+                            <option value="15">15 Minuten</option>
+                            <option value="60">60 Minuten</option>
+                        </select>
+                    </div>
+                    @* Anzeige für Fehlermeldungen im Modal. *@
+                    @if (!string.IsNullOrWhiteSpace(ModalErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-2">@ModalErrorMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Abbrechen</button>
+                    <button type="button" class="btn btn-primary" @onclick="HandleCreateGame" disabled="@string.IsNullOrWhiteSpace(PlayerName)">Spiel erstellen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; } // Steuert die Sichtbarkeit des Modals.
+    [Parameter] public EventCallback OnClose { get; set; } // Event-Callback, wenn das Modal geschlossen wird.
+    [Parameter] public EventCallback<CreateGameParameters> OnCreateGame { get; set; } // Event-Callback, wenn ein Spiel erstellt wird.
+
+    private string PlayerName { get; set; } = ""; // Gebundener Wert für den Spielernamen.
+    private Player SelectedColor { get; set; } = Player.White; // Gebundener Wert für die ausgewählte Farbe.
+    private int InitialTimeMinutes { get; set; } = 15; // Gebundener Wert für die ausgewählte Bedenkzeit.
+    private string ModalErrorMessage { get; set; } = ""; // Fehlermeldung für das Modal.
+
+    // Behandelt den Klick auf den "Spiel erstellen"-Button.
+    private async Task HandleCreateGame()
+    {
+        if (string.IsNullOrWhiteSpace(PlayerName)) // Validierung des Spielernamens.
+        {
+            ModalErrorMessage = "Bitte gib einen Spielernamen ein."; //
+            return;
+        }
+        ModalErrorMessage = ""; // Setzt Fehlermeldung zurück.
+        await OnCreateGame.InvokeAsync(new CreateGameParameters // Löst das OnCreateGame Event aus.
+            {
+                Name = PlayerName,
+                Color = SelectedColor,
+                TimeMinutes = InitialTimeMinutes
+            });
+    }
+
+    // Schliesst das Modal und setzt die Eingabefelder zurück.
+    private async Task CloseModal()
+    {
+        PlayerName = ""; //
+        SelectedColor = Player.White; //
+        InitialTimeMinutes = 15; //
+        ModalErrorMessage = ""; //
+        await OnClose.InvokeAsync(); // Löst das OnClose Event aus.
+    }
+
+    public void FocusPlayerNameInput(IJSRuntime jsRuntime)
+    {
+    }
+}

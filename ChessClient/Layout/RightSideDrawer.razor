@@ -1,0 +1,79 @@
+﻿@using ChessClient.Pages.Components
+@using ChessClient.Configuration
+@using ChessClient.State 
+
+<div class="drawer-overlay @(isOpen ? "open" : "")" @onclick="Close">
+    <div class="drawer-content @(isOpen ? "open" : "")" @onclick:stopPropagation="true">
+        <button class="btn btn-sm btn-danger drawer-close-button" @onclick="Close">X</button>
+        <h5>Einstellungen & Infos</h5>
+
+        @* Abschnitt für Spieloptionen, nur sichtbar wenn ein Spiel aktiv ist. *@
+        @if (CurrentGameId != Guid.Empty)
+        {
+            <div class="drawer-section">
+                <h6>Spieloptionen</h6>
+                <button class="btn btn-info btn-block"
+                        @onclick="DownloadGameHistory"
+                        disabled="@(!CanDownloadHistory)">
+                    Spielverlauf herunterladen (JSON)
+                </button>
+            </div>
+            <hr />
+        }
+
+        @* ------ NEU: DEBUG PANEL HIER EINGEFÜGT ------ *@
+        @if (_cardState != null && _gameCoreState != null && _modalState != null && _highlightState != null)
+        {
+            <div class="drawer-section debug-panel-in-drawer">
+                <h6>Client Debug Info</h6>
+                <p>_modalState.ShowPieceSelectionModal: <strong>@_modalState.ShowPieceSelectionModal</strong></p>
+                <p>
+                    _cardState.CapturedPiecesForRebirth
+                    is null: <strong>@(_cardState.CapturedPiecesForRebirth == null)</strong>
+                </p>
+                <p>
+                    _cardState.CapturedPiecesForRebirth Count: <strong>
+                        @(_cardState.CapturedPiecesForRebirth?.Count ?? -1)
+                    </strong>
+                </p>
+                <p>_highlightState.CardTargetSquaresForSelection: <strong>@(string.Join(", ", _highlightState.CardTargetSquaresForSelection ?? new List<string>()))</strong></p>
+                @*
+                    Die folgenden Eigenschaften sind nicht direkt in den injizierten States verfügbar,
+                    sondern lokale Variablen in Chess.razor.cs. Wenn du diese auch hier anzeigen willst,
+                    müssten sie entweder auch Teil eines States werden oder du musst auf ihre Anzeige
+                    an dieser Stelle verzichten. Fürs Erste lasse ich sie auskommentiert.
+
+                    <p>_firstSquareSelectedForTeleportOrSwap: <strong>@(_firstSquareSelectedForTeleportOrSwap ?? "null")</strong></p>
+                    <p>_isAwaitingRebirthTargetSquareSelection: <strong>@_isAwaitingRebirthTargetSquareSelection</strong></p>
+                *@
+            </div>
+            <hr />
+        }
+        @* ------ ENDE DEBUG PANEL ------ *@
+
+
+        @* Abschnitt für API-Logs. *@
+        <div class="drawer-section">
+            <h6>API-Logs</h6>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox"
+                       id="loggingEnabled"
+                       checked="@apiLoggingEnabled"
+                       @onchange="ToggleApiLogging" />
+                <label class="form-check-label" for="loggingEnabled">
+                    API-Logging aktivieren
+                </label>
+            </div>
+            @if (apiLoggingEnabled)
+            {
+                <LogsPanel />
+                @* Zeigt das LogsPanel an, wenn Logging aktiviert ist. *@
+            }
+            else
+            {
+                <p><small>API-Logging ist deaktiviert.</small></p>
+            }
+        </div>
+        <hr />
+    </div>
+</div>

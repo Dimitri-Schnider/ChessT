@@ -1,0 +1,202 @@
+﻿/* File: [SolutionDir]/ChessClient/Pages/Components/CardActivationAnimation.razor.css */
+.card-animation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    animation: cardOverlayFadeIn 0.3s ease-out forwards;
+}
+
+@keyframes cardOverlayFadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.card-animation-container {
+    width: 280px; /* Basisbreite der Karte */
+    height: 390px; /* Basishöhe der Karte */
+    transform: scale(0.5);
+    opacity: 0;
+    animation: cardPopIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.1s forwards;
+    position: relative;
+}
+
+@keyframes cardPopIn {
+    0% {
+        transform: scale(0.5) translateY(50px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
+
+.class_flipper_wrapper_for_perspective {
+    perspective: 1200px;
+    width: 100%;
+    height: 100%;
+}
+
+.card-flipper {
+    width: 100%;
+    height: 100%;
+    /* NEU: Flip-Dauer angepasst auf 0.4s (passend zu 400ms) */
+    transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transform-style: preserve-3d;
+    position: relative;
+}
+
+    .card-flipper.is-flipped {
+        transform: rotateY(-180deg);
+    }
+
+.card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 15px;
+    overflow: hidden;
+    box-sizing: border-box;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.card-front {
+    background-color: #fff;
+}
+
+.card-back {
+    background-image: url('/img/cards/templateback.png');
+    transform: rotateY(180deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .card-back img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: 15px;
+    }
+
+/* Visuelle Darstellung der Karte (Vorderseite) - Styles von CardInfoPanel übernehmen/anpassen */
+.card-visual-representation-animated {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+}
+
+.card-art-layer-animated {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-art-actual-image-animated {
+    width: 68%;
+    margin-top: -40%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.card-frame-image-animated {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.card-content-layer-animated {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.card-title-section-animated {
+    position: absolute;
+    top: 69%;
+    left: 10%;
+    width: 80%;
+    height: 10%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.card-title-text-animated {
+    font-size: 1em;
+    font-weight: bold;
+    color: #402C1A;
+    margin: 0;
+    text-shadow: 1px 1px 1px #D4C5A9;
+    background-color: rgba(255, 255, 255, 0.5);
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+/* Glow Effekt - Farbe auf Weiss geändert, Dauer angepasst */
+.card-animation-container.glow-animation-active .card-flipper .card-face.card-front {
+    /* NEU: Schnellere Glow-Animation, z.B. 0.4s pro Puls */
+    animation: cardGlowEffectAnimated 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes cardGlowEffectAnimated {
+    from {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3), /* Basisschatten */
+        0 0 15px #ffffff, /* Starker innerer weisser Glow */
+        0 0 25px rgba(255, 255, 255, 0.8), /* Mittlerer weisser Glow */
+        0 0 35px rgba(255, 255, 255, 0.6); /* Äusserer weisser Glow */
+    }
+
+    to {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 30px #ffffff, 0 0 45px rgba(255, 255, 255, 0.9), 0 0 60px rgba(255, 255, 255, 0.7);
+    }
+}
+
+/* Animation für das Wegfliegen zur History - Dauer angepasst */
+.card-animation-container.animate-to-history {
+    /* NEU: Schnellere End-Animation (0.25s, passend zu MoveToHistoryAnimDurationMs) */
+    animation: moveToHistoryAndFade 0.25s ease-in forwards;
+}
+
+@keyframes moveToHistoryAndFade {
+    0% {
+        transform: scale(1.1) translate(0, 0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.05) translate(35vw, 25vh);
+        opacity: 0;
+    }
+}

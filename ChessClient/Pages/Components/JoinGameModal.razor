@@ -1,0 +1,93 @@
+﻿@using ChessClient.Models
+
+@if (IsVisible)
+{
+    @* Modal-Überlagerung *@
+    <div class="modal-backdrop show" @onclick="CloseModal"></div>
+    @* Hauptcontainer des Beitritts-Modals *@
+    <div class="modal show" tabindex="-1" style="display: block;" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Spiel beitreten</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @* Eingabefeld für den Spielernamen *@
+                    <div class="mb-3">
+                        <label for="joinPlayerName" class="form-label">Dein Name:</label>
+                        @* Geändert: @bind="PlayerName" zu @bind-value="PlayerName" @bind-value:event="oninput" *@
+                        <input id="joinPlayerName" class="form-control" @bind-value="PlayerName" @bind-value:event="oninput" />
+                    </div>
+                    @* Eingabefeld für die Spiel-ID *@
+                    <div class="mb-3">
+                        <label for="joinGameId" class="form-label">Spiel-ID:</label>
+                        <input id="joinGameId" class="form-control" @bind="GameIdToJoin" placeholder="Game-ID eingeben oder aus Link" />
+                    </div>
+                    @* Anzeige von Fehlermeldungen *@
+                    @if (!string.IsNullOrWhiteSpace(ModalErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-2">@ModalErrorMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    @* Buttons zum Abbrechen oder Beitreten *@
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Abbrechen</button>
+                    <button type="button" class="btn btn-primary" @onclick="HandleJoinGame"
+                            disabled="@(string.IsNullOrWhiteSpace(PlayerName) || string.IsNullOrWhiteSpace(GameIdToJoin))">
+                        Spiel beitreten
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Steuert die Sichtbarkeit des Modals
+    [Parameter] public bool IsVisible { get; set; }
+    // Event-Callback beim Schliessen
+    [Parameter] public EventCallback OnClose { get; set; }
+    // Event-Callback mit Beitrittsparametern
+    [Parameter] public EventCallback<JoinGameParameters> OnJoinGame { get; set; }
+    // Optionale, vorausgefüllte Spiel-ID (z.B. aus URL)
+    [Parameter] public string? InitialGameId { get; set; }
+
+    private string PlayerName { get; set; } = "";
+    private string GameIdToJoin { get; set; } = "";
+    private string ModalErrorMessage { get; set; } = "";
+
+    // Füllt die Spiel-ID vor, wenn das Modal sichtbar wird und eine InitialGameId vorhanden ist
+    protected override void OnParametersSet()
+    {
+        if (IsVisible && !string.IsNullOrWhiteSpace(InitialGameId) && string.IsNullOrWhiteSpace(GameIdToJoin))
+        {
+            GameIdToJoin = InitialGameId;
+        }
+    }
+
+    // Verarbeitet den Beitrittsversuch
+    private async Task HandleJoinGame()
+    {
+        if (string.IsNullOrWhiteSpace(PlayerName) || string.IsNullOrWhiteSpace(GameIdToJoin))
+        {
+            ModalErrorMessage = "Bitte gib Name und Spiel-ID ein.";
+            return;
+        }
+        if (!Guid.TryParse(GameIdToJoin, out _))
+        {
+            ModalErrorMessage = "Die Spiel-ID hat ein ungültiges Format.";
+            return;
+        }
+        ModalErrorMessage = "";
+        await OnJoinGame.InvokeAsync(new JoinGameParameters { Name = PlayerName, GameId = GameIdToJoin });
+    }
+
+    // Schliesst das Modal und setzt Felder zurück
+    private async Task CloseModal()
+    {
+        PlayerName = "";
+        ModalErrorMessage = "";
+        await OnClose.InvokeAsync();
+    }
+}

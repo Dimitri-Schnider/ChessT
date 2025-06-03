@@ -1,0 +1,89 @@
+/* File: [SolutionDir]/ChessClient/Layout/MainLayout.razor.css */
+/* (- ) */
+/* Die letzte Version dieses CSS war bereits gut für die Button-Positionierung.
+   Wir stellen sicher, dass das Padding für den Inhalt konsistent ist. */
+.page {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.main-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.content-area {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.content {
+    padding-top: calc(1.1rem + 45px);
+    padding-left: 2rem !important;
+    padding-right: 1.5rem !important;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.global-burger-button {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1051;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    border-radius: 0.25rem;
+}
+
+    .global-burger-button i.bi-list {
+        font-size: 1.2rem;
+        vertical-align: middle;
+    }
+
+.settings-button-relocated {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    z-index: 1030;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+    .settings-button-relocated i.bi-gear-fill {
+        font-size: 1.1rem;
+        vertical-align: middle;
+    }
+
+
+@media (min-width: 768px) {
+    .page {
+        flex-direction: row;
+    }
+
+    .top-row {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+        .top-row.auth ::deep a:first-child {
+            flex: 1;
+            text-align: right;
+            width: 0;
+        }
+}
+
+.top-row .navbar-toggler.mobile-burger-button {
+    --bs-navbar-toggler-icon-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 0, 0, 0.55)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    border: none;
+}
+
+    .top-row .navbar-toggler.mobile-burger-button:focus {
+        box-shadow: none;
+    }
