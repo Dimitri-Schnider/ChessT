@@ -1,6 +1,9 @@
 /* Globale Schriftart. */
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    height: 100%; /* Stellt sicher, dass html und body die volle Viewport-Höhe als Basis haben */
+    margin: 0; /* Entfernt Standard-Browser-Margins */
+    overflow-x: hidden; /* Verhindert horizontales Scrollen global, falls etwas übersteht */
 }
 
 /* Entfernt Fokus-Rahmen von H1. */

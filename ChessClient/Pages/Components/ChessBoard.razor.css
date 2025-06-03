@@ -1,26 +1,22 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Components/ChessBoard.razor.css */
-.chessboard-grid {
+﻿.chessboard-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows: repeat(8, 1fr);
-    width: 100%; /* Füllt die Breite seines Containers (.chessboard-container) */
-    /* height: 100%; /* Die Höhe wird durch aspect-ratio bestimmt, nicht explizit 100% des Containers, wenn der Container nicht quadratisch ist */
-    aspect-ratio: 1 / 1; /* Stellt sicher, dass das Brett quadratisch ist */
-    /* Begrenzt die maximale Grösse des Bretts relativ zum Viewport.
-       Passt diese Werte (80vh, 90vw) an, um die gewünschte Maximalgrösse zu erreichen.
-       'min(A, B)' nimmt den kleineren der beiden Werte. */
-    max-width: min(80vh, 90vw); /* Beispiel: Max. 80% der Viewport-Höhe oder 90% der Viewport-Breite */
-    max-height: min(80vh, 90vw); /* Stellt sicher, dass es auch in der Höhe begrenzt ist */
-    /* Wenn das Brett immer quadratisch sein soll, reicht theoretisch eine der beiden (z.B. max-height)
-                                    in Kombination mit aspect-ratio und width: 100% (bezogen auf den dann quadratischen Container)
-                                    Aber beide zu setzen ist sicherer für die Begrenzung. */
+    width: 100%; /* Füllt die Breite des .chessboard-container */
+    height: 100%; /* Füllt die Höhe des .chessboard-container */
+    /* WENN .chessboard-container feste Dimensionen hätte.
+                     Da .chessboard-container flexibel ist, sind max-Werte hier wichtiger. */
 
-    margin: 0; /* Stellt sicher, dass es vom .chessboard-container zentriert wird, falls es kleiner ist */
+    max-width: 100%; /* Nicht breiter als .chessboard-container */
+    max-height: 100%; /* Nicht höher als .chessboard-container */
+    aspect-ratio: 1 / 1; /* Erzwingt Quadratischsein, passt sich an die kleinere Dimension des .chessboard-container an */
+
+    margin: 0;
     background: url('/img/Board.png') no-repeat center center;
-    background-size: cover; /* Skaliert das Hintergrundbild, um das Element zu bedecken */
-    object-fit: contain; /* Sorgt dafür, dass das Element selbst skaliert wird, falls es Content hat, der überläuft (hier nicht der Fall für das Grid selbst) */
+    background-size: cover;
 }
 
+/* Restliche Stile für .square, .rank-label, .file-label, Highlights etc. bleiben unverändert */
 .square {
     width: 100%;
     height: 100%;
@@ -31,47 +27,159 @@
     box-sizing: border-box;
 }
 
+    .square:not(.board-disabled) {
+        cursor: default;
+    }
+
+    .square.board-disabled {
+        cursor: not-allowed !important;
+    }
+
+        .square.board-disabled img {
+            cursor: not-allowed !important;
+        }
+
     .square img {
         max-width: 80%;
         max-height: 80%;
         object-fit: contain;
+        touch-action: none;
+        position: relative;
+        z-index: 10;
+        transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
     }
 
-.highlight {
-    outline: 3px solid rgba(255, 215, 0, 0.8);
-    outline-offset: -3px; /* Um den Outline innerhalb des Feldes zu zeichnen */
-}
+    .square:not(.board-disabled) img:not(.piece-not-interactive) {
+        cursor: grab !important;
+    }
 
-/* ----- STYLES FÜR KOORDINATEN-LABELS ----- */
-.square .rank-label,
-.square .file-label {
-    position: absolute;
-    font-size: clamp(8px, 1.5vmin, 10px);
-    font-weight: bold;
-    color: #808080;
-    pointer-events: none;
-    z-index: 1;
-    padding: 1px;
-    line-height: 1;
-}
+        .square:not(.board-disabled) img:not(.piece-not-interactive):active {
+            cursor: grabbing !important;
+        }
 
-.square .rank-label {
-    top: 0;
-    left: 0;
-    margin-top: 2px; /* Kleiner Abstand vom Rand */
-    margin-left: 3px; /* Kleiner Abstand vom Rand */
-}
+    .square:not(.board-disabled) img.piece-not-interactive {
+        cursor: default !important;
+    }
 
-.square .file-label {
-    bottom: 0;
-    right: 0;
-    margin-bottom: 1px; /* Kleiner Abstand vom Rand */
-    margin-right: 4px; /* Kleiner Abstand vom Rand */
-}
+    .square.highlight {
+        outline: 3px solid rgba(255, 215, 0, 0.7);
+        outline-offset: -3px;
+    }
 
-/* Optional: Wenn du eine .dark Klasse auf den Feldern hast, um die Textfarbe anzupassen */
-.square.dark .rank-label,
-.square.dark .file-label {
-    color: rgba(255, 255, 255, 0.6); /* Hellere Farbe für dunkle Felder */
-}
- 
+    .square.drag-over-target-js {
+        background-color: rgba(144, 238, 144, 0.5);
+    }
+
+    .square img.piece-being-dragged-original {
+        opacity: 0.3;
+    }
+
+    .square img.dragging-active-piece {
+        z-index: 1000;
+        box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
+        opacity: 0.9;
+        transition: none;
+    }
+
+    .square.highlight-card-first-selection {
+        outline: 3px solid rgba(0, 128, 255, 0.8);
+        outline-offset: -3px;
+        background-color: rgba(0, 128, 255, 0.1);
+    }
+
+        .square.highlight-card-first-selection img {
+            box-shadow: 0 0 8px 3px rgba(0, 128, 255, 0.7);
+        }
+
+    .square.highlight-card-piece-selection {
+        background-color: rgba(255, 165, 0, 0.3);
+        outline: 2px dashed rgba(255, 165, 0, 0.7);
+        outline-offset: -2px;
+        cursor: pointer !important;
+    }
+
+        .square.highlight-card-piece-selection img {
+            cursor: pointer !important;
+        }
+
+    .square.highlight-card-actionable-target {
+        background-color: rgba(30, 144, 255, 0.25);
+        outline: 2px solid rgba(30, 144, 255, 0.6);
+        outline-offset: -2px;
+        cursor: pointer !important;
+    }
+
+        .square.highlight-card-actionable-target img {
+            cursor: pointer !important;
+        }
+
+    .square.highlight-last-move-to-strong {
+        background-color: rgba(255, 255, 0, 0.6);
+    }
+
+    .square.highlight-last-move-from-strong {
+        background-color: rgba(255, 255, 0, 0.5);
+    }
+
+    .square.highlight-last-move-to-weaker {
+        background-color: rgba(255, 255, 0, 0.4);
+    }
+
+    .square.highlight-last-move-from-weaker {
+        background-color: rgba(255, 255, 0, 0.3);
+    }
+
+    .square.highlight-card-teleport-from {
+        background-color: rgba(0, 191, 255, 0.3);
+    }
+
+    .square.highlight-card-teleport-to {
+        background-color: rgba(0, 191, 255, 0.6);
+    }
+
+    .square.highlight-card-swap-1,
+    .square.highlight-card-swap-2 {
+        background-color: rgba(173, 216, 230, 0.5);
+    }
+
+    .square.highlight-card-rebirth {
+        background-color: rgba(152, 251, 152, 0.5);
+        outline: 2px dashed rgba(60, 179, 113, 0.7);
+        outline-offset: -2px;
+    }
+
+    .square .rank-label,
+    .square .file-label {
+        position: absolute;
+        font-size: clamp(8px, 1.5vmin, 10px);
+        font-weight: bold;
+        color: #808080;
+        pointer-events: none;
+        z-index: 1;
+        padding: 1px;
+        line-height: 1;
+    }
+
+    .square .rank-label {
+        top: 0;
+        left: 0;
+        margin-top: 3px;
+        margin-left: 3px;
+    }
+
+    .square .file-label {
+        bottom: 0;
+        right: 0;
+        margin-bottom: 3px;
+        margin-right: 3px;
+    }
+
+    .square.dark .rank-label,
+    .square.dark .file-label {
+        color: rgba(255, 255, 255, 0.5);
+    }

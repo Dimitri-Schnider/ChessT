@@ -1,9 +1,6 @@
-/* File: [SolutionDir]/ChessClient/Layout/MainLayout.razor.css */
-/* (- ) */
-/* Die letzte Version dieses CSS war bereits gut für die Button-Positionierung.
-   Wir stellen sicher, dass das Padding für den Inhalt konsistent ist. */
 .page {
     display: flex;
+    flex-direction: column;
     height: 100vh;
     overflow: hidden;
 }
@@ -22,14 +19,17 @@
     overflow: hidden;
 }
 
-.content {
-    padding-top: calc(1.1rem + 45px);
-    padding-left: 2rem !important;
-    padding-right: 1.5rem !important;
-    overflow-y: auto;
+.content { /* Dieser Container beinhaltet @Body, also die Chess.razor Seite */
+    padding-top: calc(1.1rem + 45px); /* Für globalen Burger-Button etc. */
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    overflow-y: hidden; /* WICHTIG: Verhindert Scrollen im Hauptinhaltsbereich */
     flex-grow: 1;
+    display: flex; /* Macht .content zum Flex-Container */
+    flex-direction: column; /* Ordnet Kinder (global-timers-mobile, chess-page-container) untereinander an */
 }
 
+/* Restliche Stile bleiben wie in deinem letzten Stand oder vorherigen Vorschlägen */
 .global-burger-button {
     position: fixed;
     top: 10px;
@@ -64,6 +64,11 @@
 @media (min-width: 768px) {
     .page {
         flex-direction: row;
+    }
+
+    .content {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
     }
 
     .top-row {

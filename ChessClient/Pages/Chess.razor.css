@@ -1,207 +1,190 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Chess.razor.css */
-/* (-) */
-/* Globale Timer (primär für Mobile) - Standardmässig auf Desktop ausblenden */
+﻿/* --- GRUNDSTILE (DESKTOP-FIRST ANSATZ für die betroffenen Elemente) --- */
 .global-timers-mobile {
-    display: none;
-    width: 100%;
-    margin-bottom: 10px;
+    display: none !important;
 }
 
-/* Timer-Container im Desktop Sidepanel - Standardmässig auf Desktop anzeigen */
 .timers-desktop-only {
-    display: block;
+    display: block !important;
+    margin-bottom: 15px;
+    flex-shrink: 0;
 }
 
 .chess-page-container {
     display: flex;
     flex-direction: row;
     gap: 20px;
-    padding: 15px;
-    height: calc(100vh - 70px);
     box-sizing: border-box;
     overflow: hidden;
+    flex-grow: 1;
+    min-height: 0;
+    align-items: stretch; /* Kinder (.chessboard-column, .game-side-panel) füllen die Höhe */
 }
 
 .chessboard-column {
-    flex-grow: 1;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
+    align-items: center; /* Zentriert .chessboard-container horizontal in der Spalte */
+    justify-content: center; /* Zentriert .chessboard-container vertikal in der Spalte */
+    /* Die Spalte selbst soll nicht wachsen, ihre Grösse wird durch .chessboard-container bestimmt */
+    flex-grow: 0;
+    flex-shrink: 0; /* Soll auch nicht schrumpfen, Grösse kommt vom Inhalt */
+    /* Die Höhe wird vom Parent .chess-page-container (align-items: stretch) übernommen */
+    /* Die Breite wird durch das Kind .chessboard-container (mit aspect-ratio) bestimmt */
+    height: 100%;
     position: relative;
 }
 
-.chessboard-container {
+.chessboard-container { /* Kind von .chessboard-column, Parent von .chessboard-grid */
     display: flex;
-    justify-content: center;
     align-items: center;
-    width: 100%;
+    justify-content: center;
+    /* WICHTIG: .chessboard-container bestimmt die Grösse des Brettes */
+    /* Es nimmt die volle Höhe der .chessboard-column (die gestreckt wurde) */
+    /* und berechnet seine Breite basierend auf dem 1:1 Seitenverhältnis. */
     height: 100%;
+    width: auto; /* Breite wird durch aspect-ratio aus der Höhe abgeleitet */
+    aspect-ratio: 1 / 1;
+    /* Optional: Eine absolute Maximalgrösse, falls die Viewport-Höhe zu gross wird */
+    /* max-height: 90vh; */ /* Z.B. nicht höher als 90% des Viewports */
+    /* max-width: 90vh; */ /* Analog für die Breite */
 }
+/*
+   Erinnerung: .chessboard-grid (in ChessBoard.razor.css) sollte sein:
+   width: 100%; height: 100%; aspect-ratio: 1/1; (oder width:100%; height:auto; aspect-ratio:1/1)
+   max-width: 100%; max-height: 100%;
+   Damit füllt es den .chessboard-container perfekt aus.
+   Der aktuelle Stil: .chessboard-grid { width: 100%; max-width: 100%; aspect-ratio: 1/1; margin: 0; } ist gut.
+*/
 
 .game-side-panel {
-    min-width: 500px;
-    width: 500px;
-    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
     padding: 10px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #f9f9f9;
     box-sizing: border-box;
-    height: 100%;
+    overflow: hidden;
+    flex-grow: 1; /* NIMMT ALLEN VERBLEIBENDEN PLATZ HORIZONTAL */
+    min-width: 380px; /* Mindestbreite für die Funktionalität */
+    flex-shrink: 1; /* Darf schrumpfen, wenn nötig, bis min-width */
+    /* height: 100%; /* Ergibt sich aus align-items: stretch des Parents */
 }
-
-    .game-side-panel .timers-desktop-only {
-        margin-bottom: 15px;
-    }
 
     .game-side-panel .played-cards-history-display-wrapper {
         overflow-y: auto;
-        min-height: 150px;
+        min-height: 80px;
         flex-grow: 1;
         border: 1px solid #d3d3d3;
         border-radius: 6px;
         padding: 8px;
         background-color: #fdfdfd;
+        flex-shrink: 1;
     }
 
     .game-side-panel .bottom-game-elements {
         display: flex;
         flex-direction: row;
         justify-content: space-between;
-        align-items: flex-end; /* War vorher center, flex-end ist ggf. besser für feste Höhe der Kinder */
+        align-items: center;
         gap: 10px;
+        flex-shrink: 0;
+        min-height: 120px;
     }
 
-.bottom-game-elements > :first-child { /* HandCardsDisplay-Wrapper */
+.bottom-game-elements > :first-child {
     flex-grow: 1;
     min-width: 0;
+    height: 100%;
 }
 
-.bottom-game-elements > :last-child { /* DrawPilesDisplay-Wrapper (.draw-pile-toggle-history-mobile) */
+.bottom-game-elements > :last-child {
     flex-shrink: 0;
 }
 
-/* --- Mobile Layout Anpassungen --- */
+/* --- Mobile Layout Anpassungen (sollten so bleiben wie im letzten funktionierenden Stand) --- */
 @media (max-width: 992px) {
     .global-timers-mobile {
-        display: block;
-        order: 1;
-        padding-top: 10px;
+        display: flex !important;
+        width: 100%;
+        margin-bottom: 5px;
+        flex-shrink: 0;
     }
 
-    .game-side-panel .timers-desktop-only {
-        display: none;
+    .timers-desktop-only {
+        display: none !important;
+    }
+
+    .chessboard-column {
+        flex-basis: auto !important;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        flex-grow: 0;
+        flex-shrink: 0;
+        justify-content: flex-start;
+        min-width: unset;
+        height: auto;
+        aspect-ratio: unset !important; /* Wichtig: Desktop aspect-ratio hier aufheben, falls es auf .chessboard-column wäre */
     }
 
     .chess-page-container {
         flex-direction: column;
-        height: auto;
-        overflow-y: auto;
-        padding: 10px;
-        gap: 15px;
-    }
-
-    .chessboard-column {
-        order: 2;
-        width: 100%;
-        justify-content: flex-start;
-        height: auto;
-        overflow: visible;
-        margin-bottom: 0;
+        padding: 0;
+        gap: 5px;
+        align-items: normal;
     }
 
     .chessboard-container {
         width: 100%;
-        max-width: 550px;
-        margin-left: auto;
-        margin-right: auto;
+        max-width: 100vw;
         height: auto;
+        margin: 0;
+        padding: 0;
+        aspect-ratio: unset !important; /* Wichtig: Desktop aspect-ratio hier aufheben */
     }
 
     .game-side-panel {
-        order: 3;
-        width: 100%;
-        margin-top: 0;
-        max-height: none;
-        overflow-y: visible;
         min-width: unset;
-        gap: 10px;
-        height: auto;
-        border: none;
-        padding: 0;
-        background-color: transparent;
+        width: 100%;
+        flex-grow: 1;
+        min-height: 0;
+        padding: 0 5px 5px 5px;
+        gap: 5px;
+        max-width: none;
+        flex-basis: auto;
     }
 
         .game-side-panel .played-cards-history-display-wrapper {
-            min-height: 0;
+            min-height: 50px;
+            max-height: 100px;
             flex-grow: 0;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 8px;
-            background-color: #f9f9f9;
-            margin-bottom: 10px;
+            flex-shrink: 1;
+            margin-bottom: 5px;
+            /* Hinzugefügt: Standard-Display-Typ für den Fall, dass .hidden-on-mobile nicht greift oder entfernt wird */
+            display: block; /* oder flex, je nachdem was der Inhalt benötigt */
         }
-
+            /* Diese Regel muss sehr spezifisch sein und Vorrang haben! */
             .game-side-panel .played-cards-history-display-wrapper.hidden-on-mobile {
                 display: none !important;
             }
 
+
     .bottom-game-elements {
-        flex-direction: row;
-        align-items: center; /* Zentriert die Elemente vertikal in der Leiste */
-        gap: 8px;
-        margin-top: 0; /* Margin wird vom game-side-panel gap gesteuert */
-        padding: 8px;
-        background-color: #f8f9fa;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        min-height: 140px; /* Mindesthöhe für die Leiste, damit sie nicht kollabiert */
-    }
-
-        .bottom-game-elements > :first-child { /* HandCardsDisplay-Wrapper */
-            flex-grow: 1;
-            min-width: 0;
-            height: 100%; /* Stellt sicher, dass der HandCardsDisplay-Wrapper die Höhe füllt */
-        }
-
-    .draw-pile-toggle-history-mobile { /* DrawPilesDisplay-Wrapper */
-        flex-shrink: 0;
-        cursor: pointer;
-        padding: 0;
-        border-radius: 0;
-        background-color: transparent;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%; /* Stellt sicher, dass der Stapel-Wrapper die Höhe füllt */
+        margin-top: 0;
+        padding: 5px;
+        min-height: 100px;
     }
 }
 
-/* Zusätzliche Anpassungen für sehr schmale Bildschirme */
 @media (max-width: 420px) {
     .bottom-game-elements {
-        gap: 4px;
-        padding: 5px;
-        min-height: 120px; /* Mindesthöhe für sehr kleine Screens anpassen */
+        min-height: 90px;
     }
 
-    .content {
-        padding-top: calc(1.1rem + 40px); /* Evtl. anpassen, falls Buttons kleiner werden */
+    .game-side-panel .played-cards-history-display-wrapper {
+        max-height: 80px;
     }
 }
 
-/* (EndGamePopup und CardActivationAnimation Stile bleiben unverändert) */
+/* Stile für EndGamePopup und CardActivationAnimation können hier bleiben */
 .endgame-popup {
     position: fixed;
     top: 50%;

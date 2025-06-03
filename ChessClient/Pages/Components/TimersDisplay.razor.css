@@ -1,26 +1,25 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Components/TimersDisplay.razor.css */
-.timers-container {
+﻿.timers-container {
     display: flex;
-    justify-content: space-around;
-    width: 100%; /* Nimmt standardmässig die Breite des Wrappers ein */
-    max-width: 600px; /* Begrenzt die maximale Breite der Timer-Leiste */
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 10px; /* Beibehaltung des unteren Abstands */
+    width: 100%;
+    gap: 6px;
+    box-sizing: border-box;
 }
 
-.timer-box {
-    padding: 0.5rem 0.75rem; /* Etwas mehr Padding für bessere Lesbarkeit */
+.timer-box { /* Gilt für Desktop und als Basis für Mobile */
     border: 1px solid #ccc;
     border-radius: 6px;
     background-color: #f8f9fa;
-    flex-grow: 1; /* Erlaubt den Boxen, sich den Platz zu teilen */
-    margin: 0 5px; /* Kleiner horizontaler Abstand zwischen den Boxen */
-    min-width: 120px; /* Mindestbreite pro Timer-Box */
+    flex-grow: 1; /* Für Desktop: Gleichmässig aufteilen */
+    flex-basis: 0;
+    /* min-width für Desktop kann hier gesetzt werden, z.B. 150px */
+
+    box-sizing: border-box;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
 }
 
 .time-display {
-    font-size: 1.4rem; /* Etwas grössere Schrift für die Zeit */
+    font-size: 1.4em;
     font-weight: bold;
     line-height: 1.5;
 }
@@ -31,29 +30,52 @@
 
 .timer-box.timer-active {
     border-color: green;
-    box-shadow: 0 0 8px rgba(0, 128, 0, 0.5); /* Weicherer Schatten */
+    box-shadow: 0 0 6px rgba(0, 128, 0, 0.4);
 }
 
-@media (max-width: 480px) {
-    .timers-container {
-        flex-direction: column;
-        gap: 5px; /* Etwas weniger Abstand */
-        max-width: 100%;
+.timer-box div:first-child {
+    font-size: 0.8em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+/* Mobile Anpassungen für Timer (50/50 Aufteilung) */
+@media (max-width: 992px) {
+    .timers-container { /* Gilt nur, wenn TimersDisplay in .global-timers-mobile ist */
+        gap: 4px !important;
     }
 
-    .timer-box {
-        margin: 0;
-        width: 100%;
-        padding: 0.25rem 0.5rem; /* Padding oben/unten und links/rechts reduziert */
+    .timer-box { /* Gilt nur, wenn TimersDisplay in .global-timers-mobile ist */
+        width: calc(50% - 2px) !important; /* Bei gap: 4px */
+        flex-grow: 0 !important;
+        flex-shrink: 0 !important;
+        flex-basis: auto !important;
+        padding: 0.3rem 0.2rem !important;
+        font-size: 0.9rem !important;
     }
 
-    .time-display {
-        font-size: 1.2rem; /* Schriftgrösse der Zeit etwas reduzieren */
-        line-height: 1.3; /* Zeilenhöhe anpassen */
+    .time-display { /* Gilt nur, wenn TimersDisplay in .global-timers-mobile ist */
+        font-size: 1.2em !important;
     }
 
-    .timer-box div:first-child { /* Das Label "Spieler Weiss/Schwarz" */
-        font-size: 0.8em; /* Schriftgrösse des Labels reduzieren */
-        margin-bottom: 2px; /* Weniger Abstand unter dem Label */
+    .timer-box div:first-child { /* Gilt nur, wenn TimersDisplay in .global-timers-mobile ist */
+        font-size: 0.75em !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .timer-box { /* Gilt nur, wenn TimersDisplay in .global-timers-mobile ist */
+        padding: 0.2rem 0.1rem !important;
+    }
+
+    .time-display { /* Gilt nur, wenn TimersDisplay in .global-timers-mobile ist */
+        font-size: 1.1em !important;
+    }
+
+    .timer-box div:first-child { /* Gilt nur, wenn TimersDisplay in .global-timers-mobile ist */
+        font-size: 0.7em !important;
     }
 }
