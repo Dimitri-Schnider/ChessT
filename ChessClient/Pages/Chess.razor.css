@@ -31,6 +31,7 @@
     /* Die Breite wird durch das Kind .chessboard-container (mit aspect-ratio) bestimmt */
     height: 100%;
     position: relative;
+    padding: 10px;
 }
 
 .chessboard-container { /* Kind von .chessboard-column, Parent von .chessboard-grid */
