@@ -34,15 +34,26 @@
     box-shadow: 0 0 8px rgba(0, 128, 0, 0.5); /* Weicherer Schatten */
 }
 
-@media (max-width: 480px) { /* Speziell für sehr kleine Bildschirme */
+@media (max-width: 480px) {
     .timers-container {
-        flex-direction: column; /* Timer untereinander auf sehr kleinen Screens */
-        gap: 8px;
+        flex-direction: column;
+        gap: 5px; /* Etwas weniger Abstand */
         max-width: 100%;
     }
 
     .timer-box {
         margin: 0;
-        width: 100%; /* Volle Breite pro Timer */
+        width: 100%;
+        padding: 0.25rem 0.5rem; /* Padding oben/unten und links/rechts reduziert */
+    }
+
+    .time-display {
+        font-size: 1.2rem; /* Schriftgrösse der Zeit etwas reduzieren */
+        line-height: 1.3; /* Zeilenhöhe anpassen */
+    }
+
+    .timer-box div:first-child { /* Das Label "Spieler Weiss/Schwarz" */
+        font-size: 0.8em; /* Schriftgrösse des Labels reduzieren */
+        margin-bottom: 2px; /* Weniger Abstand unter dem Label */
     }
 }
