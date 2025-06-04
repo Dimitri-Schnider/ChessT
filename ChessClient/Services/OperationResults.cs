@@ -1,4 +1,4 @@
-﻿using ChessNetwork.DTOs;
+﻿using ChessNetwork.DTOs; 
 
 namespace ChessClient.Services
 {
@@ -15,7 +15,6 @@ namespace ChessClient.Services
         MoveDto? PendingPromotionMove = null,
         string? ErrorMessage = null
     );
-
     public enum CardActivationOutcome
     {
         Success,
@@ -24,6 +23,9 @@ namespace ChessClient.Services
 
     public record CardActivationFinalizationResult(
         CardActivationOutcome Outcome,
-        string? ErrorMessage = null
+        string? ErrorMessage = null,
+        // NEUE FELDER:
+        bool EndsPlayerTurn = true,
+        PositionDto? PawnPromotionPendingAt = null
     );
 }

@@ -16,8 +16,8 @@ using Microsoft.JSInterop;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
-using System; 
-using System.Threading.Tasks; 
+using System;
+using System.Threading.Tasks;
 
 namespace ChessClient.Pages
 {
@@ -55,10 +55,13 @@ namespace ChessClient.Pages
         private bool _isAwaitingSacrificePawnSelection;
 
         private CardDto? _activeCardForBoardSelectionProcess;
+
+
+        // ... (Methoden von ToggleMobilePlayedCardsHistory bis HandleCloseCardInfoModal bleiben unverändert) ...
         private void ToggleMobilePlayedCardsHistory()
         {
             _showMobilePlayedCardsHistory = !_showMobilePlayedCardsHistory;
-            InvokeAsync(StateHasChanged); 
+            InvokeAsync(StateHasChanged);
         }
 
         private void ComponentStateChanged()
@@ -107,22 +110,17 @@ namespace ChessClient.Pages
 
         private void HandleReceiveInitialHand(InitialHandDto initialHandDto)
         {
-            // Die Prüfung auf null für CardState wurde durch die strikte Prüfung in OnInitializedAsync abgedeckt.
-            // Es wird davon ausgegangen, dass CardState hier nicht null sein kann.
             CardState.SetInitialHand(initialHandDto);
         }
 
         private void HandleUpdateHandContents(InitialHandDto newHandInfo)
         {
-            // Strikte Prüfung in OnInitializedAsync, daher hier keine explizite Service-Null-Prüfung mehr.
-            // Es wird davon ausgegangen, dass CardState und UiState hier nicht null sein können.
             CardState.UpdateHandAndDrawPile(newHandInfo);
             _ = UiState.SetCurrentInfoMessageForBoxAsync("Deine Handkarten wurden aktualisiert.", true, 3000);
         }
 
         private void HandleCardAddedToHand(CardDto drawnCard, int newDrawPileCount)
         {
-            // Strikte Prüfung in OnInitializedAsync.
             CardState.AddReceivedCardToHand(drawnCard, newDrawPileCount);
             if (drawnCard != null && !drawnCard.Name.Contains(CardConstants.NoMoreCardsName) && !drawnCard.Name.Contains(CardConstants.ReplacementCardName))
             {
@@ -141,7 +139,6 @@ namespace ChessClient.Pages
 
         private async Task InitializePageBasedOnUrl()
         {
-            // Strikte Prüfung in OnInitializedAsync.
             GameCoreState.SetGameSpecificDataInitialized(false);
             Uri uri = NavManager.ToAbsoluteUri(NavManager.Uri);
             string? gameIdFromQuery = null;
@@ -161,7 +158,6 @@ namespace ChessClient.Pages
                         GameCoreState.SetGameIdFromQuery(gameIdFromQuery, true);
                         TimeUpdateDto timeUpdate = await Game.GetTimeUpdateAsync(parsedGuidFromQuery);
                         GameCoreState.UpdateDisplayedTimes(timeUpdate.WhiteTime, timeUpdate.BlackTime, timeUpdate.PlayerWhoseTurnItIs);
-                        // MyMainLayout wird in OnInitializedAsync geprüft.
                         MyMainLayout.UpdateActiveGameId(GameCoreState.GameId != Guid.Empty ? GameCoreState.GameId : parsedGuidFromQuery);
                         ModalState.OpenJoinGameModal(parsedGuidFromQuery.ToString());
                         if (info.HasOpponent)
@@ -184,7 +180,7 @@ namespace ChessClient.Pages
                     MyMainLayout.UpdateActiveGameId(Guid.Empty);
                 }
             }
-            else if (GameCoreState.CurrentPlayerInfo == null) // Statt GameCoreState == null
+            else if (GameCoreState.CurrentPlayerInfo == null)
             {
                 ModalState.OpenCreateGameModal();
                 MyMainLayout.UpdateActiveGameId(Guid.Empty);
@@ -197,7 +193,6 @@ namespace ChessClient.Pages
         }
         private void SubscribeToStateChanges()
         {
-            // Die State-Objekte selbst werden in OnInitializedAsync auf null geprüft.
             UiState.StateChanged += ComponentStateChanged;
             ModalState.StateChanged += ComponentStateChanged;
             GameCoreState.StateChanged += ComponentStateChanged;
@@ -208,7 +203,6 @@ namespace ChessClient.Pages
 
         private void UnsubscribeFromStateChanges()
         {
-            // Die State-Objekte selbst werden in OnInitializedAsync auf null geprüft und sollten hier nicht null sein, wenn DisposeAsync korrekt aufgerufen wird.
             UiState.StateChanged -= ComponentStateChanged;
             ModalState.StateChanged -= ComponentStateChanged;
             GameCoreState.StateChanged -= ComponentStateChanged;
@@ -290,7 +284,6 @@ namespace ChessClient.Pages
         private void HandlePlayCardActivationAnimation(CardDto cardForAnimation, Guid playerIdActivating, Player playerColorActivating)
         {
             Logger.LogHandlePlayCardActivationAnimation(cardForAnimation.Id, playerIdActivating, playerColorActivating);
-            // Annahme: GameCoreState, AnimationState, UiState, Logger sind nach OnInitializedAsync nicht null.
 
             if (cardForAnimation != null && GameCoreState.CurrentPlayerInfo != null)
             {
@@ -301,7 +294,6 @@ namespace ChessClient.Pages
             }
             else
             {
-                // Diese Log-Meldung bezieht sich nun eher auf fehlende *Daten* als auf fehlende *Dienste*.
                 Logger.LogClientCriticalServicesNullOnInit($"HandlePlayCardActivationAnimation: cardForAnimation oder CurrentPlayerInfo ist null. cardForAnimationIsNull: {cardForAnimation == null}, playerInfoIsNull: {GameCoreState.CurrentPlayerInfo == null}");
             }
         }
@@ -588,14 +580,13 @@ namespace ChessClient.Pages
 
         private async Task LoadInitialBoardAndStatusAndTime()
         {
-            // Annahme: GameCoreState, UiState, Game, MyMainLayout sind nach OnInitializedAsync nicht null.
             if (GameCoreState.CurrentPlayerInfo == null || GameCoreState.GameId == Guid.Empty) return;
             if (GameCoreState.IsGameSpecificDataInitialized && GameCoreState.BoardDto != null) return;
 
             try
             {
                 BoardDto board = await Game.GetBoardAsync(GameCoreState.GameId);
-                GameCoreState.UpdateBoard(board); // GameCoreState ist nicht null
+                GameCoreState.UpdateBoard(board);
                 GameStatusDto status = await Game.GetGameStatusAsync(GameCoreState.GameId, GameCoreState.CurrentPlayerInfo.Id);
                 await ProcessGameStatusAsync(status, false);
                 Player currentTurn = await Game.GetCurrentTurnPlayerAsync(GameCoreState.GameId);
@@ -616,96 +607,116 @@ namespace ChessClient.Pages
 
         private void HandleHubTurnChanged(BoardDto newBoard, Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, List<AffectedSquareInfo>? cardEffectSquaresFromServer)
         {
-            if (GameCoreState == null || HighlightState == null || CardState == null || AnimationState == null || UiState == null || ModalState == null) return;
-            if (_isAwaitingTurnConfirmationAfterCard)
+            Logger.LogClientSignalRConnectionWarning($"[ChessPage] HandleHubTurnChanged received. NextPlayer: {nextPlayer}, StatusForNext: {statusForNextPlayer}, LastMoveFrom: {lastMoveFromServerFrom ?? "null"}, LastMoveTo: {lastMoveFromServerTo ?? "null"}, CardEffectsCount: {cardEffectSquaresFromServer?.Count ?? 0}");
+
+            if (GameCoreState == null || HighlightState == null || CardState == null || AnimationState == null || UiState == null || ModalState == null)
             {
-                _isAwaitingTurnConfirmationAfterCard = false;
-                Logger.LogClientSignalRConnectionWarning("[ChessPage] Server turn confirmation received, resetting _isAwaitingTurnConfirmationAfterCard flag.");
+                Logger.LogClientCriticalServicesNullOnInit("[ChessPage] HandleHubTurnChanged: Critical state objects are null. Aborting.");
+                return;
             }
 
-            Player playerWhoseTurnItWas = GameCoreState.CurrentTurnPlayer ?? Player.None;
-
-            GameCoreState.UpdateBoard(newBoard);
-            GameCoreState.SetCurrentTurnPlayer(nextPlayer);
-
-            bool highlightLogicWasHandledByExtraTurn = false;
-            if (_isExtraTurnSequenceActive && GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == playerWhoseTurnItWas)
+            try
             {
-                _extraTurnMovesMade++;
-                bool isThisTheThirdMoveOverallByMe = (_extraTurnMovesMade == 2);
-                HighlightState.SetHighlights(lastMoveFromServerFrom, lastMoveFromServerTo, true, isThisTheThirdMoveOverallByMe);
-                highlightLogicWasHandledByExtraTurn = true;
-                if (isThisTheThirdMoveOverallByMe || GameCoreState.MyColor != nextPlayer)
+                if (_isAwaitingTurnConfirmationAfterCard)
                 {
+                    _isAwaitingTurnConfirmationAfterCard = false;
+                    Logger.LogClientSignalRConnectionWarning("[ChessPage] Server turn confirmation received, resetting _isAwaitingTurnConfirmationAfterCard flag.");
+                }
+
+                Player playerWhoseTurnItWas = GameCoreState.CurrentTurnPlayer ?? Player.None;
+
+                GameCoreState.UpdateBoard(newBoard);
+                GameCoreState.SetCurrentTurnPlayer(nextPlayer);
+
+                bool highlightLogicWasHandledByExtraTurn = false;
+                if (_isExtraTurnSequenceActive && GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == playerWhoseTurnItWas)
+                {
+                    _extraTurnMovesMade++;
+                    bool isThisTheThirdMoveOverallByMe = (_extraTurnMovesMade == 2);
+                    HighlightState.SetHighlights(lastMoveFromServerFrom, lastMoveFromServerTo, true, isThisTheThirdMoveOverallByMe);
+                    highlightLogicWasHandledByExtraTurn = true;
+                    if (isThisTheThirdMoveOverallByMe || GameCoreState.MyColor != nextPlayer)
+                    {
+                        _isExtraTurnSequenceActive = false;
+                    }
+                }
+
+                if (!highlightLogicWasHandledByExtraTurn)
+                {
+                    if (cardEffectSquaresFromServer != null && cardEffectSquaresFromServer.Count > 0)
+                    {
+                        HighlightState.SetHighlightForCardEffect(
+                            cardEffectSquaresFromServer.Select(eff => (eff.Square, eff.Type)).ToList()
+                        );
+                    }
+                    else
+                    {
+                        HighlightState.SetHighlights(lastMoveFromServerFrom, lastMoveFromServerTo, false);
+                    }
+
                     _isExtraTurnSequenceActive = false;
                 }
-            }
 
-            if (!highlightLogicWasHandledByExtraTurn)
-            {
-                // *** BEGINN DER ÄNDERUNG FÜR BUG 2 (HIGHLIGHTS FÜR KARTENEFFEKTE) ***
-                if (cardEffectSquaresFromServer != null && cardEffectSquaresFromServer.Count > 0)
+                bool isModalInteractionPendingForRebirth = ModalState.ShowPieceSelectionModal && _activeCardForBoardSelectionProcess?.Id == CardConstants.Wiedergeburt;
+                if (CardState.IsCardActivationPending && !isModalInteractionPendingForRebirth)
                 {
-                    // Wenn Karteneffekte vorhanden sind, diese spezifisch mit SetHighlightForCardEffect behandeln,
-                    // damit SquareComponent die korrekten CSS-Klassen für Karteneffekte verwendet.
-                    HighlightState.SetHighlightForCardEffect(
-                        cardEffectSquaresFromServer.Select(eff => (eff.Square, eff.Type)).ToList()
-                    );
+                    _ = ResetCardActivationStateAsync(fromCancelFlow: true, specificMessageToKeep: "Zug gewechselt, Kartenauswahl abgebrochen.");
                 }
-                else
-                {
-                    // Andernfalls Standard-Zughighlight anwenden.
-                    HighlightState.SetHighlights(lastMoveFromServerFrom, lastMoveFromServerTo, false);
-                }
-                // *** ENDE DER ÄNDERUNG FÜR BUG 2 ***
-                _isExtraTurnSequenceActive = false; // Sicherstellen, dass dies zurückgesetzt wird, wenn keine Extrazug-Sequenz mehr aktiv ist.
-            }
 
-            bool isModalInteractionPendingForRebirth = ModalState.ShowPieceSelectionModal && _activeCardForBoardSelectionProcess?.Id == CardConstants.Wiedergeburt;
-            if (CardState.IsCardActivationPending && !isModalInteractionPendingForRebirth)
-            {
-                _ = ResetCardActivationStateAsync(fromCancelFlow: true, specificMessageToKeep: "Zug gewechselt, Kartenauswahl abgebrochen.");
-            }
-
-            CardState.DeselectActiveHandCard();
-            if (GameCoreState.CurrentPlayerInfo != null)
-            {
-                GameCoreState.SetOpponentJoined(true);
-                MyMainLayout?.SetCanDownloadGameHistory(true);
-            }
-
-            bool amIMatt = false;
-            if (statusForNextPlayer == GameStatusDto.Checkmate)
-            {
-                if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer) { GameCoreState.SetEndGameMessage("Schachmatt! Du hast verloren."); amIMatt = true; }
-                else if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor != nextPlayer) { GameCoreState.SetEndGameMessage("Schachmatt! Du hast gewonnen!"); }
-                else { GameCoreState.SetEndGameMessage($"Schachmatt! {nextPlayer.Opponent()} gewinnt."); }
-            }
-            else if (statusForNextPlayer == GameStatusDto.TimeOut)
-            {
-                if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer)
+                CardState.DeselectActiveHandCard();
+                if (GameCoreState.CurrentPlayerInfo != null)
                 {
-                    GameCoreState.SetEndGameMessage("Zeit abgelaufen! Du hast gewonnen!");
+                    GameCoreState.SetOpponentJoined(true);
+                    MyMainLayout?.SetCanDownloadGameHistory(true);
                 }
-                else if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer.Opponent())
+
+                bool amIMatt = false;
+                if (statusForNextPlayer == GameStatusDto.Checkmate)
                 {
-                    GameCoreState.SetEndGameMessage("Zeit abgelaufen! Du hast verloren.");
+                    if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer) { GameCoreState.SetEndGameMessage("Schachmatt! Du hast verloren."); amIMatt = true; }
+                    else if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor != nextPlayer)
+                    {
+                        GameCoreState.SetEndGameMessage("Schachmatt! Du hast gewonnen!");
+                    }
+                    else
+                    {
+                        GameCoreState.SetEndGameMessage($"Schachmatt! {nextPlayer.Opponent()} gewinnt.");
+                    }
                 }
-                else
+                else if (statusForNextPlayer == GameStatusDto.TimeOut)
                 {
-                    GameCoreState.SetEndGameMessage($"Zeit abgelaufen! {nextPlayer} gewinnt.");
+                    if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer)
+                    {
+                        GameCoreState.SetEndGameMessage("Zeit abgelaufen! Du hast gewonnen!");
+                    }
+                    else if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer.Opponent())
+                    {
+                        GameCoreState.SetEndGameMessage("Zeit abgelaufen! Du hast verloren.");
+                    }
+                    else
+                    {
+                        GameCoreState.SetEndGameMessage($"Zeit abgelaufen! {nextPlayer} gewinnt.");
+                    }
+                }
+
+                if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer && !amIMatt && string.IsNullOrEmpty(GameCoreState.EndGameMessage))
+                {
+                    _ = ProcessGameStatusAsync(statusForNextPlayer, true);
+                }
+                else if (string.IsNullOrEmpty(GameCoreState.EndGameMessage))
+                {
+                    _ = ProcessGameStatusAsync(statusForNextPlayer, false);
                 }
             }
-
-            if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer && !amIMatt && string.IsNullOrEmpty(GameCoreState.EndGameMessage))
+            catch (Exception ex)
             {
-                _ = ProcessGameStatusAsync(statusForNextPlayer, true);
+                Logger.LogClientSignalRConnectionWarning($"[ChessPage] Exception in HandleHubTurnChanged: {ex.Message} - StackTrace: {ex.StackTrace}");
+                UiState?.SetErrorMessage($"Fehler bei der Verarbeitung der Server-Aktualisierung: {ex.Message}");
             }
-            else if (string.IsNullOrEmpty(GameCoreState.EndGameMessage))
+            finally
             {
-                _ = ProcessGameStatusAsync(statusForNextPlayer, false);
+                InvokeAsync(StateHasChanged);
             }
-            InvokeAsync(StateHasChanged);
         }
 
         private void HandleHubTimeUpdate(TimeUpdateDto timeUpdate)
@@ -798,30 +809,53 @@ namespace ChessClient.Pages
 
         private async Task HandlePromotionConfirmed(PieceType promotionType)
         {
-            if (ModalState?.PendingPromotionMove == null || GameCoreState?.CurrentPlayerInfo == null || UiState == null || Game == null) return;
+            if (ModalState?.PendingPromotionMove == null || GameCoreState?.CurrentPlayerInfo == null || UiState == null || Game == null || Logger == null)
+            {
+                string missing = ModalState == null ? "ModalState " : "";
+                missing += GameCoreState?.CurrentPlayerInfo == null ? "CurrentPlayerInfo " : "";
+                missing += UiState == null ? "UiState " : "";
+                missing += Game == null ? "Game " : "";
+                missing += Logger == null ? "Logger " : "";
+                Logger?.LogClientCriticalServicesNullOnInit($"HandlePromotionConfirmed: Kritische Objekte/Dienste sind null: {missing.Trim()}");
+                UiState?.SetErrorMessage("Ein interner Fehler ist aufgetreten bei der Bauernumwandlung (Dienste nicht bereit).");
+                ModalState?.ClosePawnPromotionModal();
+                ModalState?.ClearPendingPromotionMove();
+                return;
+            }
+
             ModalState.ClosePawnPromotionModal();
             MoveDto pendingMove = ModalState.PendingPromotionMove;
             ModalState.ClearPendingPromotionMove();
+
             MoveDto moveWithPromotion = new(pendingMove.From, pendingMove.To, GameCoreState.CurrentPlayerInfo.Id, promotionType);
+
+            Logger.LogClientSignalRConnectionWarning($"[ChessPage] Attempting Pawn Promotion. From: {moveWithPromotion.From}, To: {moveWithPromotion.To}, Promotion: {moveWithPromotion.PromotionTo}, PlayerId: {moveWithPromotion.PlayerId}, GameId: {GameCoreState.GameId}");
+
             await UiState.SetCurrentInfoMessageForBoxAsync($"Figur wird zu {promotionType} umgewandelt...");
+
             try
             {
                 MoveResultDto result = await Game.SendMoveAsync(GameCoreState.GameId, moveWithPromotion);
+                Logger.LogClientSignalRConnectionWarning($"[ChessPage] Pawn Promotion Server Response. IsValid: {result.IsValid}, ErrorMessage: '{result.ErrorMessage}', Status: {result.Status}");
+
                 if (result.IsValid)
                 {
                     UiState.ClearErrorMessage();
+                    await UiState.SetCurrentInfoMessageForBoxAsync("Umwandlung an Server gesendet. Warte auf Aktualisierung...", autoClear: false);
                 }
                 else
                 {
-                    UiState.SetErrorMessage(result.ErrorMessage ?? "Unbekannter Fehler beim Umwandlungszug.");
+                    string errorFromServer = result.ErrorMessage ?? "Unbekannter Fehler bei der Bauernumwandlung vom Server.";
+                    UiState.SetErrorMessage(errorFromServer);
+                    Logger.LogClientSignalRConnectionWarning($"Pawn Promotion failed on server for game {GameCoreState.GameId}: {errorFromServer}");
                 }
             }
             catch (Exception ex)
             {
-                UiState.SetErrorMessage($"Fehler beim Senden des Umwandlungszugs: {ex.Message}");
-                Logger.LogClientSignalRConnectionWarning($"Fehler beim Senden des Umwandlungszugs: {ex.Message}");
+                string exceptionError = $"Fehler beim Senden des Umwandlungszugs: {ex.Message}";
+                UiState.SetErrorMessage(exceptionError);
+                Logger.LogClientSignalRConnectionWarning($"Exception during SendMoveAsync for Pawn Promotion in game {GameCoreState?.GameId}: {exceptionError} - StackTrace: {ex.StackTrace}");
             }
-            UiState.ClearCurrentInfoMessageForBox();
         }
 
         private async Task HandlePromotionCancelled()
@@ -931,20 +965,20 @@ namespace ChessClient.Pages
 
         private async Task SetCardActionInfoBoxMessage(string message, bool showCancelButton)
         {
-            if (UiState is State.UiState concreteUiState) // Dein Cast zu konkreter Klasse
+            if (UiState is State.UiState concreteUiState)
             {
                 await concreteUiState.SetCurrentInfoMessageForBoxAsync(message,
-                    autoClear: !showCancelButton, 
-                    durationMs: showCancelButton ? 0 : 4000, 
+                    autoClear: !showCancelButton,
+                    durationMs: showCancelButton ? 0 : 4000,
                     showActionButton: showCancelButton,
                     actionButtonText: "Auswahl abbrechen",
                     onActionButtonClicked: EventCallback.Factory.Create(this, async () => await ResetCardActivationStateAsync(true, "Kartenaktion abgebrochen."))
-                );
+                 );
             }
             else
             {
                 await UiState.SetCurrentInfoMessageForBoxAsync(message,
-                                                                autoClear: !showCancelButton,
+                                                               autoClear: !showCancelButton,
                                                                 durationMs: showCancelButton ? 0 : 4000,
                                                                 showActionButton: false,
                                                                 actionButtonText: "",
@@ -995,37 +1029,25 @@ namespace ChessClient.Pages
             await InvokeAsync(StateHasChanged);
         }
 
-        // File: [SolutionDir]\ChessClient\Pages\Chess.razor.cs
-
         private async Task HandleActivateCard(CardDto cardToActivate)
         {
             if (UiState == null || GameCoreState == null || CardState == null || ModalState == null || HighlightState == null || Game == null) return;
 
-            // Konsistenzprüfung: Die zur Aktivierung ausgewählte Karte sollte die im CardState hinterlegte sein.
             if (CardState.SelectedCardInstanceIdInHand != cardToActivate.InstanceId)
             {
                 Logger.LogClientSignalRConnectionWarning($"[HandleActivateCard] KRITISCHE DISKREPANZ: cardToActivate.InstanceId ({cardToActivate.InstanceId}) != CardState.SelectedCardInstanceIdInHand ({CardState.SelectedCardInstanceIdInHand}). Dies sollte nicht passieren. Setze SelectedCardInstanceIdInHand auf cardToActivate.InstanceId.");
-                // Versuche, den Zustand zu korrigieren, indem die aktive Karte im State gesetzt wird.
-                // Dies setzt voraus, dass eine solche Methode im CardState existiert oder hinzugefügt wird,
-                // die keine UI-Interaktion (wie das Öffnen des Modals) auslöst.
-                // Beispiel: CardState.ForceSetSelectedCardInstanceId(cardToActivate.InstanceId);
-                // Wenn nicht, dann ist der Fehler im Flow vor diesem Aufruf.
-                // Für jetzt: Wir gehen davon aus, dass 'cardToActivate' die Absicht des Nutzers ist.
             }
 
             if (!IsCardActivatable(cardToActivate))
             {
                 await SetCardActionInfoBoxMessage($"Karte '{cardToActivate.Name}' kann momentan nicht aktiviert werden.", false);
-                // Kein Reset hier, da die Karte nicht aktiviert wurde und der Auswahlstatus für diese Karte bestehen bleiben könnte.
-                // Der Nutzer muss eine andere Aktion wählen oder das InfoPanel/Auswahl abbrechen.
-                CardState.SetIsCardActivationPending(false); // Sicherstellen, dass keine Aktivierung als "laufend" markiert bleibt.
+                CardState.SetIsCardActivationPending(false);
                 return;
             }
 
-            // Wichtige Zustandsvariablen *vor* potenziellen await-Aufrufen sichern
             Guid cardInstanceIdForRequest = cardToActivate.InstanceId;
             string cardTypeIdForRequest = cardToActivate.Id;
-            CardDto cardDefinitionForFinalize = new CardDto // Erstelle eine Kopie, um Zustandskonflikte zu vermeiden
+            CardDto cardDefinitionForFinalize = new CardDto
             {
                 InstanceId = cardToActivate.InstanceId,
                 Id = cardToActivate.Id,
@@ -1034,16 +1056,14 @@ namespace ChessClient.Pages
                 ImageUrl = cardToActivate.ImageUrl
             };
 
-            // Zustand für laufende Kartenaktivierung setzen
             CardState.SetIsCardActivationPending(true);
-            _activeCardForBoardSelectionProcess = cardDefinitionForFinalize; // Verwende die Kopie/gesicherte Definition
+            _activeCardForBoardSelectionProcess = cardDefinitionForFinalize;
             _firstSquareSelectedForTeleportOrSwap = null;
             _isAwaitingRebirthTargetSquareSelection = false;
             _pieceTypeSelectedForRebirth = null;
             HighlightState.ClearAllActionHighlights();
             _isAwaitingSacrificePawnSelection = false;
 
-            // Logik für spezifische Karten, die eine Brettinteraktion erfordern
             if (cardTypeIdForRequest == CardConstants.Teleport)
             {
                 await SetCardActionInfoBoxMessage("Teleport: Wähle eine deiner Figuren auf dem Brett aus.", true);
@@ -1052,7 +1072,7 @@ namespace ChessClient.Pages
             {
                 await SetCardActionInfoBoxMessage("Positionstausch: Wähle deine erste Figur auf dem Brett aus.", true);
             }
-            else if (cardTypeIdForRequest == CardConstants.SacrificeEffect) // Name aus CardConstants verwenden
+            else if (cardTypeIdForRequest == CardConstants.SacrificeEffect)
             {
                 _isAwaitingSacrificePawnSelection = true;
                 List<string> pawnSquares = new List<string>();
@@ -1079,15 +1099,14 @@ namespace ChessClient.Pages
                 }
                 else
                 {
-                    // Keine Bauern vorhanden, Karte direkt mit Fehlschlag/Verfall abwickeln
                     await UiState.SetCurrentInfoMessageForBoxAsync("Keine eigenen Bauern zum Opfern vorhanden. Karte verfällt.", true, 4000);
-                    // Wichtig: IsCardActivationPending hier nicht auf false setzen, das macht FinalizeCardActivationOnServerAsync
                     ActivateCardRequestDto failedSacrificeRequest = new()
                     {
                         CardInstanceId = cardInstanceIdForRequest,
                         CardTypeId = cardTypeIdForRequest,
-                        FromSquare = null // Wichtig: Explizit null, da kein Bauer gewählt wurde
+                        FromSquare = null
                     };
+                    // ACHTUNG: Hier wird 'cardDefinitionForFinalize' verwendet, die weiter oben deklariert wurde.
                     await FinalizeCardActivationOnServerAsync(failedSacrificeRequest, cardDefinitionForFinalize);
                 }
             }
@@ -1111,6 +1130,7 @@ namespace ChessClient.Pages
                 {
                     await SetCardActionInfoBoxMessage("Keine wiederbelebungsfähigen Figuren geschlagen. Karte verfällt.", false);
                     ActivateCardRequestDto failedRebirthRequest = new() { CardInstanceId = cardInstanceIdForRequest, CardTypeId = cardTypeIdForRequest };
+                    // ACHTUNG: Hier wird 'cardDefinitionForFinalize' verwendet.
                     await FinalizeCardActivationOnServerAsync(failedRebirthRequest, cardDefinitionForFinalize);
                 }
                 else
@@ -1139,25 +1159,20 @@ namespace ChessClient.Pages
                     ModalState.OpenPieceSelectionModal("Figur zur Wiederbelebung wählen", "Wähle eine geschlagene Figur (grau = Startfelder besetzt):", choicesForModal, GameCoreState.MyColor);
                 }
             }
-            else // Für Karten ohne spezielle Brettauswahl (Zeit, Kartentausch etc.)
+            else
             {
-                // IsCardActivationPending ist bereits true.
-                // SelectedCardInstanceIdInHand ist auch noch die korrekte Instanz-ID der gerade geklickten Karte.
-                // _activeCardForBoardSelectionProcess ist gesetzt.
-
                 ActivateCardRequestDto requestDto = new ActivateCardRequestDto
                 {
                     CardInstanceId = cardInstanceIdForRequest,
                     CardTypeId = cardTypeIdForRequest
                 };
-
                 if (cardToActivate.Id == CardConstants.CardSwap)
                 {
                     requestDto.CardInstanceIdToSwapFromHand = CardState.PlayerHandCards?.FirstOrDefault(c => c.InstanceId != cardInstanceIdForRequest)?.InstanceId;
                     if (!requestDto.CardInstanceIdToSwapFromHand.HasValue && (CardState.PlayerHandCards?.Count ?? 0) > 1)
                     {
                         await SetCardActionInfoBoxMessage("Keine andere Karte zum Anbieten für Tausch gefunden. Tausch nicht möglich.", false);
-                        await ResetCardActivationStateAsync(true); // Hier Reset, da Finalize nicht sicher erreicht wird
+                        await ResetCardActivationStateAsync(true);
                         return;
                     }
                     await SetCardActionInfoBoxMessage($"Kartentausch von '{cardDefinitionForFinalize.Name}' wird versucht...", false);
@@ -1167,15 +1182,34 @@ namespace ChessClient.Pages
                     await SetCardActionInfoBoxMessage($"Aktiviere Karte '{cardDefinitionForFinalize.Name}'...", false);
                 }
 
-                // Wichtig: Unmittelbar bevor der await-Call kommt, der die Kontrolle abgibt,
-                // sollte der *selektierte Zustand der Handkarte* im CardState zurückgesetzt werden,
-                // um zu verhindern, dass bei schnellen UI-Interaktionen oder Re-Rendern die alte ID erneut verwendet wird.
-                // _activeCardForBoardSelectionProcess bleibt für den Kontext von FinalizeCardActivationOnServerAsync erhalten.
                 CardState.DeselectActiveHandCard();
 
-                await FinalizeCardActivationOnServerAsync(requestDto, cardDefinitionForFinalize);
+                CardActivationFinalizationResult serverResponse = await FinalizeCardActivationOnServerAsync(requestDto, cardDefinitionForFinalize);
+
+                if (serverResponse.Outcome == CardActivationOutcome.Success)
+                {
+                    if (serverResponse.PawnPromotionPendingAt != null && GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && ModalState != null && UiState != null)
+                    {
+                        PositionDto serverPosDto = serverResponse.PawnPromotionPendingAt;
+                        string promotionSquareAlgebraic = PositionHelper.ToAlgebraic(serverPosDto.Row, serverPosDto.Column);
+
+                        MoveDto pendingPromotionByCardMove = new MoveDto(
+                            From: promotionSquareAlgebraic,
+                            To: promotionSquareAlgebraic,
+                            PlayerId: GameCoreState.CurrentPlayerInfo.Id
+                        );
+                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card effect '{cardDefinitionForFinalize.Name}' resulted in pawn promotion at {promotionSquareAlgebraic}. Opening promotion modal.");
+                        ModalState.OpenPawnPromotionModal(pendingPromotionByCardMove, GameCoreState.MyColor);
+                        await UiState.SetCurrentInfoMessageForBoxAsync($"Bauer auf {promotionSquareAlgebraic} wird umgewandelt! Wähle eine Figur.");
+                    }
+                    else if (serverResponse.EndsPlayerTurn)
+                    {
+                        _isAwaitingTurnConfirmationAfterCard = true;
+                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{cardDefinitionForFinalize.Name}' (ID: {cardDefinitionForFinalize.Id}) played, setting _isAwaitingTurnConfirmationAfterCard = true.");
+                    }
+                }
             }
-            await InvokeAsync(StateHasChanged); // UI aktualisieren, um InfoBox, etc. anzuzeigen
+            await InvokeAsync(StateHasChanged);
         }
 
         public async Task<CardActivationFinalizationResult> FinalizeCardActivationOnServerAsync(ActivateCardRequestDto requestDto, CardDto activatedCardDefinition)
@@ -1196,24 +1230,23 @@ namespace ChessClient.Pages
             string? messageToKeepAfterReset = null;
             bool successOutcome = result.Outcome == CardActivationOutcome.Success;
 
+            // Wenn eine Bauernumwandlung durch die Karte ausgelöst wurde, endet der Zug des Spielers NICHT sofort.
+            // Die Logik für EndsPlayerTurn wird jetzt vom Server (via CardActivationFinalizationResult) gesteuert.
+            bool effectiveEndsPlayerTurn = result.EndsPlayerTurn;
+
+
             if (successOutcome)
             {
                 messageToKeepAfterReset = $"Karte '{activatedCardDefinition.Name}' erfolgreich aktiviert!";
-                bool cardShouldEndTurn = true;
-                if (activatedCardDefinition.Id == CardConstants.ExtraZug)
-                {
-                    if (GameCoreState?.CurrentPlayerInfo != null && GameCoreState.MyColor == GameCoreState.CurrentTurnPlayer)
-                    {
-                        _isExtraTurnSequenceActive = true;
-                        _extraTurnMovesMade = 0;
-                        cardShouldEndTurn = false;
-                    }
-                }
-
-                if (cardShouldEndTurn)
+                // Die Logik für _isAwaitingTurnConfirmationAfterCard wird nun basierend auf effectiveEndsPlayerTurn gesetzt.
+                if (effectiveEndsPlayerTurn)
                 {
                     _isAwaitingTurnConfirmationAfterCard = true;
-                    Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{activatedCardDefinition.Name}' (ID: {activatedCardDefinition.Id}) played, setting _isAwaitingTurnConfirmationAfterCard = true.");
+                    Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{activatedCardDefinition.Name}' (ID: {activatedCardDefinition.Id}) played, server indicates turn ends, setting _isAwaitingTurnConfirmationAfterCard = true.");
+                }
+                else
+                {
+                    Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{activatedCardDefinition.Name}' (ID: {activatedCardDefinition.Id}) played, server indicates turn DOES NOT end (e.g. ExtraZug or PawnPromotion by card). _isAwaitingTurnConfirmationAfterCard remains false.");
                 }
             }
             else
@@ -1221,39 +1254,44 @@ namespace ChessClient.Pages
                 messageToKeepAfterReset = UiState.ErrorMessage;
             }
 
-            await ResetCardActivationStateAsync(fromCancelFlow: !successOutcome,
-                                                 specificMessageToKeep: messageToKeepAfterReset);
+            // ResetCardActivationStateAsync wird nur gerufen, wenn KEINE Bauernumwandlung durch die Karte ansteht.
+            // Wenn eine Promotion ansteht, übernimmt das Promotion-Modal den weiteren Flow.
+            if (result.PawnPromotionPendingAt == null)
+            {
+                await ResetCardActivationStateAsync(fromCancelFlow: !successOutcome,
+                                                specificMessageToKeep: messageToKeepAfterReset);
+            }
+            else
+            {
+                // Im Falle einer anstehenden Promotion wird der CardActivationPending-Status beibehalten,
+                // bis die Promotion abgeschlossen ist oder abgebrochen wird.
+                // Die Info-Box sollte bereits durch den Aufrufer gesetzt worden sein (z.B. "Bauer wird umgewandelt...").
+                CardState.SetIsCardActivationPending(true); // Sicherstellen, dass es pending bleibt
+            }
             return result;
         }
 
-        // File: [SolutionDir]\ChessClient\Pages\Chess.razor.cs
-
-        private async Task HandleSquareClickForCardTargetSelection(string algebraicCoord)
+        public async Task HandleSquareClickForCardTargetSelection(string algebraicCoord)
         {
             if (CardState == null || _activeCardForBoardSelectionProcess == null || !CardState.IsCardActivationPending || UiState == null || GameCoreState == null || HighlightState == null)
             {
-                // Wenn ein grundlegender State null ist, hier abbrechen, um NullReferenceExceptions zu vermeiden.
                 Logger.LogClientCriticalServicesNullOnInit("[HandleSquareClickForCardTargetSelection] Kritischer State ist null. Breche ab.");
                 await ResetCardActivationStateAsync(true, "Fehler bei Kartenaktion (interner Zustand).");
                 return;
             }
-
-            // Wichtige Daten sichern, bevor der Zustand potenziell zurückgesetzt wird.
-            CardDto activeCardDefinitionForFinalize = _activeCardForBoardSelectionProcess;
+            CardDto activeCardForThisScope = _activeCardForBoardSelectionProcess; // Verwende eine lokale Kopie für diesen Scope
             Guid? selectedHandCardInstanceIdForRequest = CardState.SelectedCardInstanceIdInHand;
 
-            // Konsistenzprüfung: Ist die Karte, die wir bearbeiten, noch die, die in CardState als ausgewählt gilt?
-            if (!selectedHandCardInstanceIdForRequest.HasValue || selectedHandCardInstanceIdForRequest.Value != activeCardDefinitionForFinalize.InstanceId)
+            if (!selectedHandCardInstanceIdForRequest.HasValue || selectedHandCardInstanceIdForRequest.Value != activeCardForThisScope.InstanceId)
             {
-                Logger.LogClientSignalRConnectionWarning($"[HandleSquareClickForCardTargetSelection] Inkonsistenz: _activeCardForBoardSelectionProcess ({activeCardDefinitionForFinalize.Name}, Inst: {activeCardDefinitionForFinalize.InstanceId}) stimmt nicht mit CardState.SelectedCardInstanceIdInHand ({selectedHandCardInstanceIdForRequest}) überein oder letzteres ist null.");
+                Logger.LogClientSignalRConnectionWarning($"[HandleSquareClickForCardTargetSelection] Inkonsistenz: _activeCardForBoardSelectionProcess ({activeCardForThisScope.Name}, Inst: {activeCardForThisScope.InstanceId}) stimmt nicht mit CardState.SelectedCardInstanceIdInHand ({selectedHandCardInstanceIdForRequest}) überein oder letzteres ist null.");
                 await ResetCardActivationStateAsync(true, "Fehler bei Kartenauswahl (Inkonsistenz im Zustand).");
                 return;
             }
 
             ActivateCardRequestDto? requestDto = null;
-            string originalInfoMessage = UiState.CurrentInfoMessageForBox; // Merken für den Fall, dass wir zurück müssen
 
-            if (activeCardDefinitionForFinalize.Id == CardConstants.Teleport)
+            if (activeCardForThisScope.Id == CardConstants.Teleport)
             {
                 if (string.IsNullOrEmpty(_firstSquareSelectedForTeleportOrSwap))
                 {
@@ -1263,7 +1301,7 @@ namespace ChessClient.Pages
                     {
                         _firstSquareSelectedForTeleportOrSwap = algebraicCoord;
                         await SetCardActionInfoBoxMessage($"Teleport: Figur auf {algebraicCoord} ausgewählt. Wähle nun ein leeres Zielfeld.", true);
-                        HighlightState.ClearCardTargetSquaresForSelection(); // Nur das eine Feld highlighten
+                        HighlightState.ClearCardTargetSquaresForSelection();
                         HighlightState.SetHighlights(algebraicCoord, null, false);
                     }
                     else
@@ -1271,27 +1309,27 @@ namespace ChessClient.Pages
                         await SetCardActionInfoBoxMessage("Teleport: Bitte wähle eine deiner eigenen Figuren.", true);
                     }
                     await InvokeAsync(StateHasChanged);
-                    return; // Warte auf den zweiten Klick
+                    return;
                 }
-                else // Zweiter Klick für Teleport (Zielfeld)
+                else
                 {
                     (int rTo, int fTo) = PositionHelper.ToIndices(algebraicCoord);
                     if (GameCoreState.BoardDto?.Squares[rTo][fTo] != null)
                     {
                         await SetCardActionInfoBoxMessage("Teleport: Das Zielfeld muss leer sein. Wähle ein anderes oder brich ab.", true);
-                        return; // Warte auf korrekten zweiten Klick
+                        return;
                     }
                     requestDto = new ActivateCardRequestDto
                     {
                         CardInstanceId = selectedHandCardInstanceIdForRequest.Value,
-                        CardTypeId = activeCardDefinitionForFinalize.Id,
+                        CardTypeId = activeCardForThisScope.Id,
                         FromSquare = _firstSquareSelectedForTeleportOrSwap,
                         ToSquare = algebraicCoord
                     };
                     await SetCardActionInfoBoxMessage($"Teleportiere Figur von {_firstSquareSelectedForTeleportOrSwap} nach {algebraicCoord}...", false);
                 }
             }
-            else if (activeCardDefinitionForFinalize.Id == CardConstants.Positionstausch)
+            else if (activeCardForThisScope.Id == CardConstants.Positionstausch)
             {
                 if (string.IsNullOrEmpty(_firstSquareSelectedForTeleportOrSwap))
                 {
@@ -1309,9 +1347,9 @@ namespace ChessClient.Pages
                         await SetCardActionInfoBoxMessage("Positionstausch: Bitte wähle eine deiner eigenen Figuren.", true);
                     }
                     await InvokeAsync(StateHasChanged);
-                    return; // Warte auf den zweiten Klick
+                    return;
                 }
-                else // Zweiter Klick für Positionstausch
+                else
                 {
                     (int r, int f) = PositionHelper.ToIndices(algebraicCoord);
                     PieceDto? pieceOnSquare = GameCoreState.BoardDto?.Squares[r][f];
@@ -1320,7 +1358,7 @@ namespace ChessClient.Pages
                         requestDto = new ActivateCardRequestDto
                         {
                             CardInstanceId = selectedHandCardInstanceIdForRequest.Value,
-                            CardTypeId = activeCardDefinitionForFinalize.Id,
+                            CardTypeId = activeCardForThisScope.Id,
                             FromSquare = _firstSquareSelectedForTeleportOrSwap,
                             ToSquare = algebraicCoord
                         };
@@ -1329,11 +1367,11 @@ namespace ChessClient.Pages
                     else
                     {
                         await SetCardActionInfoBoxMessage("Positionstausch: Bitte wähle eine andere deiner eigenen Figuren (nicht dieselbe).", true);
-                        return; // Warte auf korrekten zweiten Klick
+                        return;
                     }
                 }
             }
-            else if (activeCardDefinitionForFinalize.Id == CardConstants.Wiedergeburt && _isAwaitingRebirthTargetSquareSelection)
+            else if (activeCardForThisScope.Id == CardConstants.Wiedergeburt && _isAwaitingRebirthTargetSquareSelection)
             {
                 if (_pieceTypeSelectedForRebirth == null)
                 {
@@ -1343,24 +1381,22 @@ namespace ChessClient.Pages
                 if (!HighlightState.CardTargetSquaresForSelection.Contains(algebraicCoord))
                 {
                     await UiState.SetCurrentInfoMessageForBoxAsync("Ungültiges Feld. Wähle ein hervorgehobenes, leeres Ursprungsfeld.", autoClear: true, durationMs: 3000);
-                    return; // Warte auf korrekten Klick
+                    return;
                 }
                 requestDto = new ActivateCardRequestDto
                 {
                     CardInstanceId = selectedHandCardInstanceIdForRequest.Value,
-                    CardTypeId = activeCardDefinitionForFinalize.Id,
+                    CardTypeId = activeCardForThisScope.Id,
                     PieceTypeToRevive = _pieceTypeSelectedForRebirth,
                     TargetRevivalSquare = algebraicCoord
                 };
                 await SetCardActionInfoBoxMessage($"Wiederbelebe {_pieceTypeSelectedForRebirth} auf {algebraicCoord}...", false);
             }
-            else if (_isAwaitingSacrificePawnSelection && activeCardDefinitionForFinalize.Id == CardConstants.SacrificeEffect)
+            else if (_isAwaitingSacrificePawnSelection && activeCardForThisScope.Id == CardConstants.SacrificeEffect)
             {
                 (int r, int c) = PositionHelper.ToIndices(algebraicCoord);
                 PieceDto? piece = GameCoreState.BoardDto?.Squares[r][c];
 
-                // Ist das geklickte Feld ein gültiger Bauer des Spielers?
-                // HighlightState.CardTargetSquaresForSelection sollte bereits die gültigen Bauern enthalten.
                 if (HighlightState.CardTargetSquaresForSelection.Contains(algebraicCoord) &&
                     piece.HasValue && piece.Value.IsOfPlayerColor(GameCoreState.MyColor) &&
                     piece.Value.ToString().Contains("Pawn", StringComparison.OrdinalIgnoreCase))
@@ -1368,8 +1404,8 @@ namespace ChessClient.Pages
                     requestDto = new ActivateCardRequestDto
                     {
                         CardInstanceId = selectedHandCardInstanceIdForRequest.Value,
-                        CardTypeId = activeCardDefinitionForFinalize.Id,
-                        FromSquare = algebraicCoord, // Der ausgewählte Bauer
+                        CardTypeId = activeCardForThisScope.Id,
+                        FromSquare = algebraicCoord,
                         ToSquare = null
                     };
                     await SetCardActionInfoBoxMessage($"Opfere Bauer auf {algebraicCoord}...", false);
@@ -1377,42 +1413,54 @@ namespace ChessClient.Pages
                 else
                 {
                     await UiState.SetCurrentInfoMessageForBoxAsync("Ungültige Auswahl. Bitte wähle einen deiner Bauern (hervorgehoben).", true, 3000);
-                    return; // Auswahl nicht finalisieren, Spieler soll erneut wählen oder abbrechen
+                    return;
                 }
             }
             else
             {
-                // Dieser Fall sollte nicht eintreten, wenn die UI-Logik korrekt ist.
                 await UiState.SetCurrentInfoMessageForBoxAsync("Unerwarteter Zustand bei der Feldauswahl für Kartenaktion.", true, 5000);
                 await ResetCardActivationStateAsync(true);
                 return;
             }
 
-            // Wenn ein requestDto erstellt wurde (d.h. die Auswahl für die Karte ist komplett)
             if (requestDto != null)
             {
-                // **WICHTIG:** Aggressives Zurücksetzen des Client-Auswahlstatus, *bevor* der Server-Call gemacht wird.
-                // Dies hilft, Race Conditions oder das Senden veralteter Daten bei schnellen UI-Interaktionen zu vermeiden.
-                // Der _activeCardForBoardSelectionProcess (bzw. die Kopie cardDefinitionForFinalize) wird an Finalize übergeben.
                 string messageForInfoBox = UiState.CurrentInfoMessageForBox;
                 if (string.IsNullOrEmpty(messageForInfoBox) || messageForInfoBox.Contains("Wähle"))
                 {
-                    messageForInfoBox = $"Verarbeite '{activeCardDefinitionForFinalize.Name}'...";
+                    messageForInfoBox = $"Verarbeite '{activeCardForThisScope.Name}'...";
                 }
 
-                // SetIsCardActivationPending(true) ist bereits am Anfang von HandleActivateCard gesetzt.
-                // Hier fokussieren wir uns auf das Zurücksetzen der *Auswahl*-spezifischen Zustände.
                 _firstSquareSelectedForTeleportOrSwap = null;
                 _isAwaitingRebirthTargetSquareSelection = false;
                 _isAwaitingSacrificePawnSelection = false;
                 HighlightState.ClearCardTargetSquaresForSelection();
-                // SelectedCardInstanceIdInHand wird in FinalizeCardActivationOnServerAsync -> ResetCardActivationStateAsync genullt
-                // _activeCardForBoardSelectionProcess wird ebenfalls dort genullt.
 
-                await FinalizeCardActivationOnServerAsync(requestDto, activeCardDefinitionForFinalize);
+                CardActivationFinalizationResult serverResponse = await FinalizeCardActivationOnServerAsync(requestDto, activeCardForThisScope);
+
+                if (serverResponse.Outcome == CardActivationOutcome.Success)
+                {
+                    if (serverResponse.PawnPromotionPendingAt != null && GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && ModalState != null && UiState != null)
+                    {
+                        PositionDto serverPosDto = serverResponse.PawnPromotionPendingAt;
+                        string promotionSquareAlgebraic = PositionHelper.ToAlgebraic(serverPosDto.Row, serverPosDto.Column);
+
+                        MoveDto pendingPromotionByCardMove = new MoveDto(
+                            From: promotionSquareAlgebraic,
+                            To: promotionSquareAlgebraic,
+                            PlayerId: GameCoreState.CurrentPlayerInfo.Id
+                        );
+                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card effect '{activeCardForThisScope.Name}' after square click resulted in pawn promotion at {promotionSquareAlgebraic}. Opening promotion modal.");
+                        ModalState.OpenPawnPromotionModal(pendingPromotionByCardMove, GameCoreState.MyColor);
+                        await UiState.SetCurrentInfoMessageForBoxAsync($"Bauer auf {promotionSquareAlgebraic} wird umgewandelt! Wähle eine Figur.");
+                    }
+                    else if (serverResponse.EndsPlayerTurn)
+                    {
+                        _isAwaitingTurnConfirmationAfterCard = true;
+                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{activeCardForThisScope.Name}' after square click, server indicates turn ends, setting _isAwaitingTurnConfirmationAfterCard = true.");
+                    }
+                }
             }
-            // Kein await InvokeAsync(StateHasChanged) hier, da FinalizeCardActivationOnServerAsync das implizit auslöst
-            // oder das SetCardActionInfoBoxMessage es bereits getan hat.
         }
 
         private async Task ResetCardActivationStateAsync(bool fromCancelFlow = false, string? specificMessageToKeep = null)
@@ -1429,12 +1477,12 @@ namespace ChessClient.Pages
             ModalState.CloseCardInfoPanelModal();
 
             HighlightState.ClearAllActionHighlights();
-            HighlightState.ClearCardTargetSquaresForSelection(); // Wichtig, um Opfergabe-Highlights zu entfernen
+            HighlightState.ClearCardTargetSquaresForSelection();
 
             _pieceTypeSelectedForRebirth = null;
             _isAwaitingRebirthTargetSquareSelection = false;
             _firstSquareSelectedForTeleportOrSwap = null;
-            _isAwaitingSacrificePawnSelection = false; // NEU: Zurücksetzen
+            _isAwaitingSacrificePawnSelection = false;
 
             if (!string.IsNullOrEmpty(specificMessageToKeep))
             {
@@ -1446,7 +1494,6 @@ namespace ChessClient.Pages
             }
             else
             {
-                // Lösche InfoBox nur, wenn sie eine "Wähle..." Nachricht enthielt
                 if (UiState.CurrentInfoMessageForBox.Contains("Wähle") || UiState.CurrentInfoMessageForBox.Contains("Lade"))
                 {
                     UiState.ClearCurrentInfoMessageForBox();
@@ -1469,7 +1516,7 @@ namespace ChessClient.Pages
             return isSelectingFirstPieceForTeleportOrSwap ||
                    isSelectingSecondPieceOrTargetForTeleportOrSwap ||
                    isRebirthTargetSelection ||
-                   isSacrificePawnSelection; // NEU
+                   isSacrificePawnSelection;
         }
 
         private Player? GetPlayerColorForCardPieceSelection()
@@ -1582,7 +1629,6 @@ namespace ChessClient.Pages
         public async ValueTask DisposeAsync()
         {
             UnsubscribeFromStateChanges();
-            // Annahme: HubService, ModalService, ModalState, AnimationState sind nach OnInitializedAsync nicht null.
             HubService.OnTurnChanged -= HandleHubTurnChanged;
             HubService.OnTimeUpdate -= HandleHubTimeUpdate;
             HubService.OnPlayerJoined -= HandlePlayerJoinedClient;

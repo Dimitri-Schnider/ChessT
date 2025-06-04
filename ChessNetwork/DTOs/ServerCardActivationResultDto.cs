@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using ChessNetwork.DTOs; 
 
 namespace ChessNetwork.DTOs
 {
@@ -17,5 +16,7 @@ namespace ChessNetwork.DTOs
 
         public CardDto? CardGivenByPlayerForSwap { get; set; }
         public CardDto? CardReceivedByPlayerForSwap { get; set; }
+
+        public PositionDto? PawnPromotionPendingAt { get; set; }
     }
 }

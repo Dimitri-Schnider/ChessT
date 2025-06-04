@@ -51,6 +51,7 @@ namespace Chess.Logging
         void LogControllerConnectionIdNotFoundNoMoreCards(string actionSource, Guid playerId);
         void LogControllerConnectionIdNotFoundGeneric(string actionSource, Guid playerId);
         void LogControllerActivateCardSentCardToHand(string cardName, string connectionId, Guid playerId);
+        void LogExtraTurnFirstMoveCausesCheck(Guid gameId, Guid playerId, string fromSquare, string toSquare); 
         void LogControllerCouldNotDeterminePlayerIdForStatus(Guid gameId, Player playerColor);
         void LogControllerErrorGettingOpponentInfo(Guid gameId, Guid playerId, Exception? ex);
         void LogControllerErrorGettingLegalMoves(Guid gameId, Guid playerId, string fromSquare, Exception? ex);
@@ -107,6 +108,7 @@ namespace Chess.Logging
         void LogPlayerStillInCheckAfterCardTurnNotEnded(Guid gameId, Guid playerId, string cardTypeId);
         void LogPlayerInCheckTriedInvalidMove(Guid gameId, Guid playerId, Player playerColor, string fromSquare, string toSquare);
         void LogPlayerTriedMoveThatDidNotResolveCheck(Guid gameId, Guid playerId, Player playerColor, string fromSquare, string toSquare);
+        void LogPawnPromotionPendingAfterCard(Guid gameId, Player player, string promotionSquare, string cardTypeId);
 
 
         // --- ChessServer.Services.CardEffects Logs ---

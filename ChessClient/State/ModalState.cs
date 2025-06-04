@@ -1,4 +1,4 @@
-﻿// File: [SolutionDir]/ChessClient/State/ModalState.cs
+﻿// File: [SolutionDir]\ChessClient\State\ModalState.cs
 using System;
 using System.Threading.Tasks;
 using ChessLogic;
@@ -33,7 +33,6 @@ namespace ChessClient.State
         public bool ShowPawnPromotionModalSpecifically { get; private set; }
         public MoveDto? PendingPromotionMove { get; private set; }
 
-        // NEU: Eigenschaften für CardInfoPanel-Modal
         public bool ShowCardInfoPanelModal { get; private set; }
         public CardDto? CardForInfoPanelModal { get; private set; }
         public bool IsCardInInfoPanelModalActivatable { get; private set; }
@@ -65,7 +64,6 @@ namespace ChessClient.State
             PlayerNameForCreateModal = name;
             SelectedColorForCreateModal = color;
             SelectedInitialTimeMinutesForCreateModal = timeMinutes;
-            // OnStateChanged wird nicht benötigt, da es nur die internen Werte für das bereits offene Modal aktualisiert
         }
 
         public void OpenJoinGameModal(string? initialGameId = null)
@@ -86,13 +84,10 @@ namespace ChessClient.State
         {
             PlayerNameForJoinModal = name;
             GameIdInputForJoinModal = gameId;
-            // OnStateChanged nicht nötig
         }
 
         public void OpenInviteLinkModal(string inviteLink)
         {
-            // Kann parallel zu anderen Modals angezeigt werden oder andere schliessen?
-            // Fürs Erste schliessen wir andere nicht.
             InviteLink = inviteLink;
             ShowInviteLinkModal = true;
             OnStateChanged();
@@ -106,7 +101,7 @@ namespace ChessClient.State
 
         public void OpenPieceSelectionModal(string title, string prompt, List<PieceSelectionChoiceInfo> choices, Player playerColor, bool showCancelButton = true)
         {
-            CloseAllModals(); // Schliesst andere Hauptmodals
+            CloseAllModals();
             PieceSelectionModalTitle = title;
             PieceSelectionModalPrompt = prompt;
             PieceSelectionModalChoices = choices;
@@ -126,7 +121,6 @@ namespace ChessClient.State
         public void OpenPawnPromotionModal(MoveDto pendingMove, Player myColor)
         {
             PendingPromotionMove = pendingMove;
-            ShowPawnPromotionModalSpecifically = true; // Markiert, dass dies ein Promotion-Modal ist
 
             var promotionChoices = new List<PieceSelectionChoiceInfo>
             {
@@ -135,32 +129,33 @@ namespace ChessClient.State
                 new PieceSelectionChoiceInfo(PieceType.Bishop, true, "Läufer wählen"),
                 new PieceSelectionChoiceInfo(PieceType.Knight, true, "Springer wählen")
             };
+
             OpenPieceSelectionModal(
                 title: "Figur für Bauernumwandlung wählen",
                 prompt: "Dein Bauer hat die gegnerische Grundlinie erreicht! Wähle eine Figur für die Umwandlung:",
                 choices: promotionChoices,
                 playerColor: myColor,
-                showCancelButton: false // Bei Promotion meist keine Abbruch-Option
+                showCancelButton: false
             );
+
+            ShowPawnPromotionModalSpecifically = true;
+            OnStateChanged();
         }
 
         public void ClosePawnPromotionModal()
         {
             ShowPawnPromotionModalSpecifically = false;
-            ClosePieceSelectionModal(); // Die generische Methode schliesst das PieceSelectionModal
+            ClosePieceSelectionModal();
         }
 
         public void ClearPendingPromotionMove()
         {
             PendingPromotionMove = null;
-            // OnStateChanged, falls das UI darauf reagieren muss, dass kein Zug mehr ansteht
-            // OnStateChanged();
         }
 
-        // NEU: Methoden für CardInfoPanel-Modal
         public void OpenCardInfoPanelModal(CardDto card, bool isActivatable, bool isPreviewOnly)
         {
-            CloseAllModals(); // Schliesst andere Hauptmodals
+            CloseAllModals();
             CardForInfoPanelModal = card;
             IsCardInInfoPanelModalActivatable = isActivatable;
             IsCardInInfoPanelModalPreviewOnly = isPreviewOnly;
@@ -171,7 +166,7 @@ namespace ChessClient.State
         public void CloseCardInfoPanelModal()
         {
             ShowCardInfoPanelModal = false;
-            CardForInfoPanelModal = null; // Karte zurücksetzen beim Schliessen
+            CardForInfoPanelModal = null;
             OnStateChanged();
         }
 
@@ -181,8 +176,7 @@ namespace ChessClient.State
             ShowJoinGameModal = false;
             ShowPieceSelectionModal = false;
             ShowPawnPromotionModalSpecifically = false;
-            ShowCardInfoPanelModal = false; // NEU
-            // InviteLinkModal bleibt davon unberührt, da es eher eine Benachrichtigung ist
+            ShowCardInfoPanelModal = false;
         }
     }
 }

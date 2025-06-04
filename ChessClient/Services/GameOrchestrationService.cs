@@ -105,7 +105,8 @@ namespace ChessClient.Services
                     string noPlayerDataError = "Spielerdaten nicht verfügbar für Kartenaktivierung.";
                     _uiState.SetErrorMessage(noPlayerDataError);
                     _cardState.SetIsCardActivationPending(false);
-                    return new CardActivationFinalizationResult(CardActivationOutcome.Error, noPlayerDataError);
+                    // Hier auch die neuen Felder initialisieren
+                    return new CardActivationFinalizationResult(CardActivationOutcome.Error, noPlayerDataError, true, null);
                 }
 
                 ServerCardActivationResultDto serverResult = await _gameService.ActivateCardAsync(_gameCoreState.GameId, _gameCoreState.CurrentPlayerInfo.Id, requestDto);
@@ -115,23 +116,25 @@ namespace ChessClient.Services
                     _uiState.SetErrorMessage(errorMsg);
                     await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCard.Name));
                     _cardState.SetIsCardActivationPending(false);
-                    return new CardActivationFinalizationResult(CardActivationOutcome.Error, errorMsg);
+                    // Hier auch die neuen Felder initialisieren
+                    return new CardActivationFinalizationResult(CardActivationOutcome.Error, errorMsg, serverResult.EndsPlayerTurn, serverResult.PawnPromotionPendingAt);
                 }
 
-                // Die Logik für MarkSingleUseCardAsUsed wurde serverseitig verlagert.
-                // if (activatedCard.Id == CardConstants.ExtraZug)
-                // {
-                // _cardState.MarkSingleUseCardAsUsed(CardConstants.ExtraZug); // Entfernt
-                // }
                 _cardState.SetIsCardActivationPending(false);
-                return new CardActivationFinalizationResult(CardActivationOutcome.Success);
+                // Mappe die neuen Felder vom serverResult auf CardActivationFinalizationResult
+                return new CardActivationFinalizationResult(
+                    CardActivationOutcome.Success,
+                    null, // Kein ErrorMessage bei Erfolg
+                    serverResult.EndsPlayerTurn,
+                    serverResult.PawnPromotionPendingAt
+                );
             }
             catch (HttpRequestException httpEx)
             {
                 _uiState.SetErrorMessage(httpEx.Message);
                 await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCard.Name));
                 _cardState.SetIsCardActivationPending(false);
-                return new CardActivationFinalizationResult(CardActivationOutcome.Error, httpEx.Message);
+                return new CardActivationFinalizationResult(CardActivationOutcome.Error, httpEx.Message, true, null);
             }
             catch (Exception ex)
             {
@@ -139,7 +142,7 @@ namespace ChessClient.Services
                 _uiState.SetErrorMessage(errorMsg);
                 await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCard.Name));
                 _cardState.SetIsCardActivationPending(false);
-                return new CardActivationFinalizationResult(CardActivationOutcome.Error, errorMsg);
+                return new CardActivationFinalizationResult(CardActivationOutcome.Error, errorMsg, true, null);
             }
         }
 

@@ -170,7 +170,8 @@ namespace Chess.Logging
             LoggerMessage.Define<Guid, Guid, Player, string, string>(LogLevel.Warning, new EventId(23030, "PlayerInCheckTriedInvalidMoveLog"), "[GameSession] Spiel {GameId}: Spieler {PlayerId} (Farbe: {PlayerColor}) im Schach versuchte ungültigen Zug {From}->{To}.");
         private static readonly Action<ILogger, Guid, Guid, Player, string, string, Exception?> _logPlayerTriedMoveThatDidNotResolveCheckAction =
             LoggerMessage.Define<Guid, Guid, Player, string, string>(LogLevel.Warning, new EventId(23031, "PlayerTriedMoveThatDidNotResolveCheckLog"), "[GameSession] Spiel {GameId}: Spieler {PlayerId} (Farbe: {PlayerColor}) wählte Zug {From}->{To}, der das Schach nicht pariert.");
-
+        private static readonly Action<ILogger, Guid, Player, string, string, Exception?> _logPawnPromotionPendingAfterCardAction =
+            LoggerMessage.Define<Guid, Player, string, string>(LogLevel.Information, new EventId(23033, "LogPawnPromotionPendingAfterCard"), "[GameSession] Spiel {GameId}: Bauernumwandlung für Spieler {PlayerColor} auf Feld {PromotionSquare} nach Karteneffekt {CardTypeId} anstehend. Zug endet nicht.");
 
 
         // Umbenannte Methoden (ehemals RecordEvent...)
@@ -182,6 +183,8 @@ namespace Chess.Logging
             LoggerMessage.Define<Guid, Guid>(LogLevel.Information, new EventId(23011, "LogPlayerCardDrawIndicatedLog"), "[GameSession] Spieler {PlayerId} in Spiel {GameId} soll eine Karte ziehen.");
 
         // Weitere GameSession Logs
+        private static readonly Action<ILogger, Guid, Guid, string, string, Exception?> _logExtraTurnFirstMoveCausesCheckAction = 
+            LoggerMessage.Define<Guid, Guid, string, string>(LogLevel.Warning, new EventId(23032, "ExtraTurnFirstMoveCausesCheckLog"), "[GameSession] Spiel {GameId}: Spieler {PlayerId} versuchte mit erstem Zug des Extrazugs ({FromSquare}->{ToSquare}) den Gegner Schach zu setzen. Ungültig.");
         private static readonly Action<ILogger, Guid, Guid, string, Exception?> _logNotifyingOpponentOfCardPlayAction =
             LoggerMessage.Define<Guid, Guid, string>(LogLevel.Information, new EventId(23012, "NotifyingOpponentOfCardPlayLog"), "[GameSession] Benachrichtige alle in Spiel {GameId} über Kartenspiel von Spieler {PlayerId}, Karte {CardId}.");
         private static readonly Action<ILogger, Guid, PieceType, Player, Exception?> _logCapturedPieceAddedAction =
@@ -290,6 +293,8 @@ namespace Chess.Logging
         // Implementierungen
         public void LogStartingGenericCardSwapAnimation(Guid playerId, string cardGivenName, string cardReceivedName) => _logStartingGenericCardSwapAnimationAction(_msLogger, playerId, cardGivenName, cardReceivedName, null);
         // ... (viele weitere Implementierungen bleiben unverändert) ...
+        public void LogExtraTurnFirstMoveCausesCheck(Guid gameId, Guid playerId, string fromSquare, string toSquare) => _logExtraTurnFirstMoveCausesCheckAction(_msLogger, gameId, playerId, fromSquare, toSquare, null); // NEU
+
         public void LogCardActivationAnimationFinishedClient() => _logCardActivationAnimationFinishedClientAction(_msLogger, null);
         public void LogSpecificCardSwapAnimationFinishedClient() => _logSpecificCardSwapAnimationFinishedClientAction(_msLogger, null);
         public void LogUpdatePlayerNamesMismatch(Player opponentColorRetrieved, Player opponentColorExpected) => _logUpdatePlayerNamesMismatchAction(_msLogger, opponentColorRetrieved, opponentColorExpected, null);
@@ -416,6 +421,7 @@ namespace Chess.Logging
         public void LogSacrificeEffectFailedNotAPawn(Guid gameId, Guid playerId, string attemptedSquare, PieceType? actualType) => _logSacrificeEffectFailedNotAPawnAction(_msLogger, gameId, playerId, attemptedSquare, actualType, null);
         public void LogSacrificeEffectFailedWrongColor(Guid gameId, Guid playerId, string attemptedSquare, Player pieceColor) => _logSacrificeEffectFailedWrongColorAction(_msLogger, gameId, playerId, attemptedSquare, pieceColor, null);
         public void LogSacrificeEffectFailedWouldCauseCheck(Guid gameId, Guid playerId, string sacrificedPawnSquare) => _logSacrificeEffectFailedWouldCauseCheckAction(_msLogger, gameId, playerId, sacrificedPawnSquare, null);
+        public void LogPawnPromotionPendingAfterCard(Guid gameId, Player player, string promotionSquare, string cardTypeId) => _logPawnPromotionPendingAfterCardAction(_msLogger, gameId, player, promotionSquare, cardTypeId, null);
 
     }
 }

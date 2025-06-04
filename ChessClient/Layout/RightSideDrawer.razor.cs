@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration; // Hinzufügen für IConfiguration
 
 namespace ChessClient.Layout
 {
@@ -20,14 +21,14 @@ namespace ChessClient.Layout
         // Dienst für JavaScript-Interaktionen.
         [Inject]
         private IJSRuntime JSRuntime { get; set; } = null!;
-
-
-        // NEU: Injizierte State-Objekte für das Debug-Panel
         [Inject] private IModalState _modalState { get; set; } = default!;
         [Inject] private IGameCoreState _gameCoreState { get; set; } = default!; // Falls benötigt, z.B. für GameID
         [Inject] private IHighlightState _highlightState { get; set; } = default!;
         [Inject] private ICardState _cardState { get; set; } = default!;
-        // ENDE NEU
+
+        // NEU: IConfiguration injizieren
+        [Inject]
+        private IConfiguration Configuration { get; set; } = null!;
 
         // True, wenn die Schublade geöffnet ist.
         private bool isOpen;
@@ -82,8 +83,18 @@ namespace ChessClient.Layout
         {
             if (CurrentGameId != Guid.Empty)
             {
-                const string serverBaseUrl = ClientConstants.DefaultServerBaseUrl;
-                var downloadUrl = $"{serverBaseUrl}/api/games/{CurrentGameId}/downloadhistory";
+                // Dynamische ServerBaseUrl aus der Konfiguration beziehen
+                string? serverBaseUrlFromConfig = Configuration.GetValue<string>("ServerBaseUrl");
+                string serverBaseUrl = ClientConstants.DefaultServerBaseUrl; // Fallback
+
+                if (!string.IsNullOrEmpty(serverBaseUrlFromConfig))
+                {
+                    serverBaseUrl = serverBaseUrlFromConfig;
+                }
+                // else: Fallback auf DefaultServerBaseUrl wird verwendet, was für lokale Entwicklung ok ist.
+                // Für eine Produktionsumgebung wie schacht.app sollte ServerBaseUrl in appsettings.Azure.json korrekt gesetzt sein.
+
+                var downloadUrl = $"{serverBaseUrl.TrimEnd('/')}/api/games/{CurrentGameId}/downloadhistory";
                 if (JSRuntime != null)
                 {
                     await JSRuntime.InvokeVoidAsync("window.open", downloadUrl, "_blank");
