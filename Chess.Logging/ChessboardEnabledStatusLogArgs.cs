@@ -1,8 +1,5 @@
-﻿// File: [SolutionDir]\Chess.Logging\ChessboardEnabledStatusLogArgs.cs
-// (Neue Datei oder in einer existierenden passenden Datei im Chess.Logging Projekt)
-namespace Chess.Logging
+﻿namespace Chess.Logging
 {
-    // KORREKTUR: von internal zu public readonly struct
     public readonly struct ChessboardEnabledStatusLogArgs
     {
         public bool ModalStateNull { get; }
@@ -41,6 +38,4 @@ namespace Chess.Logging
             return $"ModalStateNull={ModalStateNull}, CardStateNull={CardStateNull}, GameCoreStateNull={GameCoreStateNull}, HighlightStateNull={HighlightStateNull}, IsAwaitingTurnConfirmation={IsAwaitingTurnConfirmation}, ShowCreateGameModal={ShowCreateGameModal}, ShowJoinGameModal={ShowJoinGameModal}, ShowPieceSelectionModal={ShowPieceSelectionModal}, ShowCardInfoPanelModal={ShowCardInfoPanelModal}, ActiveCardForBoardSelectionId={ActiveCardForBoardSelectionId ?? "null"}, IsRebirthAwaitingSquareSelection={IsRebirthAwaitingSquareSelection}";
         }
     }
-
-
 }

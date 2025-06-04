@@ -21,6 +21,10 @@ namespace Chess.Logging
         void LogGenericCardAnimationStartedForCard(string cardName);
         void LogClientCriticalServicesNullOnInit(string serviceName);
         void LogClientSignalRConnectionWarning(string errorMessage);
+        void LogIsChessboardEnabledStatus(ChessboardEnabledStatusLogArgs args);
+        void LogHandleHubTurnChangedClientInfo(Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, int cardEffectsCount);
+        void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context);
+        void LogClientAttemptedToAddDuplicateCardInstance(Guid instanceId, string cardName);
 
         // --- ChessServer.Controllers.GamesController.cs Logs ---
         void LogMoveProcessingError(Guid gameId, string fromSquare, string toSquare, Exception? ex);
@@ -51,7 +55,7 @@ namespace Chess.Logging
         void LogControllerConnectionIdNotFoundNoMoreCards(string actionSource, Guid playerId);
         void LogControllerConnectionIdNotFoundGeneric(string actionSource, Guid playerId);
         void LogControllerActivateCardSentCardToHand(string cardName, string connectionId, Guid playerId);
-        void LogExtraTurnFirstMoveCausesCheck(Guid gameId, Guid playerId, string fromSquare, string toSquare); 
+        void LogExtraTurnFirstMoveCausesCheck(Guid gameId, Guid playerId, string fromSquare, string toSquare);
         void LogControllerCouldNotDeterminePlayerIdForStatus(Guid gameId, Player playerColor);
         void LogControllerErrorGettingOpponentInfo(Guid gameId, Guid playerId, Exception? ex);
         void LogControllerErrorGettingLegalMoves(Guid gameId, Guid playerId, string fromSquare, Exception? ex);
@@ -85,8 +89,8 @@ namespace Chess.Logging
         void LogSessionCardActivationAttempt(Guid gameId, Guid playerId, string cardId);
         void LogSessionCardActivationFailed(Guid gameId, Guid playerId, string cardId, string reason);
         void LogSessionCardActivationSuccess(Guid gameId, Guid playerId, string cardId);
-        void LogExtraTurnEffectApplied(Guid gameId, Guid playerId, string cardId); 
-        void LogPlayerMoveCountIncreased(Guid gameId, Guid playerId, int moveCount); 
+        void LogExtraTurnEffectApplied(Guid gameId, Guid playerId, string cardId);
+        void LogPlayerMoveCountIncreased(Guid gameId, Guid playerId, int moveCount);
         void LogPlayerCardDrawIndicated(Guid gameId, Guid playerId);
         void LogNotifyingOpponentOfCardPlay(Guid gameId, Guid playerId, string cardId);
         void LogCapturedPieceAdded(Guid gameId, PieceType pieceType, Player playerColor);
@@ -102,14 +106,19 @@ namespace Chess.Logging
         void LogCannotFindPlayerDrawPileForCount(Guid playerId, Guid gameId);
         void LogCurrentPlayerNotFoundForOpponentDetails(Guid currentPlayerId, Guid gameId);
         void LogNoOpponentFoundForPlayer(Guid currentPlayerId, Player currentPlayerColor, Guid gameId);
-        void LogCardInstancePlayed(Guid cardInstanceId, Guid playerId, string cardTypeId, string gameId); 
+        void LogCardInstancePlayed(Guid cardInstanceId, Guid playerId, string cardTypeId, string gameId);
         void LogCardInstanceNotFoundInHand(Guid cardInstanceId, Guid playerId, string gameId);
         void LogPlayerAttemptingCardWhileInCheck(Guid gameId, Guid playerId, Player playerColor, string cardTypeId);
         void LogPlayerStillInCheckAfterCardTurnNotEnded(Guid gameId, Guid playerId, string cardTypeId);
         void LogPlayerInCheckTriedInvalidMove(Guid gameId, Guid playerId, Player playerColor, string fromSquare, string toSquare);
         void LogPlayerTriedMoveThatDidNotResolveCheck(Guid gameId, Guid playerId, Player playerColor, string fromSquare, string toSquare);
         void LogPawnPromotionPendingAfterCard(Guid gameId, Player player, string promotionSquare, string cardTypeId);
-
+        void LogGetPlayerIdByColorFailed(Guid gameId, Player color, Guid? whiteId, Guid? blackId);
+        void LogComputerTurnDelayAfterCard(Guid gameId, string cardTypeId, double delaySeconds);
+        void LogComputerTurnDelayCardSwap(Guid gameId, double delaySeconds);
+        void LogComputerTimerPausedForAnimation(Guid gameId, Player computerColor);
+        void LogComputerTimerResumedAfterAnimation(Guid gameId, Player computerColor);
+        void LogComputerSkippingTurnAfterAnimationDelay(Guid gameId, string cardTypeId);
 
         // --- ChessServer.Services.CardEffects Logs ---
         void LogAddTimeEffectApplied(Player playerColor, Guid playerId, Guid gameId);
@@ -130,7 +139,6 @@ namespace Chess.Logging
         void LogSacrificeEffectFailedWrongColor(Guid gameId, Guid playerId, string attemptedSquare, Player pieceColor);
         void LogSacrificeEffectFailedWouldCauseCheck(Guid gameId, Guid playerId, string sacrificedPawnSquare);
 
-
         // --- ChessServer.Services.InMemoryGameManager.cs Logs ---
         void LogMgrGameCreated(Guid gameId, string playerName, Guid playerId, Player color, int initialMinutes);
         void LogMgrPlayerJoinedGameTimerStart(string playerName, Guid gameId, Player startPlayer);
@@ -143,35 +151,12 @@ namespace Chess.Logging
         void LogMgrPlayerHubConnectionUnregistered(string connectionId, Guid gameId);
         void LogMgrGameNotFoundForRegisterPlayerHub(Guid gameId);
 
-
-        // NEU: Für PvC Spiele
+        // --- ChessServer PvC Logs ---
         void LogPvCGameCreated(Guid gameId, string playerName, Player playerColor, string computerDifficulty);
         void LogComputerFetchingMove(Guid gameId, string fen, int depth);
         void LogComputerReceivedMove(Guid gameId, string move, string fen, int depth);
         void LogComputerMoveError(Guid gameId, string fen, int depth, string errorMessage);
         void LogComputerMakingMove(Guid gameId, string from, string toSquare);
-        void LogComputerStartingInitialMove(Guid gameId, Player computerColor, Player currentPlayer); // NEU HINZUGEFÜGT
-
-        void LogGetPlayerIdByColorFailed(Guid gameId, Player color, Guid? whiteId, Guid? blackId); // NEU
-
-
-        // NEU: Für Verzögerung vor Computerzug nach Kartenaktivierung durch Mensch
-        void LogComputerTurnDelayAfterCard(Guid gameId, string cardTypeId, double delaySeconds);
-        void LogComputerTurnDelayCardSwap(Guid gameId, double delaySeconds);
-        void LogComputerTimerPausedForAnimation(Guid gameId, Player computerColor);
-        void LogComputerTimerResumedAfterAnimation(Guid gameId, Player computerColor);
-        void LogComputerSkippingTurnAfterAnimationDelay(Guid gameId, string cardTypeId);
-
-
-        // Für ChessBoard Infos
-        void LogIsChessboardEnabledStatus(ChessboardEnabledStatusLogArgs args); // Parameter geändert
-
-        void LogHandleHubTurnChangedClientInfo(Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, int cardEffectsCount);
-        void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context);
-
-        // Duplicated Card
-
-        void LogClientAttemptedToAddDuplicateCardInstance(Guid instanceId, string cardName);
-
+        void LogComputerStartingInitialMove(Guid gameId, Player computerColor, Player currentPlayer);
     }
 }
