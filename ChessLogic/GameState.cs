@@ -12,6 +12,7 @@ namespace ChessLogic
         public Player CurrentPlayer { get; private set; }
         public Result? Result { get; private set; }
         private int noCaptureOrPawnMoves;
+        public int NoCaptureOrPawnMoves => noCaptureOrPawnMoves; // Öffentlicher Getter
         private readonly Dictionary<string, int> stateHistory = new Dictionary<string, int>();
         private Move? lastMoveForHistory;
 

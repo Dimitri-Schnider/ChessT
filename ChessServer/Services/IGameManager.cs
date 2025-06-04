@@ -8,7 +8,7 @@ namespace ChessServer.Services
 {
     public interface IGameManager
     {
-        (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes);
+        (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes, string opponentType = "Human", string computerDifficulty = "Medium"); 
         (Guid PlayerId, Player Color) JoinGame(Guid gameId, string playerName);
         BoardDto GetState(Guid gameId);
         MoveResultDto ApplyMove(Guid gameId, MoveDto move, Guid playerId);
@@ -19,7 +19,7 @@ namespace ChessServer.Services
         GameStatusDto GetGameStatusForOpponentOf(Guid gameId, Guid lastPlayerId);
         TimeUpdateDto GetTimeUpdate(Guid gameId);
         GameHistoryDto GetGameHistory(Guid gameId);
-        Task<ServerCardActivationResultDto> ActivateCardEffect(Guid gameId, Guid playerId, ActivateCardRequestDto cardActivationRequestDto); // NEUE Signatur
+        Task<ServerCardActivationResultDto> ActivateCardEffect(Guid gameId, Guid playerId, ActivateCardRequestDto cardActivationRequestDto);
         Task<IEnumerable<CapturedPieceTypeDto>> GetCapturedPieces(Guid gameId, Guid playerId);
         Guid? GetPlayerIdByColor(Guid gameId, Player color);
         OpponentInfoDto? GetOpponentInfo(Guid gameId, Guid currentPlayerId);

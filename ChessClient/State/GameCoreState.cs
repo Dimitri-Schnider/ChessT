@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using ChessLogic;
 using ChessNetwork.DTOs;
+using ChessClient.Models;
 
 namespace ChessClient.State
 {
@@ -11,7 +12,6 @@ namespace ChessClient.State
         public event Action? StateChanged;
         protected virtual void OnStateChanged() => StateChanged?.Invoke();
 
-        // Private Backing Fields für Properties, deren Setter optimiert werden
         private PlayerDto? _currentPlayerInfo;
         private BoardDto? _boardDto;
         private Player _myColor = Player.White;
@@ -25,6 +25,7 @@ namespace ChessClient.State
         private bool _isGameSpecificDataInitialized;
         private string _whiteTimeDisplay = "00:00";
         private string _blackTimeDisplay = "00:00";
+        private bool _isPvCGame; // NEU
 
         public PlayerDto? CurrentPlayerInfo { get => _currentPlayerInfo; private set => _currentPlayerInfo = value; }
         public BoardDto? BoardDto { get => _boardDto; private set => _boardDto = value; }
@@ -39,24 +40,35 @@ namespace ChessClient.State
         public bool IsGameSpecificDataInitialized { get => _isGameSpecificDataInitialized; private set => _isGameSpecificDataInitialized = value; }
         public string WhiteTimeDisplay { get => _whiteTimeDisplay; private set => _whiteTimeDisplay = value; }
         public string BlackTimeDisplay { get => _blackTimeDisplay; private set => _blackTimeDisplay = value; }
+        public bool IsPvCGame { get => _isPvCGame; private set => _isPvCGame = value; } // NEU
+
         public GameCoreState()
         {
         }
 
-        public void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes)
+        public void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes, string opponentTypeString) // NEU: opponentTypeString
         {
             CurrentPlayerInfo = new PlayerDto(result.PlayerId, playerName);
             MyColor = assignedColor;
             BoardDto = result.Board;
             GameId = result.GameId;
-            OpponentJoined = false;
+            IsPvCGame = (opponentTypeString == OpponentType.Computer.ToString()); // NEU: Setze IsPvCGame
+            OpponentJoined = IsPvCGame; // Bei PvC ist der "Gegner" sofort da
             PlayerNames.Clear();
             if (CurrentPlayerInfo != null) PlayerNames[MyColor] = CurrentPlayerInfo.Name;
+
+            if (IsPvCGame)
+            {
+                Player computerColor = MyColor.Opponent();
+                // Der Computer-Name wird serverseitig gesetzt und über GetOpponentInfo geholt.
+                // Hier können wir einen Platzhalter setzen oder warten, bis UpdatePlayerNames() ihn holt.
+                // PlayerNames[computerColor] = $"Computer"; // Platzhalter
+            }
+
             CurrentTurnPlayer = Player.White;
             IsGameSpecificDataInitialized = false;
             EndGameMessage = "";
             UpdateDisplayedTimes(TimeSpan.FromMinutes(initialTimeMinutes), TimeSpan.FromMinutes(initialTimeMinutes), Player.White);
-            // OnStateChanged() wird hier bewusst am Ende einmal gerufen, da viele Zustände sich ändern.
             OnStateChanged();
         }
 
@@ -67,11 +79,18 @@ namespace ChessClient.State
             BoardDto = result.Board;
             GameId = gameId;
             OpponentJoined = true;
+            IsPvCGame = false; // Wer einem Spiel beitritt, spielt gegen einen Menschen (Annahme)
             PlayerNames.Clear();
             if (CurrentPlayerInfo != null) PlayerNames[MyColor] = CurrentPlayerInfo.Name;
             IsGameSpecificDataInitialized = false;
             EndGameMessage = "";
-            // OnStateChanged() hier, da mehrere Zustände geändert wurden.
+            OnStateChanged();
+        }
+
+        public void SetIsPvCGame(bool isPvC) // NEU
+        {
+            if (_isPvCGame == isPvC) return;
+            _isPvCGame = isPvC;
             OnStateChanged();
         }
 
@@ -85,8 +104,6 @@ namespace ChessClient.State
 
         public void UpdatePlayerNames(Dictionary<Player, string> names)
         {
-            // Für Dictionaries ist ein einfacher Vergleich schwierig, wenn Inhalte sich ändern.
-            // Hier wird angenommen, dass ein Aufruf immer eine relevante Änderung bedeutet.
             PlayerNames = new Dictionary<Player, string>(names);
             OnStateChanged();
         }
@@ -100,8 +117,6 @@ namespace ChessClient.State
 
         public void UpdateBoard(BoardDto newBoard)
         {
-            // BoardDto ist ein Record, Vergleich auf Referenz oder Inhalt (wenn überschrieben)
-            // Hier gehen wir davon aus, dass ein neues BoardDto immer eine Änderung ist.
             BoardDto = newBoard;
             OnStateChanged();
         }
@@ -145,7 +160,6 @@ namespace ChessClient.State
         {
             string newWhiteTimeDisplay = whiteTime.ToString(@"mm\:ss", CultureInfo.InvariantCulture);
             string newBlackTimeDisplay = blackTime.ToString(@"mm\:ss", CultureInfo.InvariantCulture);
-            // CurrentTurnPlayer wird separat gesetzt, hier nur Times prüfen.
             if (WhiteTimeDisplay == newWhiteTimeDisplay && BlackTimeDisplay == newBlackTimeDisplay) return;
 
             WhiteTimeDisplay = newWhiteTimeDisplay;
@@ -166,8 +180,8 @@ namespace ChessClient.State
             EndGameMessage = "";
             PlayerNames.Clear();
             IsGameSpecificDataInitialized = false;
+            IsPvCGame = false; // NEU: Reset
             UpdateDisplayedTimes(TimeSpan.FromMinutes(initialTimeMinutes), TimeSpan.FromMinutes(initialTimeMinutes), Player.White);
-            // Umfassende Reset-Aktion, OnStateChanged ist hier gerechtfertigt.
             OnStateChanged();
         }
     }

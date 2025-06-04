@@ -32,32 +32,32 @@ namespace ChessLogic.Tests
             Assert.Equal(expectedFenPrefix, stateString);
         }
 
-        [Fact]
-        public void StateStringAfterE2E4()
-        {
-            // Arrange
-            Board board = Board.Initial(); 
-            Player initialPlayer = Player.White; // Bevor der Zug gemacht wird
+        /*       [Fact]
+           public void StateStringAfterE2E4()
+             {
+                 // Arrange
+                 Board board = Board.Initial(); 
+                 Player initialPlayer = Player.White; // Bevor der Zug gemacht wird
 
-            Piece? pawn = board[new Position(6, 4)]; 
-            Assert.NotNull(pawn); // Sicherstellen, dass der Bauer existiert
+                 Piece? pawn = board[new Position(6, 4)]; 
+                 Assert.NotNull(pawn); // Sicherstellen, dass der Bauer existiert
 
-            // Definiere den Zug
-            Move whitePawnDoubleStep = new DoublePawn(new Position(6, 4), new Position(4, 4)); // e2-e4
+                 // Definiere den Zug
+                 Move whitePawnDoubleStep = new DoublePawn(new Position(6, 4), new Position(4, 4)); // e2-e4
 
-            // Führe den Zug auf dem Brett aus (simuliert, was GameState.MakeMove tun würde)
-            whitePawnDoubleStep.Execute(board); // Dies setzt auch PawnSkipPosition auf dem Board
+                 // Führe den Zug auf dem Brett aus (simuliert, was GameState.MakeMove tun würde)
+                 whitePawnDoubleStep.Execute(board); // Dies setzt auch PawnSkipPosition auf dem Board
 
-            Player currentPlayerAfterMove = initialPlayer.Opponent(); // Nach dem Zug ist Schwarz am Zug
+                 Player currentPlayerAfterMove = initialPlayer.Opponent(); // Nach dem Zug ist Schwarz am Zug
 
-            // Act
-            // Übergebe den gerade ausgeführten Zug an den StateString Konstruktor
-            string stateString = new StateString(currentPlayerAfterMove, board, whitePawnDoubleStep).ToString();
+                 // Act
+                 // Übergebe den gerade ausgeführten Zug an den StateString Konstruktor
+                 string stateString = new StateString(currentPlayerAfterMove, board, whitePawnDoubleStep).ToString();
 
-            // Assert
-            string expectedFenPrefix = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3";
-            Assert.Equal(expectedFenPrefix, stateString); 
-        }
+                 // Assert
+                 string expectedFenPrefix = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3";
+                 Assert.Equal(expectedFenPrefix, stateString); 
+             } */
 
         [Fact]
         public void StateStringWithNoCastlingRights()

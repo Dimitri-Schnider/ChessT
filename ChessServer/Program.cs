@@ -8,11 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Chess.Logging; // Hinzufuegen fuer IChessLogger und ChessLogger
 using Microsoft.Extensions.Logging; // Hinzufuegen fuer ILogger<T>
+using System.Net.Http; // Sicherstellen, dass dies vorhanden ist
 
 var builder = WebApplication.CreateBuilder(args);
 // Konfiguriert Dienste fuer die Anwendung.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpClient("ChessApi"); // Fügt einen benannten HttpClient hinzu, falls spezifische Konfiguration nötig
+
 
 // CORS-Konfiguration anpassen
 builder.Services.AddCors(options =>

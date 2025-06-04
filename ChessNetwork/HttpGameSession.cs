@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: [SolutionDir]\ChessNetwork\HttpGameSession.cs
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -7,7 +8,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using ChessLogic;
 using ChessNetwork.DTOs;
-
 namespace ChessNetwork
 {
     public class HttpGameSession : IGameSession
@@ -15,7 +15,6 @@ namespace ChessNetwork
         private readonly HttpClient _http;
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         public HttpGameSession(HttpClient http) => _http = http;
-
         public async Task<ServerCardActivationResultDto> ActivateCardAsync(Guid gameId, Guid playerId, ActivateCardRequestDto cardActivationRequest)
         {
             var resp = await _http.PostAsJsonAsync($"api/games/{gameId}/player/{playerId}/activatecard", cardActivationRequest);
@@ -72,10 +71,26 @@ namespace ChessNetwork
                 throw new InvalidOperationException($"Fehler beim Deserialisieren der Server-Antwort: {jsonEx.Message}", jsonEx);
             }
         }
+
+        // Alte Methode auskommentiert oder entfernen, wenn nicht mehr benötigt
+        /*
         public async Task<CreateGameResultDto> CreateGameAsync(string playerName, Player color, int initialMinutes)
         {
-            var dto = new CreateGameDto { PlayerName = playerName, Color = color, InitialMinutes = initialMinutes };
+            var dto = new CreateGameDto { PlayerName = playerName, Color = color, InitialMinutes = initialMinutes }; // OpponentType und Difficulty fehlen hier
             var resp = await _http.PostAsJsonAsync("api/games", dto);
+            resp.EnsureSuccessStatusCode();
+            var result = await resp.Content.ReadFromJsonAsync<CreateGameResultDto>();
+            if (result is null)
+                throw new InvalidOperationException("Kein CreateGameResultDto vom Server zurückgegeben.");
+            return result;
+        }
+        */
+
+        // NEUE Implementierung von CreateGameAsync
+        public async Task<CreateGameResultDto> CreateGameAsync(CreateGameDto createGameParameters)
+        {
+            // Das 'createGameParameters' DTO wird nun direkt verwendet und enthält OpponentType und ComputerDifficulty
+            var resp = await _http.PostAsJsonAsync("api/games", createGameParameters);
             resp.EnsureSuccessStatusCode();
             var result = await resp.Content.ReadFromJsonAsync<CreateGameResultDto>();
             if (result is null)

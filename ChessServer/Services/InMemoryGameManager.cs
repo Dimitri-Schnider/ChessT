@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: [SolutionDir]\ChessServer\Services\InMemoryGameManager.cs
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.SignalR;
 using ChessServer.Hubs;
 using Chess.Logging;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
 
 namespace ChessServer.Services
 {
@@ -18,34 +20,78 @@ namespace ChessServer.Services
         private readonly IHubContext<ChessHub> _hubContext;
         private readonly IChessLogger _logger;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-
-        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory)
+        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory)
         {
             _hubContext = hubContext;
             _logger = logger;
             _loggerFactory = loggerFactory;
+            _httpClientFactory = httpClientFactory;
         }
 
-        public (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes)
+        public (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes, string opponentType = "Human", string computerDifficulty = "Medium")
         {
             if (string.IsNullOrWhiteSpace(playerName))
                 throw new ArgumentException("PlayerName darf nicht leer sein.", nameof(playerName));
             var gameId = Guid.NewGuid();
 
-            // Korrekte Logger-Erstellung für GameSession
-            var msLoggerForGameSession = _loggerFactory.CreateLogger<GameSession>(); // Standard MS Logger für die Kategorie GameSession
-            var chessLoggerForGameSession = new Chess.Logging.ChessLogger<GameSession>(msLoggerForGameSession); // Unser IChessLogger Wrapper
+            var msLoggerForGameSession = _loggerFactory.CreateLogger<GameSession>();
+            var chessLoggerForGameSession = new Chess.Logging.ChessLogger<GameSession>(msLoggerForGameSession);
 
-            var session = new GameSession(gameId, color, playerName, initialMinutes, _hubContext, chessLoggerForGameSession, _loggerFactory);
-
-            (Guid firstPlayerId, Player firstPlayerColor) = session.Join(playerName, color);
+            var session = new GameSession(
+                gameId,
+                color,
+                playerName, // creatorName wird hier übergeben, auch wenn Join es nochmal nimmt
+                initialMinutes,
+                _hubContext,
+                chessLoggerForGameSession,
+                _loggerFactory,
+                _httpClientFactory,
+                opponentType,
+                computerDifficulty
+            );
+            // Der menschliche Ersteller tritt der Session bei.
+            // Die `Join`-Methode der GameSession fügt den Ersteller hinzu
+            // und initialisiert ggf. den Computergegner.
+            var (firstPlayerId, _) = session.Join(playerName, color); // Das `color` hier ist die Präferenz des Erstellers.
 
             _games[gameId] = session;
-            _logger.LogMgrGameCreated(gameId, playerName, firstPlayerId, firstPlayerColor, initialMinutes);
+
+            // Log wird im GamesController gemacht.
             return (gameId, firstPlayerId);
         }
 
+        public (Guid PlayerId, Player Color) JoinGame(Guid gameId, string playerName)
+        {
+            if (string.IsNullOrWhiteSpace(playerName))
+                throw new ArgumentException("PlayerName darf nicht leer sein.", nameof(playerName));
+            if (!_games.TryGetValue(gameId, out var session))
+                throw new KeyNotFoundException($"Spiel mit ID {gameId} nicht gefunden.");
+
+            // Der zweite Spieler (Mensch) tritt bei.
+            // Das preferredColor Argument ist null, da der zweite Spieler die andere Farbe bekommt.
+            var (newPlayerId, playerColor) = session.Join(playerName, null);
+
+            return (newPlayerId, playerColor);
+        }
+
+        public MoveResultDto ApplyMove(Guid gameId, MoveDto move, Guid playerId)
+        {
+            if (!_games.TryGetValue(gameId, out var session))
+                throw new KeyNotFoundException($"Spiel mit ID {gameId} nicht gefunden.");
+
+            // KORREKTUR: session.MakeMove ist eine Methode der GameSession-Instanz
+            MoveResultDto moveResult = session.MakeMove(move, playerId);
+
+            if (moveResult.IsValid && session.IsGameReallyOver())
+            {
+                _logger.LogMgrGameOverTimerStop(gameId);
+            }
+            return moveResult;
+        }
+
+        // ... (Rest der Klasse InMemoryGameManager, GetSessionForDirectHubSend nur einmal definieren) ...
         public List<CardDto> GetPlayerHand(Guid gameId, Guid playerId)
         {
             if (_games.TryGetValue(gameId, out var session))
@@ -57,38 +103,6 @@ namespace ChessServer.Services
             }
             _logger.LogMgrGameNotFoundForCapturedPieces(gameId, playerId);
             return new List<CardDto>();
-        }
-
-        public (Guid PlayerId, Player Color) JoinGame(Guid gameId, string playerName)
-        {
-            if (string.IsNullOrWhiteSpace(playerName))
-                throw new ArgumentException("PlayerName darf nicht leer sein.", nameof(playerName));
-            if (!_games.TryGetValue(gameId, out var session))
-                throw new KeyNotFoundException($"Spiel mit ID {gameId} nicht gefunden.");
-            Guid newPlayerId;
-            Player playerColor;
-
-            lock (session)
-            {
-                (newPlayerId, playerColor) = session.Join(playerName);
-            }
-
-            bool startGameTimerLogicNeeded = false;
-            lock (session)
-            {
-                if (session.PlayerCount == 2 && !session.IsGameReallyOver())
-                {
-                    startGameTimerLogicNeeded = true;
-                }
-            }
-
-            if (startGameTimerLogicNeeded)
-            {
-                _logger.LogMgrPlayerJoinedGameTimerStart(playerName, gameId, session.GetCurrentTurnPlayerLogic());
-                session.StartGameTimer();
-            }
-
-            return (newPlayerId, playerColor);
         }
         public GameHistoryDto GetGameHistory(Guid gameId)
         {
@@ -104,22 +118,6 @@ namespace ChessServer.Services
             lock (session) { return session.ToBoardDto(); }
         }
 
-        public MoveResultDto ApplyMove(Guid gameId, MoveDto move, Guid playerId)
-        {
-            if (!_games.TryGetValue(gameId, out var session))
-                throw new KeyNotFoundException($"Spiel mit ID {gameId} nicht gefunden.");
-            MoveResultDto moveResult;
-            lock (session)
-            {
-                moveResult = session.MakeMove(move, playerId);
-                if (moveResult.IsValid && session.IsGameReallyOver())
-                {
-                    _logger.LogMgrGameOverTimerStop(gameId);
-                    session.NotifyTimerGameOver();
-                }
-            }
-            return moveResult;
-        }
 
         public TimeUpdateDto GetTimeUpdate(Guid gameId)
         {
@@ -274,6 +272,12 @@ namespace ChessServer.Services
             {
                 _logger.LogMgrGameNotFoundForRegisterPlayerHub(gameId);
             }
+        }
+        // Stelle sicher, dass diese Methode nur EINMAL definiert ist.
+        public GameSession? GetSessionForDirectHubSend(Guid gameId)
+        {
+            _games.TryGetValue(gameId, out var session);
+            return session;
         }
     }
 }

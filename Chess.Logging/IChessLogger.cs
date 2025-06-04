@@ -142,5 +142,36 @@ namespace Chess.Logging
         void LogMgrPlayerHubConnectionRegistered(Guid playerId, Guid gameId, string connectionId);
         void LogMgrPlayerHubConnectionUnregistered(string connectionId, Guid gameId);
         void LogMgrGameNotFoundForRegisterPlayerHub(Guid gameId);
+
+
+        // NEU: Für PvC Spiele
+        void LogPvCGameCreated(Guid gameId, string playerName, Player playerColor, string computerDifficulty);
+        void LogComputerFetchingMove(Guid gameId, string fen, int depth);
+        void LogComputerReceivedMove(Guid gameId, string move, string fen, int depth);
+        void LogComputerMoveError(Guid gameId, string fen, int depth, string errorMessage);
+        void LogComputerMakingMove(Guid gameId, string from, string toSquare);
+        void LogComputerStartingInitialMove(Guid gameId, Player computerColor, Player currentPlayer); // NEU HINZUGEFÜGT
+
+        void LogGetPlayerIdByColorFailed(Guid gameId, Player color, Guid? whiteId, Guid? blackId); // NEU
+
+
+        // NEU: Für Verzögerung vor Computerzug nach Kartenaktivierung durch Mensch
+        void LogComputerTurnDelayAfterCard(Guid gameId, string cardTypeId, double delaySeconds);
+        void LogComputerTurnDelayCardSwap(Guid gameId, double delaySeconds);
+        void LogComputerTimerPausedForAnimation(Guid gameId, Player computerColor);
+        void LogComputerTimerResumedAfterAnimation(Guid gameId, Player computerColor);
+        void LogComputerSkippingTurnAfterAnimationDelay(Guid gameId, string cardTypeId);
+
+
+        // Für ChessBoard Infos
+        void LogIsChessboardEnabledStatus(ChessboardEnabledStatusLogArgs args); // Parameter geändert
+
+        void LogHandleHubTurnChangedClientInfo(Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, int cardEffectsCount);
+        void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context);
+
+        // Duplicated Card
+
+        void LogClientAttemptedToAddDuplicateCardInstance(Guid instanceId, string cardName);
+
     }
 }

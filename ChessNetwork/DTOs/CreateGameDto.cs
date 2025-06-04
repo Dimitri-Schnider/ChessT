@@ -11,5 +11,9 @@ namespace ChessNetwork.DTOs
         public Player Color { get; set; }
         // Anfängliche Bedenkzeit pro Spieler in Minuten.
         public int InitialMinutes { get; set; }
+
+        // NEUE Properties (verwenden Sie hier einfache Typen für DTOs)
+        public string OpponentType { get; set; } = "Human"; // z.B. "Human", "Computer"
+        public string ComputerDifficulty { get; set; } = "Medium"; // z.B. "Easy", "Medium", "Hard"
     }
 }

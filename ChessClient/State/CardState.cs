@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿// File: [SolutionDir]\ChessClient\State\CardState.cs
+using System.Globalization;
 using ChessClient.Models;
 using ChessNetwork.Configuration;
 using ChessLogic;
@@ -31,7 +32,6 @@ namespace ChessClient.State
         private readonly IModalState _modalState;
 
         public CardState(IModalState modalState) => _modalState = modalState;
-
         public CardDto? GetCardDefinitionById(string cardTypeId)
         {
             Console.WriteLine($"[CardState WARNUNG] GetCardDefinitionById({cardTypeId}) aufgerufen. Client sollte volle CardDtos erhalten.");
@@ -93,6 +93,21 @@ namespace ChessClient.State
         {
             if (drawnCard != null)
             {
+                // *** BEGINN DER ÄNDERUNG ***
+                // Prüfen, ob eine Karte mit derselben InstanceId bereits in der Hand ist.
+                if (PlayerHandCards.Any(card => card.InstanceId == drawnCard.InstanceId))
+                {
+                    Console.WriteLine($"[CardState WARNUNG] Versuch, Karte mit bereits vorhandener InstanceId {drawnCard.InstanceId} ('{drawnCard.Name}') hinzuzufügen. Hinzufügen übersprungen.");
+                    // Optional: MyDrawPileCount trotzdem aktualisieren, wenn die Server-Info als autoritativ gilt.
+                    if (MyDrawPileCount != newDrawPileCount)
+                    {
+                        MyDrawPileCount = newDrawPileCount;
+                        OnStateChanged(); // Nur wenn sich der Zähler geändert hat
+                    }
+                    return; // Verhindert das Hinzufügen des Duplikats
+                }
+                // *** ENDE DER ÄNDERUNG ***
+
                 if (!drawnCard.Name.Contains(CardConstants.NoMoreCardsName, StringComparison.Ordinal) &&
                    !drawnCard.Name.Contains(CardConstants.ReplacementCardName, StringComparison.Ordinal))
                 {
@@ -134,7 +149,8 @@ namespace ChessClient.State
                 }
                 bool isActivatable = gameCoreState.MyColor == gameCoreState.CurrentTurnPlayer && !IsCardActivationPending && string.IsNullOrEmpty(gameCoreState.EndGameMessage);
                 _modalState.OpenCardInfoPanelModal(card, isActivatable, false); // Löst sein eigenes StateChanged aus
-                await uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Karte '{0}' ausgewaehlt. Bestätige im Modal.", card.Name)); // Löst sein eigenes StateChanged aus
+                await uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Karte '{0}' ausgewaehlt. Bestätige im Modal.", card.Name));
+                // Löst sein eigenes StateChanged aus
             }
             else
             {
@@ -156,7 +172,7 @@ namespace ChessClient.State
 
         public void SetIsCardActivationPending(bool isPending)
         {
-            if (IsCardActivationPending == isPending) return; // Nur ändern, wenn wirklich eine Änderung vorliegt
+            if (IsCardActivationPending == isPending) return;
             IsCardActivationPending = isPending;
             OnStateChanged();
         }
@@ -165,18 +181,6 @@ namespace ChessClient.State
         {
             int removedCount = PlayerHandCards.RemoveAll(c => c.InstanceId == cardInstanceId);
             bool changed = removedCount > 0;
-
-            // Nicht mehr nötig, da ModalState das Panel schliesst und ResetCardActivationStateAsync dies handhaben sollte
-            // if (SelectedCardForInfoPanel?.InstanceId == cardInstanceId && !IsPreviewingPlayedCard)
-            // {
-            //     SelectedCardForInfoPanel = null; 
-            //     changed = true;
-            // }
-
-            // SelectedCardInstanceIdInHand wird durch ResetCardActivationStateAsync oder DeselectActiveHandCard behandelt.
-            // Ein direktes Null-Setzen hier könnte zu früh sein, wenn ResetCardActivationStateAsync noch Infos braucht.
-            // Stattdessen sollte ResetCardActivationStateAsync (getriggert durch die Serverantwort oder Abbruch)
-            // diese Aufräumarbeiten übernehmen.
 
             Console.WriteLine($"[CardState] Karte mit Instanz-ID {cardInstanceId} (Typ: {cardTypeId}) von mir gespielt und aus Hand entfernt. Aktuelle Handgrösse: {PlayerHandCards.Count}");
             if (changed) OnStateChanged();
@@ -198,7 +202,7 @@ namespace ChessClient.State
                 IsPreviewingPlayedCard = false;
                 changed = true;
             }
-            if (changed || OpponentPlayedCardsForHistory.Count == 1) OnStateChanged(); // Auslösen bei erster Karte oder wenn sich InfoPanel ändert
+            if (changed || OpponentPlayedCardsForHistory.Count == 1) OnStateChanged();
         }
 
         public void ClearPlayedCardsHistory()
@@ -231,7 +235,6 @@ namespace ChessClient.State
             {
                 IEnumerable<CapturedPieceTypeDto> captured = await gameSession.GetCapturedPiecesAsync(gameId, playerId);
                 var newCapturedList = captured?.Where(p => p.Type != PieceType.Pawn).ToList() ?? [];
-                // Prüfen, ob sich die Liste tatsächlich geändert hat (aufwendiger für Listen, aber für Vollständigkeit)
                 bool listChanged = CapturedPiecesForRebirth == null || !CapturedPiecesForRebirth.SequenceEqual(newCapturedList);
                 CapturedPiecesForRebirth = newCapturedList;
                 if (listChanged) OnStateChanged();
@@ -239,7 +242,7 @@ namespace ChessClient.State
             catch (Exception ex)
             {
                 Console.WriteLine($"[CardState] LoadCapturedPiecesForRebirthAsync: FEHLER beim Laden der geschlagenen Figuren: {ex.Message}");
-                if (CapturedPiecesForRebirth == null || CapturedPiecesForRebirth.Count > 0) // Nur ändern, wenn vorher nicht leer oder null
+                if (CapturedPiecesForRebirth == null || CapturedPiecesForRebirth.Count > 0)
                 {
                     CapturedPiecesForRebirth = [];
                     OnStateChanged();

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: [SolutionDir]\ChessServer\Controllers\GamesController.cs
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using ChessNetwork.DTOs;
@@ -24,7 +25,7 @@ namespace ChessServer.Controllers
         private readonly IGameManager _mgr;
         private readonly IChessLogger _logger;
         private readonly IHubContext<ChessHub> _hubContext;
-        public GamesController(IGameManager mgr, IChessLogger logger, IHubContext<ChessHub> hubContext) 
+        public GamesController(IGameManager mgr, IChessLogger logger, IHubContext<ChessHub> hubContext)
         {
             _mgr = mgr;
             _logger = logger;
@@ -43,7 +44,13 @@ namespace ChessServer.Controllers
             }
             try
             {
-                var (gameId, playerId) = _mgr.CreateGame(dto.PlayerName, dto.Color, dto.InitialMinutes);
+                var (gameId, playerId) = _mgr.CreateGame(
+                    dto.PlayerName,
+                    dto.Color,
+                    dto.InitialMinutes,
+                    dto.OpponentType,
+                    dto.ComputerDifficulty
+                );
                 BoardDto boardDto = _mgr.GetState(gameId);
                 Player assignedColor = _mgr.GetPlayerColor(gameId, playerId);
 
@@ -54,7 +61,14 @@ namespace ChessServer.Controllers
                     Color = assignedColor,
                     Board = boardDto
                 };
-                _logger.LogGameCreated(gameId, dto.PlayerName, dto.InitialMinutes);
+                if (dto.OpponentType == "Computer")
+                {
+                    _logger.LogPvCGameCreated(gameId, dto.PlayerName, dto.Color, dto.ComputerDifficulty);
+                }
+                else
+                {
+                    _logger.LogGameCreated(gameId, dto.PlayerName, dto.InitialMinutes);
+                }
                 return CreatedAtAction(nameof(GetInfo), new { gameId = result.GameId }, result);
             }
             catch (ArgumentException ex)
@@ -110,7 +124,7 @@ namespace ChessServer.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogGameHistoryGenericError(gameId, ex); 
+                _logger.LogGameHistoryGenericError(gameId, ex);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Ein interner Fehler ist beim Beitreten zum Spiel aufgetreten.");
             }
         }
@@ -180,7 +194,7 @@ namespace ChessServer.Controllers
                     else
                     {
                         await _hubContext.Clients.Group(gameId.ToString())
-                                          .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
+                                       .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
                         _logger.LogControllerConnectionIdNotFoundGeneric("Move", playerIdDrew);
                     }
                 }
@@ -251,8 +265,7 @@ namespace ChessServer.Controllers
 
                 if (cardForAnimation == null)
                 {
-                    // Kein direkter Log für diesen spezifischen Fall in IChessLogger, allgemeiner Warning.
-                    _logger.LogGameNotFoundOnMove(gameId, playerId); // Beispiel, ggf. anpassen oder spezifischeren Log hinzufügen
+                    _logger.LogGameNotFoundOnMove(gameId, playerId);
                 }
 
                 await _hubContext.Clients.Group(gameId.ToString()).SendAsync("PlayCardActivationAnimation", cardForAnimation ?? new CardDto { Id = dto.CardTypeId, Name = dto.CardTypeId, Description = "Lade...", ImageUrl = CardConstants.DefaultCardBackImageUrl, InstanceId = Guid.Empty }, playerId, playerDataColor);
@@ -271,13 +284,15 @@ namespace ChessServer.Controllers
                 }
 
                 _logger.LogCardActivationSuccessController(gameId, playerId, dto.CardTypeId);
-
                 if (dto.CardTypeId == CardConstants.CardSwap && activationResultFull.CardGivenByPlayerForSwap != null && activationResultFull.CardReceivedByPlayerForSwap != null)
                 {
                     await SendCardSwapAnimationDetails(gameId, playerId, activationResultFull.CardGivenByPlayerForSwap, activationResultFull.CardReceivedByPlayerForSwap);
                     await SendHandUpdatesAfterCardSwap(gameId, playerId, _mgr.GetOpponentInfo(gameId, playerId));
                 }
 
+                // Der folgende Block wurde entfernt, da die OnTurnChanged-Benachrichtigung
+                // nun von der GameSession nach der Kartenaktivierung gesendet wird.
+                /*
                 var currentBoardDto = _mgr.GetState(gameId);
                 var currentPlayerAfterCard = _mgr.GetCurrentTurnPlayer(gameId);
                 GameStatusDto statusForNextPlayerSignalR;
@@ -298,11 +313,12 @@ namespace ChessServer.Controllers
                 List<AffectedSquareInfo>? affectedSquaresForSignalR = activationResultFull.AffectedSquaresByCard;
                 await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTurnChanged", currentBoardDto, currentPlayerAfterCard, statusForNextPlayerSignalR, null, null, affectedSquaresForSignalR);
                 _logger.LogOnTurnChangedSentToHub(gameId);
+                */
 
                 var timeUpdate = _mgr.GetTimeUpdate(gameId);
                 await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTimeUpdate", timeUpdate);
-                _logger.LogOnTimeUpdateSentAfterMove(gameId);
-
+                _logger.LogOnTimeUpdateSentAfterMove(gameId); // Dieser Log könnte präzisiert werden, da es kein "Move" im klassischen Sinn war.
+                                                              // Aber für den Moment belassen wir es so, da die Zeit aktualisiert wurde.
                 if (activationResultFull.PlayerIdToSignalCardDraw.HasValue && activationResultFull.NewlyDrawnCard != null)
                 {
                     Guid playerIdDrew = activationResultFull.PlayerIdToSignalCardDraw.Value;
@@ -321,7 +337,7 @@ namespace ChessServer.Controllers
                     else
                     {
                         await _hubContext.Clients.Group(gameId.ToString())
-                                          .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
+                                       .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
                         _logger.LogControllerConnectionIdNotFoundGeneric("ActivateCard", playerIdDrew);
                     }
                 }
@@ -375,7 +391,7 @@ namespace ChessServer.Controllers
                 var playerHand = _mgr.GetPlayerHand(gameId, playerId);
                 int playerDrawPile = _mgr.GetDrawPileCount(gameId, playerId);
                 await _hubContext.Clients.Client(playerConnectionId).SendAsync("UpdateHandContents", new InitialHandDto(playerHand, playerDrawPile));
-                _logger.LogControllerMoveSentCardToHand("HandUpdate", playerConnectionId, playerId); // Annahme: Log ist generisch genug
+                _logger.LogControllerMoveSentCardToHand("HandUpdate", playerConnectionId, playerId);
             }
 
             OpponentInfoDto? actualOpponentInfo = opponentInfo ?? _mgr.GetOpponentInfo(gameId, playerId);
@@ -387,7 +403,7 @@ namespace ChessServer.Controllers
                     var opponentHand = _mgr.GetPlayerHand(gameId, actualOpponentInfo.OpponentId);
                     int opponentDrawPile = _mgr.GetDrawPileCount(gameId, actualOpponentInfo.OpponentId);
                     await _hubContext.Clients.Client(opponentConnectionId).SendAsync("UpdateHandContents", new InitialHandDto(opponentHand, opponentDrawPile));
-                    _logger.LogControllerMoveSentCardToHand("HandUpdateOpponent", opponentConnectionId, actualOpponentInfo.OpponentId); // Annahme: Log ist generisch genug
+                    _logger.LogControllerMoveSentCardToHand("HandUpdateOpponent", opponentConnectionId, actualOpponentInfo.OpponentId);
                 }
             }
         }

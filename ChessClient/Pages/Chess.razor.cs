@@ -91,7 +91,7 @@ namespace ChessClient.Pages
             if (Logger == null!) throw new InvalidOperationException($"Dienst {nameof(Logger)} nicht injiziert.");
 
             SubscribeToStateChanges();
-            HubService.OnTurnChanged += HandleHubTurnChanged;
+            HubService.OnTurnChanged += HandleHubTurnChangedWrapper; // ALT: HandleHubTurnChanged
             HubService.OnTimeUpdate += HandleHubTimeUpdate;
             HubService.OnPlayerJoined += HandlePlayerJoinedClient;
             HubService.OnPlayerLeft += HandlePlayerLeftClient;
@@ -213,6 +213,21 @@ namespace ChessClient.Pages
 
         protected bool IsChessboardEnabled()
         {
+            // KORRIGIERTER Log-Aufruf
+            Logger.LogIsChessboardEnabledStatus(new ChessboardEnabledStatusLogArgs(
+                ModalState == null,
+                CardState == null,
+                GameCoreState == null,
+                HighlightState == null,
+                _isAwaitingTurnConfirmationAfterCard,
+                ModalState?.ShowCreateGameModal ?? true,
+                ModalState?.ShowJoinGameModal ?? true,
+                ModalState?.ShowPieceSelectionModal ?? true,
+                ModalState?.ShowCardInfoPanelModal ?? true,
+                _activeCardForBoardSelectionProcess?.Id,
+                _isAwaitingRebirthTargetSquareSelection
+            ));
+
             if (ModalState == null || CardState == null || GameCoreState == null || HighlightState == null) return false;
             if (_isAwaitingTurnConfirmationAfterCard) return false;
 
@@ -348,11 +363,12 @@ namespace ChessClient.Pages
 
         private void OpenCreateGameModalHandler() => ModalState?.OpenCreateGameModal();
         private void CloseCreateGameModal() => ModalState?.CloseCreateGameModal();
-        private async Task SubmitCreateGame(CreateGameParameters args)
+        private async Task SubmitCreateGame(CreateGameParameters args) // Nimmt jetzt CreateGameParameters
         {
             if (GameOrchestrationService == null || UiState == null || ModalState == null) return;
-            await TriggerCreateNewGame(args.Name, args.Color, args.TimeMinutes);
-            if (string.IsNullOrEmpty(UiState.ErrorMessage))
+            // Rufe TriggerCreateNewGame mit dem gesamten Parameterobjekt auf
+            await TriggerCreateNewGame(args);
+            if (string.IsNullOrEmpty(UiState.ErrorMessage)) // UiState wird im GameOrchestrationService gesetzt
             {
                 ModalState.CloseCreateGameModal();
             }
@@ -383,15 +399,22 @@ namespace ChessClient.Pages
             }
         }
 
-        public async Task TriggerCreateNewGame(string name, Player color, int time)
+        public async Task TriggerCreateNewGame(CreateGameParameters args) // Nimmt CreateGameParameters
         {
-            if (GameOrchestrationService == null || ModalState == null || GameCoreState == null || HubService == null) return;
-            (bool success, Guid gameId) = await GameOrchestrationService.CreateNewGameAsync(name, color, time);
+            if (GameOrchestrationService == null || ModalState == null || GameCoreState == null || HubService == null || MyMainLayout == null || Logger == null)
+            {
+                Logger?.LogClientCriticalServicesNullOnInit(nameof(TriggerCreateNewGame));
+                return;
+            }
+
+            // OpponentType wird jetzt direkt aus args.OpponentType.ToString() in GameOrchestrationService.CreateNewGameAsync verwendet
+            (bool success, Guid gameId) = await GameOrchestrationService.CreateNewGameAsync(args);
+
             if (success && GameCoreState.CurrentPlayerInfo != null)
             {
-                MyMainLayout?.UpdateActiveGameId(gameId);
-                await ResetMessagesAndTimersAsync(TimeSpan.FromMinutes(time));
-                await InitializeGameRelatedData();
+                MyMainLayout.UpdateActiveGameId(gameId);
+                await ResetMessagesAndTimersAsync(TimeSpan.FromMinutes(args.TimeMinutes)); // Verwende args.TimeMinutes
+                await InitializeGameRelatedData(); // Dies sollte PlayerNames aktualisieren (inkl. Computer)
                 await InitializeSignalRConnection();
                 if (HubService.IsConnected)
                 {
@@ -402,14 +425,17 @@ namespace ChessClient.Pages
                     Logger.LogClientSignalRConnectionWarning("SignalR nicht verbunden nach InitializeSignalRConnection in TriggerCreateNewGame. PlayerId-Registrierung und Starthand-Empfang verzögert.");
                 }
 
-                if (!GameCoreState.OpponentJoined && gameId != Guid.Empty)
+                // KORREKTUR: InviteLinkModal nur zeigen, wenn es kein PvC-Spiel ist
+                if (!GameCoreState.OpponentJoined && gameId != Guid.Empty && !GameCoreState.IsPvCGame)
                 {
                     ModalState.OpenInviteLinkModal(InviteLink);
                 }
+                // Wenn es ein PvC-Spiel ist und der Computer Weiß ist, muss er seinen ersten Zug machen.
+                // Dies wird serverseitig in GameSession.InitializeComputerPlayer angestoßen.
             }
             else
             {
-                MyMainLayout?.UpdateActiveGameId(Guid.Empty);
+                MyMainLayout.UpdateActiveGameId(Guid.Empty);
             }
         }
 
@@ -605,13 +631,19 @@ namespace ChessClient.Pages
             }
         }
 
-        private void HandleHubTurnChanged(BoardDto newBoard, Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, List<AffectedSquareInfo>? cardEffectSquaresFromServer)
+
+
+        // Die ursprüngliche Methode wird zu async Task und umbenannt
+        private async Task HandleHubTurnChangedAsync(BoardDto newBoard, Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, List<AffectedSquareInfo>? cardEffectSquaresFromServer)
         {
-            Logger.LogClientSignalRConnectionWarning($"[ChessPage] HandleHubTurnChanged received. NextPlayer: {nextPlayer}, StatusForNext: {statusForNextPlayer}, LastMoveFrom: {lastMoveFromServerFrom ?? "null"}, LastMoveTo: {lastMoveFromServerTo ?? "null"}, CardEffectsCount: {cardEffectSquaresFromServer?.Count ?? 0}");
+            // Der gesamte Inhalt deiner vorherigen HandleHubTurnChanged-Methode kommt hier rein.
+            // Dies ist die Methode, die wir in der letzten Antwort korrigiert haben.
+            // Stelle sicher, dass Logger-Aufrufe hier korrekt sind, z.B.:
+            Logger.LogHandleHubTurnChangedClientInfo(nextPlayer, statusForNextPlayer, lastMoveFromServerFrom, lastMoveFromServerTo, cardEffectSquaresFromServer?.Count ?? 0); // [cite: 669] // NEUER LOG
 
             if (GameCoreState == null || HighlightState == null || CardState == null || AnimationState == null || UiState == null || ModalState == null)
             {
-                Logger.LogClientCriticalServicesNullOnInit("[ChessPage] HandleHubTurnChanged: Critical state objects are null. Aborting.");
+                Logger.LogClientCriticalServicesNullOnInit("[ChessPage] HandleHubTurnChangedAsync: Critical state objects are null. Aborting.");
                 return;
             }
 
@@ -620,7 +652,7 @@ namespace ChessClient.Pages
                 if (_isAwaitingTurnConfirmationAfterCard)
                 {
                     _isAwaitingTurnConfirmationAfterCard = false;
-                    Logger.LogClientSignalRConnectionWarning("[ChessPage] Server turn confirmation received, resetting _isAwaitingTurnConfirmationAfterCard flag.");
+                    Logger.LogClientSignalRConnectionWarning("[ChessPage] HandleHubTurnChangedAsync: Server turn confirmation received, resetting _isAwaitingTurnConfirmationAfterCard flag.");
                 }
 
                 Player playerWhoseTurnItWas = GameCoreState.CurrentTurnPlayer ?? Player.None;
@@ -653,14 +685,13 @@ namespace ChessClient.Pages
                     {
                         HighlightState.SetHighlights(lastMoveFromServerFrom, lastMoveFromServerTo, false);
                     }
-
                     _isExtraTurnSequenceActive = false;
                 }
 
                 bool isModalInteractionPendingForRebirth = ModalState.ShowPieceSelectionModal && _activeCardForBoardSelectionProcess?.Id == CardConstants.Wiedergeburt;
                 if (CardState.IsCardActivationPending && !isModalInteractionPendingForRebirth)
                 {
-                    _ = ResetCardActivationStateAsync(fromCancelFlow: true, specificMessageToKeep: "Zug gewechselt, Kartenauswahl abgebrochen.");
+                    await ResetCardActivationStateAsync(fromCancelFlow: true, specificMessageToKeep: "Zug gewechselt, Kartenauswahl abgebrochen.");
                 }
 
                 CardState.DeselectActiveHandCard();
@@ -701,22 +732,30 @@ namespace ChessClient.Pages
 
                 if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer && !amIMatt && string.IsNullOrEmpty(GameCoreState.EndGameMessage))
                 {
-                    _ = ProcessGameStatusAsync(statusForNextPlayer, true);
+                    await ProcessGameStatusAsync(statusForNextPlayer, true);
                 }
                 else if (string.IsNullOrEmpty(GameCoreState.EndGameMessage))
                 {
-                    _ = ProcessGameStatusAsync(statusForNextPlayer, false);
+                    await ProcessGameStatusAsync(statusForNextPlayer, false);
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogClientSignalRConnectionWarning($"[ChessPage] Exception in HandleHubTurnChanged: {ex.Message} - StackTrace: {ex.StackTrace}");
+                Logger.LogClientSignalRConnectionWarning($"[ChessPage] Exception in HandleHubTurnChangedAsync: {ex.Message} - StackTrace: {ex.StackTrace}");
                 UiState?.SetErrorMessage($"Fehler bei der Verarbeitung der Server-Aktualisierung: {ex.Message}");
             }
             finally
             {
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             }
+        }
+
+        // NEUE Wrapper-Methode mit void-Signatur
+        private void HandleHubTurnChangedWrapper(BoardDto newBoard, Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, List<AffectedSquareInfo>? cardEffectSquaresFromServer)
+        {
+            // Rufe die async Task Methode auf, ohne auf sie zu warten (fire-and-forget)
+            // Fehlerbehandlung innerhalb von HandleHubTurnChangedAsync ist wichtig.
+            _ = HandleHubTurnChangedAsync(newBoard, nextPlayer, statusForNextPlayer, lastMoveFromServerFrom, lastMoveFromServerTo, cardEffectSquaresFromServer);
         }
 
         private void HandleHubTimeUpdate(TimeUpdateDto timeUpdate)
@@ -1031,23 +1070,29 @@ namespace ChessClient.Pages
 
         private async Task HandleActivateCard(CardDto cardToActivate)
         {
-            if (UiState == null || GameCoreState == null || CardState == null || ModalState == null || HighlightState == null || Game == null) return;
+            if (UiState == null || GameCoreState == null || CardState == null || ModalState == null || HighlightState == null || Game == null)
+            {
+                Logger.LogClientCriticalServicesNullOnInit($"HandleActivateCard: Kritische Dienste nicht verfügbar.");
+                return;
+            }
 
             if (CardState.SelectedCardInstanceIdInHand != cardToActivate.InstanceId)
             {
-                Logger.LogClientSignalRConnectionWarning($"[HandleActivateCard] KRITISCHE DISKREPANZ: cardToActivate.InstanceId ({cardToActivate.InstanceId}) != CardState.SelectedCardInstanceIdInHand ({CardState.SelectedCardInstanceIdInHand}). Dies sollte nicht passieren. Setze SelectedCardInstanceIdInHand auf cardToActivate.InstanceId.");
+                Logger.LogClientSignalRConnectionWarning($"[HandleActivateCard] KRITISCHE DISKREPANZ: cardToActivate.InstanceId ({cardToActivate.InstanceId}) != CardState.SelectedCardInstanceIdInHand ({CardState.SelectedCardInstanceIdInHand}). Setze SelectedCardInstanceIdInHand auf cardToActivate.InstanceId.");
+                // Im Idealfall sollte dies nicht passieren, aber zur Sicherheit:
+                // await CardState.SetSelectedHandCardAsync(cardToActivate, GameCoreState, UiState); // Könnte Endlosschleife auslösen, wenn SetSelectedHandCardAsync HandleActivateCard aufruft
             }
 
             if (!IsCardActivatable(cardToActivate))
             {
                 await SetCardActionInfoBoxMessage($"Karte '{cardToActivate.Name}' kann momentan nicht aktiviert werden.", false);
-                CardState.SetIsCardActivationPending(false);
+                CardState.SetIsCardActivationPending(false); // Sicherstellen, dass der Pending-Status zurückgesetzt wird
                 return;
             }
 
             Guid cardInstanceIdForRequest = cardToActivate.InstanceId;
             string cardTypeIdForRequest = cardToActivate.Id;
-            CardDto cardDefinitionForFinalize = new CardDto
+            CardDto cardDefinitionForFinalize = new CardDto // Erstelle eine Kopie, um Seiteneffekte zu vermeiden
             {
                 InstanceId = cardToActivate.InstanceId,
                 Id = cardToActivate.Id,
@@ -1056,7 +1101,7 @@ namespace ChessClient.Pages
                 ImageUrl = cardToActivate.ImageUrl
             };
 
-            CardState.SetIsCardActivationPending(true);
+            CardState.SetIsCardActivationPending(true); // Hier setzen, da wir eine Aktivierung starten
             _activeCardForBoardSelectionProcess = cardDefinitionForFinalize;
             _firstSquareSelectedForTeleportOrSwap = null;
             _isAwaitingRebirthTargetSquareSelection = false;
@@ -1064,6 +1109,7 @@ namespace ChessClient.Pages
             HighlightState.ClearAllActionHighlights();
             _isAwaitingSacrificePawnSelection = false;
 
+            // Karten, die eine Feldauswahl erfordern, werden von HandleSquareClickForCardTargetSelection behandelt
             if (cardTypeIdForRequest == CardConstants.Teleport)
             {
                 await SetCardActionInfoBoxMessage("Teleport: Wähle eine deiner Figuren auf dem Brett aus.", true);
@@ -1106,18 +1152,12 @@ namespace ChessClient.Pages
                         CardTypeId = cardTypeIdForRequest,
                         FromSquare = null
                     };
-                    // ACHTUNG: Hier wird 'cardDefinitionForFinalize' verwendet, die weiter oben deklariert wurde.
-                    await FinalizeCardActivationOnServerAsync(failedSacrificeRequest, cardDefinitionForFinalize);
+                    await FinalizeCardActivationOnServerAsync(failedSacrificeRequest, cardDefinitionForFinalize); // Server informieren, dass es fehlschlägt
                 }
             }
             else if (cardTypeIdForRequest == CardConstants.Wiedergeburt)
             {
-                await UiState.SetCurrentInfoMessageForBoxAsync("Lade geschlagene Figuren für Wiedergeburt...",
-                    autoClear: false,
-                    showActionButton: false,
-                    actionButtonText: "",
-                    onActionButtonClicked: null);
-
+                await UiState.SetCurrentInfoMessageForBoxAsync("Lade geschlagene Figuren für Wiedergeburt...", autoClear: false, showActionButton: false, actionButtonText: "", onActionButtonClicked: null);
                 if (GameCoreState.CurrentPlayerInfo == null || GameCoreState.GameId == Guid.Empty)
                 {
                     await ResetCardActivationStateAsync(true, "Fehler: Spielerdaten nicht verfügbar.");
@@ -1130,7 +1170,6 @@ namespace ChessClient.Pages
                 {
                     await SetCardActionInfoBoxMessage("Keine wiederbelebungsfähigen Figuren geschlagen. Karte verfällt.", false);
                     ActivateCardRequestDto failedRebirthRequest = new() { CardInstanceId = cardInstanceIdForRequest, CardTypeId = cardTypeIdForRequest };
-                    // ACHTUNG: Hier wird 'cardDefinitionForFinalize' verwendet.
                     await FinalizeCardActivationOnServerAsync(failedRebirthRequest, cardDefinitionForFinalize);
                 }
                 else
@@ -1159,20 +1198,21 @@ namespace ChessClient.Pages
                     ModalState.OpenPieceSelectionModal("Figur zur Wiederbelebung wählen", "Wähle eine geschlagene Figur (grau = Startfelder besetzt):", choicesForModal, GameCoreState.MyColor);
                 }
             }
-            else
+            else // Karten, die direkt aktiviert werden (z.B. AddTime, SubtractTime, TimeSwap, CardSwap, ExtraZug)
             {
                 ActivateCardRequestDto requestDto = new ActivateCardRequestDto
                 {
                     CardInstanceId = cardInstanceIdForRequest,
                     CardTypeId = cardTypeIdForRequest
                 };
+
                 if (cardToActivate.Id == CardConstants.CardSwap)
                 {
                     requestDto.CardInstanceIdToSwapFromHand = CardState.PlayerHandCards?.FirstOrDefault(c => c.InstanceId != cardInstanceIdForRequest)?.InstanceId;
                     if (!requestDto.CardInstanceIdToSwapFromHand.HasValue && (CardState.PlayerHandCards?.Count ?? 0) > 1)
                     {
                         await SetCardActionInfoBoxMessage("Keine andere Karte zum Anbieten für Tausch gefunden. Tausch nicht möglich.", false);
-                        await ResetCardActivationStateAsync(true);
+                        await ResetCardActivationStateAsync(true); // Hier auch Reset, da Aktion fehlschlägt
                         return;
                     }
                     await SetCardActionInfoBoxMessage($"Kartentausch von '{cardDefinitionForFinalize.Name}' wird versucht...", false);
@@ -1182,40 +1222,71 @@ namespace ChessClient.Pages
                     await SetCardActionInfoBoxMessage($"Aktiviere Karte '{cardDefinitionForFinalize.Name}'...", false);
                 }
 
-                CardState.DeselectActiveHandCard();
+                // Proaktives Setzen des Flags für Karten, die den Zug beenden
+                bool cardEndsTurnProactively = cardTypeIdForRequest != CardConstants.ExtraZug;
+                if (cardEndsTurnProactively)
+                {
+                    _isAwaitingTurnConfirmationAfterCard = true;
+                    Logger.LogAwaitingTurnConfirmationStatus(true, $"HandleActivateCard: Proactively set await flag for card '{cardDefinitionForFinalize.Name}'.");
+                }
+                else
+                {
+                    // Für Karten wie Extrazug, die den Zug nicht beenden
+                    _isAwaitingTurnConfirmationAfterCard = false;
+                    Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleActivateCard: Card '{cardDefinitionForFinalize.Name}' does not proactively end turn.");
+                }
 
+                CardState.DeselectActiveHandCard(); // Auswahl aufheben, bevor Serveraufruf
                 CardActivationFinalizationResult serverResponse = await FinalizeCardActivationOnServerAsync(requestDto, cardDefinitionForFinalize);
 
+                // Logik zur Anpassung von _isAwaitingTurnConfirmationAfterCard basierend auf serverResponse
                 if (serverResponse.Outcome == CardActivationOutcome.Success)
                 {
-                    if (serverResponse.PawnPromotionPendingAt != null && GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && ModalState != null && UiState != null)
+                    if (serverResponse.PawnPromotionPendingAt != null)
                     {
-                        PositionDto serverPosDto = serverResponse.PawnPromotionPendingAt;
-                        string promotionSquareAlgebraic = PositionHelper.ToAlgebraic(serverPosDto.Row, serverPosDto.Column);
-
-                        MoveDto pendingPromotionByCardMove = new MoveDto(
-                            From: promotionSquareAlgebraic,
-                            To: promotionSquareAlgebraic,
-                            PlayerId: GameCoreState.CurrentPlayerInfo.Id
-                        );
-                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card effect '{cardDefinitionForFinalize.Name}' resulted in pawn promotion at {promotionSquareAlgebraic}. Opening promotion modal.");
-                        ModalState.OpenPawnPromotionModal(pendingPromotionByCardMove, GameCoreState.MyColor);
-                        await UiState.SetCurrentInfoMessageForBoxAsync($"Bauer auf {promotionSquareAlgebraic} wird umgewandelt! Wähle eine Figur.");
+                        _isAwaitingTurnConfirmationAfterCard = false; // Spieler muss Promotion wählen
+                        Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleActivateCard: Pawn promotion pending for card '{cardDefinitionForFinalize.Name}'. Player remains active.");
+                        // Öffne PawnPromotionModal (bereits in FinalizeCardActivationOnServerAsync oder dessen Aufrufer)
+                        if (GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && ModalState != null && UiState != null)
+                        {
+                            PositionDto serverPosDto = serverResponse.PawnPromotionPendingAt;
+                            string promotionSquareAlgebraic = PositionHelper.ToAlgebraic(serverPosDto.Row, serverPosDto.Column);
+                            MoveDto pendingPromotionByCardMove = new MoveDto(
+                                From: promotionSquareAlgebraic,
+                                To: promotionSquareAlgebraic,
+                                PlayerId: GameCoreState.CurrentPlayerInfo.Id
+                            );
+                            ModalState.OpenPawnPromotionModal(pendingPromotionByCardMove, GameCoreState.MyColor);
+                            await UiState.SetCurrentInfoMessageForBoxAsync($"Bauer auf {promotionSquareAlgebraic} wird umgewandelt! Wähle eine Figur.");
+                        }
                     }
-                    else if (serverResponse.EndsPlayerTurn)
+                    else if (!serverResponse.EndsPlayerTurn) // z.B. Extrazug wurde vom Server bestätigt
                     {
-                        _isAwaitingTurnConfirmationAfterCard = true;
-                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{cardDefinitionForFinalize.Name}' (ID: {cardDefinitionForFinalize.Id}) played, setting _isAwaitingTurnConfirmationAfterCard = true.");
+                        _isAwaitingTurnConfirmationAfterCard = false;
+                        Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleActivateCard: Server confirmed card '{cardDefinitionForFinalize.Name}' does not end turn.");
+                    }
+                    // Wenn serverResponse.EndsPlayerTurn true ist UND keine Promotion ansteht,
+                    // bleibt _isAwaitingTurnConfirmationAfterCard auf dem proaktiv gesetzten Wert (true),
+                    // bis SignalR den Zugwechsel bestätigt.
+                }
+                else // Kartenaktivierung fehlgeschlagen
+                {
+                    if (_isAwaitingTurnConfirmationAfterCard) // Nur zurücksetzen, wenn es proaktiv gesetzt wurde
+                    {
+                        _isAwaitingTurnConfirmationAfterCard = false;
+                        Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleActivateCard: Card '{cardDefinitionForFinalize.Name}' activation failed. Resetting await flag.");
                     }
                 }
             }
-            await InvokeAsync(StateHasChanged);
+            // await InvokeAsync(StateHasChanged); // StateHasChanged wird von den Set-Methoden in den States ausgelöst
         }
+
 
         public async Task<CardActivationFinalizationResult> FinalizeCardActivationOnServerAsync(ActivateCardRequestDto requestDto, CardDto activatedCardDefinition)
         {
             if (GameOrchestrationService == null || CardState == null || GameCoreState == null || UiState == null)
             {
+                Logger.LogClientCriticalServicesNullOnInit($"FinalizeCardActivationOnServerAsync: Kritische Dienste nicht verfügbar.");
                 return new CardActivationFinalizationResult(CardActivationOutcome.Error, "Kritische Dienste nicht verfügbar.");
             }
 
@@ -1226,36 +1297,55 @@ namespace ChessClient.Pages
             }
 
             CardActivationFinalizationResult result = await GameOrchestrationService.FinalizeCardActivationAsync(requestDto, activatedCardDefinition);
-
             string? messageToKeepAfterReset = null;
             bool successOutcome = result.Outcome == CardActivationOutcome.Success;
-
-            // Wenn eine Bauernumwandlung durch die Karte ausgelöst wurde, endet der Zug des Spielers NICHT sofort.
-            // Die Logik für EndsPlayerTurn wird jetzt vom Server (via CardActivationFinalizationResult) gesteuert.
-            bool effectiveEndsPlayerTurn = result.EndsPlayerTurn;
-
 
             if (successOutcome)
             {
                 messageToKeepAfterReset = $"Karte '{activatedCardDefinition.Name}' erfolgreich aktiviert!";
-                // Die Logik für _isAwaitingTurnConfirmationAfterCard wird nun basierend auf effectiveEndsPlayerTurn gesetzt.
-                if (effectiveEndsPlayerTurn)
+
+                bool turnAlreadyAdvancedBySignalR = false;
+                if (result.EndsPlayerTurn && GameCoreState.CurrentPlayerInfo != null && GameCoreState.CurrentTurnPlayer == GameCoreState.MyColor)
                 {
-                    _isAwaitingTurnConfirmationAfterCard = true;
-                    Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{activatedCardDefinition.Name}' (ID: {activatedCardDefinition.Id}) played, server indicates turn ends, setting _isAwaitingTurnConfirmationAfterCard = true.");
+                    // Die Karte sollte den Zug beenden, aber der Spieler ist laut SignalR schon wieder dran.
+                    turnAlreadyAdvancedBySignalR = true;
                 }
-                else
+
+                if (result.PawnPromotionPendingAt != null)
                 {
-                    Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{activatedCardDefinition.Name}' (ID: {activatedCardDefinition.Id}) played, server indicates turn DOES NOT end (e.g. ExtraZug or PawnPromotion by card). _isAwaitingTurnConfirmationAfterCard remains false.");
+                    // Bauernumwandlung steht an. Spieler ist aktiv. Flag wird false.
+                    if (_isAwaitingTurnConfirmationAfterCard) _isAwaitingTurnConfirmationAfterCard = false;
+                    Logger.LogAwaitingTurnConfirmationStatus(false, $"FinalizeCardActivationOnServerAsync: Card '{activatedCardDefinition.Name}' resulted in pawn promotion. Player turn continues.");
+                }
+                else if (!result.EndsPlayerTurn)
+                {
+                    // Karte war erfolgreich, hat aber den Zug des Spielers nicht beendet (z.B. ExtraZug). Flag wird false.
+                    if (_isAwaitingTurnConfirmationAfterCard) _isAwaitingTurnConfirmationAfterCard = false;
+                    Logger.LogAwaitingTurnConfirmationStatus(false, $"FinalizeCardActivationOnServerAsync: Card '{activatedCardDefinition.Name}' successful, did not end turn.");
+                }
+                else if (turnAlreadyAdvancedBySignalR)
+                {
+                    // Zug wurde bereits von SignalR weitergeschaltet, Flag muss false sein.
+                    if (_isAwaitingTurnConfirmationAfterCard) _isAwaitingTurnConfirmationAfterCard = false;
+                    Logger.LogAwaitingTurnConfirmationStatus(false, $"FinalizeCardActivationOnServerAsync: Card '{activatedCardDefinition.Name}', turn already advanced by SignalR.");
+                }
+                else if (result.EndsPlayerTurn) // Standardfall: Karte beendet Zug, keine Promotion, SignalR noch nicht weiter
+                {
+                    // Das _isAwaitingTurnConfirmationAfterCard Flag wurde idealerweise vom Aufrufer (HandleActivateCard/HandleSquareClick) gesetzt
+                    // und bleibt hier true. SignalR wird es dann auf false setzen.
+                    Logger.LogAwaitingTurnConfirmationStatus(_isAwaitingTurnConfirmationAfterCard, $"FinalizeCardActivationOnServerAsync: Card '{activatedCardDefinition.Name}' successful, EndsPlayerTurn={result.EndsPlayerTurn}, TurnAdvancedBySignalR={turnAlreadyAdvancedBySignalR}. Current _isAwaiting: {_isAwaitingTurnConfirmationAfterCard}");
                 }
             }
-            else
+            else // if (!successOutcome) - Kartenaktivierung fehlgeschlagen
             {
                 messageToKeepAfterReset = UiState.ErrorMessage;
+                if (_isAwaitingTurnConfirmationAfterCard)
+                {
+                    _isAwaitingTurnConfirmationAfterCard = false;
+                    Logger.LogAwaitingTurnConfirmationStatus(false, $"FinalizeCardActivationOnServerAsync: Card '{activatedCardDefinition.Name}' activation failed. Resetting await flag.");
+                }
             }
 
-            // ResetCardActivationStateAsync wird nur gerufen, wenn KEINE Bauernumwandlung durch die Karte ansteht.
-            // Wenn eine Promotion ansteht, übernimmt das Promotion-Modal den weiteren Flow.
             if (result.PawnPromotionPendingAt == null)
             {
                 await ResetCardActivationStateAsync(fromCancelFlow: !successOutcome,
@@ -1263,10 +1353,9 @@ namespace ChessClient.Pages
             }
             else
             {
-                // Im Falle einer anstehenden Promotion wird der CardActivationPending-Status beibehalten,
-                // bis die Promotion abgeschlossen ist oder abgebrochen wird.
-                // Die Info-Box sollte bereits durch den Aufrufer gesetzt worden sein (z.B. "Bauer wird umgewandelt...").
-                CardState.SetIsCardActivationPending(true); // Sicherstellen, dass es pending bleibt
+                // Bei anstehender Promotion bleibt der Kartenaktivierungs-Pending-Status für _activeCardForBoardSelectionProcess etc. erstmal,
+                // bis die Promotion abgeschlossen ist. CardState.IsCardActivationPending sollte true bleiben.
+                CardState.SetIsCardActivationPending(true);
             }
             return result;
         }
@@ -1279,7 +1368,7 @@ namespace ChessClient.Pages
                 await ResetCardActivationStateAsync(true, "Fehler bei Kartenaktion (interner Zustand).");
                 return;
             }
-            CardDto activeCardForThisScope = _activeCardForBoardSelectionProcess; // Verwende eine lokale Kopie für diesen Scope
+            CardDto activeCardForThisScope = _activeCardForBoardSelectionProcess;
             Guid? selectedHandCardInstanceIdForRequest = CardState.SelectedCardInstanceIdInHand;
 
             if (!selectedHandCardInstanceIdForRequest.HasValue || selectedHandCardInstanceIdForRequest.Value != activeCardForThisScope.InstanceId)
@@ -1290,6 +1379,9 @@ namespace ChessClient.Pages
             }
 
             ActivateCardRequestDto? requestDto = null;
+
+            // Logik für Kartentyp-spezifische Feldauswahl (Teleport, Positionstausch, Wiedergeburt, Opfergabe)
+            // ... (Dieser Teil bleibt im Wesentlichen gleich wie vorher, aber mit der korrekten _isAwaiting... Logik unten)
 
             if (activeCardForThisScope.Id == CardConstants.Teleport)
             {
@@ -1416,7 +1508,7 @@ namespace ChessClient.Pages
                     return;
                 }
             }
-            else
+            else // Sollte nicht erreicht werden, wenn die Logik oben korrekt ist
             {
                 await UiState.SetCurrentInfoMessageForBoxAsync("Unerwarteter Zustand bei der Feldauswahl für Kartenaktion.", true, 5000);
                 await ResetCardActivationStateAsync(true);
@@ -1425,10 +1517,16 @@ namespace ChessClient.Pages
 
             if (requestDto != null)
             {
-                string messageForInfoBox = UiState.CurrentInfoMessageForBox;
-                if (string.IsNullOrEmpty(messageForInfoBox) || messageForInfoBox.Contains("Wähle"))
+                // Proaktives Setzen des Flags, da diese Aktionen typischerweise den Zug beenden
+                if (activeCardForThisScope.Id != CardConstants.ExtraZug) // Extrazug wäre eine Ausnahme
                 {
-                    messageForInfoBox = $"Verarbeite '{activeCardForThisScope.Name}'...";
+                    _isAwaitingTurnConfirmationAfterCard = true;
+                    Logger.LogAwaitingTurnConfirmationStatus(true, $"HandleSquareClickForCardTargetSelection: Proactively set await flag for card '{activeCardForThisScope.Name}'.");
+                }
+                else
+                {
+                    _isAwaitingTurnConfirmationAfterCard = false;
+                    Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleSquareClickForCardTargetSelection: Card '{activeCardForThisScope.Name}' does not proactively end turn.");
                 }
 
                 _firstSquareSelectedForTeleportOrSwap = null;
@@ -1438,31 +1536,46 @@ namespace ChessClient.Pages
 
                 CardActivationFinalizationResult serverResponse = await FinalizeCardActivationOnServerAsync(requestDto, activeCardForThisScope);
 
+                // Anpassung des Flags basierend auf der Server-Antwort
                 if (serverResponse.Outcome == CardActivationOutcome.Success)
                 {
-                    if (serverResponse.PawnPromotionPendingAt != null && GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && ModalState != null && UiState != null)
+                    if (serverResponse.PawnPromotionPendingAt != null)
                     {
-                        PositionDto serverPosDto = serverResponse.PawnPromotionPendingAt;
-                        string promotionSquareAlgebraic = PositionHelper.ToAlgebraic(serverPosDto.Row, serverPosDto.Column);
-
-                        MoveDto pendingPromotionByCardMove = new MoveDto(
-                            From: promotionSquareAlgebraic,
-                            To: promotionSquareAlgebraic,
-                            PlayerId: GameCoreState.CurrentPlayerInfo.Id
-                        );
-                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card effect '{activeCardForThisScope.Name}' after square click resulted in pawn promotion at {promotionSquareAlgebraic}. Opening promotion modal.");
-                        ModalState.OpenPawnPromotionModal(pendingPromotionByCardMove, GameCoreState.MyColor);
-                        await UiState.SetCurrentInfoMessageForBoxAsync($"Bauer auf {promotionSquareAlgebraic} wird umgewandelt! Wähle eine Figur.");
+                        _isAwaitingTurnConfirmationAfterCard = false; // Spieler muss Promotion wählen
+                        Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleSquareClickForCardTargetSelection: Pawn promotion pending for card '{activeCardForThisScope.Name}'. Player remains active.");
+                        // Öffne PawnPromotionModal (Code existiert bereits in Ihrer Finalize-Methode, hier ggf. direkter aufrufen oder sicherstellen, dass es passiert)
+                        if (GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && ModalState != null && UiState != null)
+                        {
+                            PositionDto serverPosDto = serverResponse.PawnPromotionPendingAt;
+                            string promotionSquareAlgebraic = PositionHelper.ToAlgebraic(serverPosDto.Row, serverPosDto.Column);
+                            MoveDto pendingPromotionByCardMove = new MoveDto(
+                                From: promotionSquareAlgebraic,
+                                To: promotionSquareAlgebraic,
+                                PlayerId: GameCoreState.CurrentPlayerInfo.Id
+                            );
+                            ModalState.OpenPawnPromotionModal(pendingPromotionByCardMove, GameCoreState.MyColor);
+                            await UiState.SetCurrentInfoMessageForBoxAsync($"Bauer auf {promotionSquareAlgebraic} wird umgewandelt! Wähle eine Figur.");
+                        }
                     }
-                    else if (serverResponse.EndsPlayerTurn)
+                    else if (!serverResponse.EndsPlayerTurn) // z.B. Extrazug wurde vom Server bestätigt
                     {
-                        _isAwaitingTurnConfirmationAfterCard = true;
-                        Logger.LogClientSignalRConnectionWarning($"[ChessPage] Card '{activeCardForThisScope.Name}' after square click, server indicates turn ends, setting _isAwaitingTurnConfirmationAfterCard = true.");
+                        _isAwaitingTurnConfirmationAfterCard = false;
+                        Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleSquareClickForCardTargetSelection: Server confirmed card '{activeCardForThisScope.Name}' does not end turn.");
+                    }
+                    // Wenn serverResponse.EndsPlayerTurn true ist UND keine Promotion ansteht,
+                    // bleibt _isAwaitingTurnConfirmationAfterCard auf dem proaktiv gesetzten Wert (true),
+                    // bis SignalR den Zugwechsel bestätigt.
+                }
+                else // Kartenaktivierung fehlgeschlagen
+                {
+                    if (_isAwaitingTurnConfirmationAfterCard) // Nur zurücksetzen, wenn es proaktiv gesetzt wurde
+                    {
+                        _isAwaitingTurnConfirmationAfterCard = false;
+                        Logger.LogAwaitingTurnConfirmationStatus(false, $"HandleSquareClickForCardTargetSelection: Card '{activeCardForThisScope.Name}' activation failed. Resetting await flag.");
                     }
                 }
             }
         }
-
         private async Task ResetCardActivationStateAsync(bool fromCancelFlow = false, string? specificMessageToKeep = null)
         {
             if (CardState == null || HighlightState == null || ModalState == null || UiState == null) return;
@@ -1629,7 +1742,7 @@ namespace ChessClient.Pages
         public async ValueTask DisposeAsync()
         {
             UnsubscribeFromStateChanges();
-            HubService.OnTurnChanged -= HandleHubTurnChanged;
+            HubService.OnTurnChanged -= HandleHubTurnChangedWrapper; // ALT: HandleHubTurnChanged
             HubService.OnTimeUpdate -= HandleHubTimeUpdate;
             HubService.OnPlayerJoined -= HandlePlayerJoinedClient;
             HubService.OnPlayerLeft -= HandlePlayerLeftClient;

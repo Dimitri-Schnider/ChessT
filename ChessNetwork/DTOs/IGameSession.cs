@@ -6,7 +6,7 @@ namespace ChessNetwork
 {
     public interface IGameSession
     {
-        Task<CreateGameResultDto> CreateGameAsync(string playerName, Player color, int initialMinutes);
+        Task<CreateGameResultDto> CreateGameAsync(CreateGameDto createGameParameters); 
         Task<JoinGameResultDto> JoinGameAsync(Guid gameId, string playerName);
         Task<BoardDto> GetBoardAsync(Guid gameId);
         Task<MoveResultDto> SendMoveAsync(Guid gameId, MoveDto move);

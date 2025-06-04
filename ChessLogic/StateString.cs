@@ -1,19 +1,30 @@
-﻿// File: [SolutionDir]/ChessLogic/StateString.cs
+﻿// File: [SolutionDir]\ChessLogic\StateString.cs
 using System.Text;
 using System.Globalization;
 using ChessLogic.Utilities; // Für Position
-using ChessLogic.Moves;     // Für Move, DoublePawn
+using ChessLogic.Moves; // Für Move, DoublePawn
 
 namespace ChessLogic
 {
-    // Generiert eine String-Repräsentation des Spielzustands (ähnlich FEN).
     public class StateString
     {
         private readonly StringBuilder sb = new StringBuilder();
 
-        // Konstruktor: Baut den Zustands-String.
-        // Nimmt jetzt optional den letzten Zug entgegen, um En-Passant korrekt zu behandeln.
-        public StateString(Player currentPlayer, Board board, Move? lastMove = null)
+        // NEUER Konstruktor für die Tests (nimmt 2 Argumente)
+        public StateString(Player currentPlayer, Board board)
+            : this(currentPlayer, board, null, 0, 1, false) // Ruft den Hauptkonstruktor mit Standardwerten auf
+        {
+        }
+
+        // Konstruktor für interne stateHistory (ohne Zugzähler in FEN, falls so gewünscht)
+        // Der lastMoveContext ist hier wichtig, um den Zustand *nach* diesem Zug korrekt darzustellen.
+        public StateString(Player currentPlayer, Board board, Move? lastMoveForEPContext)
+            : this(currentPlayer, board, lastMoveForEPContext, 0, 1, false) // Default für interne Nutzung, falls Zähler nicht gebraucht
+        {
+        }
+
+        // Hauptkonstruktor, der die optionalen Zähler für die API-FEN aufnehmen kann
+        public StateString(Player currentPlayer, Board board, Move? lastMoveForEPContext, int? halfMoveClock, int? fullMoveNumber, bool includeMoveCounts = true)
         {
             AddPiecePlacement(board);
             sb.Append(' ');
@@ -21,33 +32,25 @@ namespace ChessLogic
             sb.Append(' ');
             AddCastlingRights(board);
             sb.Append(' ');
-            AddEnPassant(board, currentPlayer, lastMove); // lastMove wird hier übergeben
-        }
-
-        // Gibt den erstellten Zustands-String zurück.
-        public override string ToString()
-        {
-            return sb.ToString();
-        }
-
-        // Gibt das Zeichen für eine Figur zurück.
-        private static char PieceChar(Piece piece)
-        {
-            char c = piece.Type switch
+            AddEnPassant(board, currentPlayer, lastMoveForEPContext);
+            if (includeMoveCounts)
             {
-                PieceType.Pawn => 'p',
-                PieceType.Knight => 'n',
-                PieceType.Rook => 'r',
-                PieceType.Bishop => 'b',
-                PieceType.Queen => 'q',
-                PieceType.King => 'k',
-                _ => ' '
-            };
-            if (piece.Color == Player.White) { return char.ToUpper(c, CultureInfo.InvariantCulture); }
-            return c;
+                sb.Append(' ');
+                AddHalfMoveClock(halfMoveClock.HasValue ? halfMoveClock.Value : 0);
+                sb.Append(' ');
+                AddFullMoveNumber(fullMoveNumber.HasValue ? fullMoveNumber.Value : 1);
+            }
         }
 
-        // Fügt Figuren einer Reihe zum String hinzu.
+        private void AddPiecePlacement(Board board)
+        {
+            for (int r = 0; r < 8; r++)
+            {
+                if (r != 0) { sb.Append('/'); }
+                AddRowData(board, r);
+            }
+        }
+
         private void AddRowData(Board board, int row)
         {
             int empty = 0;
@@ -65,68 +68,101 @@ namespace ChessLogic
             if (empty > 0) { sb.Append(empty); }
         }
 
-        // Fügt die gesamte Figurenaufstellung zum String hinzu.
-        private void AddPiecePlacement(Board board)
+        private static char PieceChar(Piece piece)
         {
-            for (int r = 0; r < 8; r++)
+            char c = piece.Type switch
             {
-                if (r != 0) { sb.Append('/'); }
-                AddRowData(board, r);
-            }
+                PieceType.Pawn => 'p',
+                PieceType.Knight => 'n',
+                PieceType.Rook => 'r',
+                PieceType.Bishop => 'b',
+                PieceType.Queen => 'q',
+                PieceType.King => 'k',
+                _ => ' '
+            };
+            if (piece.Color == Player.White) { return char.ToUpper(c, CultureInfo.InvariantCulture); }
+            return c;
         }
 
-        // Fügt den aktuellen Spieler zum String hinzu.
         private void AddCurrentPlayer(Player currentPlayer)
         {
             if (currentPlayer == Player.White) { sb.Append('w'); }
             else { sb.Append('b'); }
         }
 
-        // Fügt Rochaderechte zum String hinzu.
         private void AddCastlingRights(Board board)
         {
             bool castleWKS = board.CastleRightKS(Player.White);
             bool castleWQS = board.CastleRightQS(Player.White);
             bool castleBKS = board.CastleRightKS(Player.Black);
             bool castleBQS = board.CastleRightQS(Player.Black);
-            if (!(castleWKS || castleWQS || castleBKS || castleBQS)) { sb.Append('-'); return; }
+            if (!(castleWKS || castleWQS || castleBKS || castleBQS))
+            {
+                sb.Append('-');
+                return;
+            }
             if (castleWKS) sb.Append('K');
             if (castleWQS) sb.Append('Q');
             if (castleBKS) sb.Append('k');
             if (castleBQS) sb.Append('q');
         }
 
-        // Fügt En-Passant-Zielquadrat zum String hinzu.
-        // Berücksichtigt den letzten Zug, um das korrekte EP-Quadrat zu identifizieren.
-        private void AddEnPassant(Board board, Player currentPlayer, Move? lastMove)
+        private void AddEnPassant(Board board, Player currentPlayer, Move? lastMoveJustMade)
         {
-            Position? enPassantTargetSquare = null;
+            Position? enPassantSquareForFen = null;
 
-            // Das En-Passant-Feld im FEN wird gesetzt, wenn der *letzte* Zug
-            // ein Doppelbauernschritt des Gegners war und dadurch eine
-            // En-Passant-Schlagmöglichkeit für den aktuellen Spieler entstanden ist.
-            if (lastMove is DoublePawn) // Prüft, ob der letzte Zug ein DoublePawn war.
+            if (lastMoveJustMade is DoublePawn dpMove)
             {
-                // Der Spieler, der den Doppelbauernschritt gemacht hat, ist currentPlayer.Opponent().
-                // Die Methode GetPawnSkipPosition(farbeDesSpielersDerDoppelschrittMachte)
-                // liefert das Feld, auf das geschlagen werden könnte (das Feld *hinter* dem gezogenen Bauern).
-                enPassantTargetSquare = board.GetPawnSkipPosition(currentPlayer.Opponent());
-            }
-            // Wenn lastMove kein DoublePawn war, oder wenn das Board kein gültiges
-            // En-Passant-Feld für den Gegner des aktuellen Spielers hat, bleibt enPassantTargetSquare null.
+                Piece? pawnThatMadeDoubleMove = board[dpMove.ToPos];
+                if (pawnThatMadeDoubleMove != null && pawnThatMadeDoubleMove.Color == currentPlayer.Opponent())
+                {
+                    Position skippedSquare = new Position((dpMove.FromPos.Row + dpMove.ToPos.Row) / 2, dpMove.FromPos.Column);
+                    Position leftAttackerPos = new Position(dpMove.ToPos.Row, dpMove.ToPos.Column - 1);
+                    if (Board.IsInside(leftAttackerPos) &&
+                        board[leftAttackerPos]?.Type == PieceType.Pawn &&
+                        board[leftAttackerPos]?.Color == currentPlayer)
+                    {
+                        enPassantSquareForFen = skippedSquare;
+                    }
 
-            if (enPassantTargetSquare == null)
+                    if (enPassantSquareForFen == null)
+                    {
+                        Position rightAttackerPos = new Position(dpMove.ToPos.Row, dpMove.ToPos.Column + 1);
+                        if (Board.IsInside(rightAttackerPos) &&
+                            board[rightAttackerPos]?.Type == PieceType.Pawn &&
+                            board[rightAttackerPos]?.Color == currentPlayer)
+                        {
+                            enPassantSquareForFen = skippedSquare;
+                        }
+                    }
+                }
+            }
+            if (enPassantSquareForFen == null)
             {
                 sb.Append('-');
-                return;
             }
+            else
+            {
+                char file = (char)('a' + enPassantSquareForFen.Column);
+                int rank = 8 - enPassantSquareForFen.Row;
+                sb.Append(file);
+                sb.Append(rank);
+            }
+        }
 
-            // Konvertiere die Board-Koordinaten (0-7 für Zeile und Spalte) in algebraische Notation.
-            char file = (char)('a' + enPassantTargetSquare.Column);
-            // FEN-Ränge sind 1-8, wobei 1 die Grundreihe von Weiss ist. Array-Zeilen sind 0-7 von oben (Schwarz).
-            int rank = 8 - enPassantTargetSquare.Row;
-            sb.Append(file);
-            sb.Append(rank);
+        private void AddHalfMoveClock(int halfMoveClock)
+        {
+            sb.Append(halfMoveClock);
+        }
+
+        private void AddFullMoveNumber(int fullMoveNumber)
+        {
+            sb.Append(fullMoveNumber);
+        }
+
+        public override string ToString()
+        {
+            return sb.ToString();
         }
     }
 }

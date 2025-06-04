@@ -179,15 +179,3 @@ namespace ChessServer.Hubs
         }
     }
 }
-
-namespace ChessServer.Services
-{
-    public partial class InMemoryGameManager
-    {
-        public GameSession? GetSessionForDirectHubSend(Guid gameId)
-        {
-            _games.TryGetValue(gameId, out var session);
-            return session;
-        }
-    }
-}

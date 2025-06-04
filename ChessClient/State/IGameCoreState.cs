@@ -8,7 +8,7 @@ namespace ChessClient.State
     public interface IGameCoreState
     {
         event Action? StateChanged;
-        PlayerDto? CurrentPlayerInfo { get; } 
+        PlayerDto? CurrentPlayerInfo { get; }
         BoardDto? BoardDto { get; }
         Player MyColor { get; }
         Guid GameId { get; }
@@ -21,8 +21,9 @@ namespace ChessClient.State
         bool IsGameSpecificDataInitialized { get; }
         string WhiteTimeDisplay { get; }
         string BlackTimeDisplay { get; }
+        bool IsPvCGame { get; } // NEU
 
-        void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes);
+        void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes, string opponentTypeString); // NEU: opponentTypeString
         void InitializeJoinedGame(JoinGameResultDto result, Guid gameId, Player assignedColor);
         void SetGameIdFromQuery(string? gameIdQuery, bool isValidAndExists);
         void UpdatePlayerNames(Dictionary<Player, string> names);
@@ -35,5 +36,6 @@ namespace ChessClient.State
         void SetGameSpecificDataInitialized(bool initialized);
         void UpdateDisplayedTimes(TimeSpan whiteTime, TimeSpan blackTime, Player? activeTimerPlayer);
         void ResetForNewGame(int initialTimeMinutes = 15);
+        void SetIsPvCGame(bool isPvC); // NEU
     }
 }

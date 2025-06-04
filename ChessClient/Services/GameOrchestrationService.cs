@@ -20,7 +20,6 @@ namespace ChessClient.Services
         private readonly IModalState _modalState;
         private readonly IHighlightState _highlightState;
         private readonly ICardState _cardState;
-
         public GameOrchestrationService(
             IGameSession gameService,
             IGameCoreState gameCoreState,
@@ -37,7 +36,7 @@ namespace ChessClient.Services
             _cardState = cardState;
         }
 
-        private bool IsPawnPromotion(string fromAlgebraic, string toAlgebraic)
+        public bool IsPawnPromotion(string fromAlgebraic, string toAlgebraic)
         {
             if (_gameCoreState.BoardDto == null) return false;
             (int fromRow, int fromCol) = PositionHelper.ToIndices(fromAlgebraic);
@@ -92,10 +91,10 @@ namespace ChessClient.Services
             }
         }
 
-        public async Task<CardActivationFinalizationResult> FinalizeCardActivationAsync(ActivateCardRequestDto requestDto, CardDto activatedCard)
+        public async Task<CardActivationFinalizationResult> FinalizeCardActivationAsync(ActivateCardRequestDto requestDto, CardDto activatedCardDefinition)
         {
             _cardState.SetIsCardActivationPending(true);
-            await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktiviere Karte '{0}'...", activatedCard.Name));
+            await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktiviere Karte '{0}'...", activatedCardDefinition.Name));
             _uiState.ClearErrorMessage();
 
             try
@@ -105,26 +104,23 @@ namespace ChessClient.Services
                     string noPlayerDataError = "Spielerdaten nicht verfügbar für Kartenaktivierung.";
                     _uiState.SetErrorMessage(noPlayerDataError);
                     _cardState.SetIsCardActivationPending(false);
-                    // Hier auch die neuen Felder initialisieren
                     return new CardActivationFinalizationResult(CardActivationOutcome.Error, noPlayerDataError, true, null);
                 }
 
                 ServerCardActivationResultDto serverResult = await _gameService.ActivateCardAsync(_gameCoreState.GameId, _gameCoreState.CurrentPlayerInfo.Id, requestDto);
                 if (!serverResult.Success)
                 {
-                    string errorMsg = serverResult.ErrorMessage ?? $"Fehler bei Kartenaktivierung '{activatedCard.Name}'.";
+                    string errorMsg = serverResult.ErrorMessage ?? $"Fehler bei Kartenaktivierung '{activatedCardDefinition.Name}'.";
                     _uiState.SetErrorMessage(errorMsg);
-                    await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCard.Name));
+                    await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCardDefinition.Name));
                     _cardState.SetIsCardActivationPending(false);
-                    // Hier auch die neuen Felder initialisieren
                     return new CardActivationFinalizationResult(CardActivationOutcome.Error, errorMsg, serverResult.EndsPlayerTurn, serverResult.PawnPromotionPendingAt);
                 }
 
                 _cardState.SetIsCardActivationPending(false);
-                // Mappe die neuen Felder vom serverResult auf CardActivationFinalizationResult
                 return new CardActivationFinalizationResult(
                     CardActivationOutcome.Success,
-                    null, // Kein ErrorMessage bei Erfolg
+                    null,
                     serverResult.EndsPlayerTurn,
                     serverResult.PawnPromotionPendingAt
                 );
@@ -132,24 +128,23 @@ namespace ChessClient.Services
             catch (HttpRequestException httpEx)
             {
                 _uiState.SetErrorMessage(httpEx.Message);
-                await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCard.Name));
+                await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCardDefinition.Name));
                 _cardState.SetIsCardActivationPending(false);
                 return new CardActivationFinalizationResult(CardActivationOutcome.Error, httpEx.Message, true, null);
             }
             catch (Exception ex)
             {
-                string errorMsg = string.Format(CultureInfo.CurrentCulture, "Fehler bei Kartenaktivierung '{0}': {1}", activatedCard.Name, ex.Message);
+                string errorMsg = string.Format(CultureInfo.CurrentCulture, "Fehler bei Kartenaktivierung '{0}': {1}", activatedCardDefinition.Name, ex.Message);
                 _uiState.SetErrorMessage(errorMsg);
-                await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCard.Name));
+                await _uiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Aktivierung von '{0}' fehlgeschlagen.", activatedCardDefinition.Name));
                 _cardState.SetIsCardActivationPending(false);
                 return new CardActivationFinalizationResult(CardActivationOutcome.Error, errorMsg, true, null);
             }
         }
-
-        public async Task<(bool Success, Guid GameId)> CreateNewGameAsync(string name, Player color, int timeMinutes)
+        public async Task<(bool Success, Guid GameId)> CreateNewGameAsync(CreateGameParameters args)
         {
             _gameCoreState.SetGameSpecificDataInitialized(false);
-            if (string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(args.Name))
             {
                 _uiState.SetErrorMessage("Bitte gib einen Spielernamen ein.");
                 return (false, Guid.Empty);
@@ -159,9 +154,20 @@ namespace ChessClient.Services
             _highlightState.ClearAllActionHighlights();
             try
             {
-                var result = await _gameService.CreateGameAsync(name, color, timeMinutes);
-                _gameCoreState.InitializeNewGame(result, name, result.Color, timeMinutes);
-                _modalState.UpdateCreateGameModalArgs(name, color, timeMinutes);
+                var createGameDtoForServer = new CreateGameDto
+                {
+                    PlayerName = args.Name,
+                    Color = args.Color,
+                    InitialMinutes = args.TimeMinutes,
+                    OpponentType = args.OpponentType.ToString(),
+                    ComputerDifficulty = args.ComputerDifficulty.ToString()
+                };
+
+                // Rufe die NEUE Methode in IGameSession auf
+                var result = await _gameService.CreateGameAsync(createGameDtoForServer);
+
+                _gameCoreState.InitializeNewGame(result, args.Name, result.Color, args.TimeMinutes, args.OpponentType.ToString());
+                _modalState.UpdateCreateGameModalArgs(args.Name, args.Color, args.TimeMinutes);
 
                 return (true, _gameCoreState.GameId);
             }
@@ -194,7 +200,8 @@ namespace ChessClient.Services
             {
                 var result = await _gameService.JoinGameAsync(parsedGuidForJoin, name);
                 _gameCoreState.InitializeJoinedGame(result, parsedGuidForJoin, result.Color);
-                _gameCoreState.SetOpponentJoined(true);
+                _gameCoreState.SetOpponentJoined(true); // Bei Join ist der Gegner immer da (implizit Human)
+                _gameCoreState.SetIsPvCGame(false); // Beim direkten Beitreten ist es kein PvC-Spiel
 
                 return (true, _gameCoreState.GameId);
             }

@@ -284,6 +284,63 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, Exception?> _logMgrGameNotFoundForRegisterPlayerHubAction =
             LoggerMessage.Define<Guid>(LogLevel.Warning, new EventId(25010, "MgrGameNotFoundForRegisterPlayerHubLog"), "[InMemoryGameManager] Spiel {GameId} nicht gefunden für RegisterPlayerHubConnection.");
 
+        // --- NEU: ChessServer PvC Logs (z.B. Event-ID Bereich 26000) ---
+        private static readonly Action<ILogger, Guid, string, Player, string, Exception?> _logPvCGameCreatedAction =
+            LoggerMessage.Define<Guid, string, Player, string>(LogLevel.Information, new EventId(26001, "CtrlPvCGameCreatedLog"), "PvC Spiel {GameId} erstellt für Spieler {PlayerName} (Farbe: {PlayerColor}) gegen Computer (Stärke: {ComputerDifficulty})");
+
+        private static readonly Action<ILogger, Guid, string, int, Exception?> _logComputerFetchingMoveAction =
+            LoggerMessage.Define<Guid, string, int>(LogLevel.Debug, new EventId(26002, "SessionComputerFetchingMoveLog"), "[GameSession] Spiel {GameId}: Computer fordert Zug von API an. FEN: {FEN}, Tiefe: {Depth}");
+
+        private static readonly Action<ILogger, Guid, string, string, int, Exception?> _logComputerReceivedMoveAction =
+            LoggerMessage.Define<Guid, string, string, int>(LogLevel.Information, new EventId(26003, "SessionComputerReceivedMoveLog"), "[GameSession] Spiel {GameId}: Computer erhielt Zug '{Move}' von API für FEN {FEN}, Tiefe {Depth}");
+
+        private static readonly Action<ILogger, Guid, string, int, string, Exception?> _logComputerMoveErrorAction =
+            LoggerMessage.Define<Guid, string, int, string>(LogLevel.Warning, new EventId(26004, "SessionComputerMoveErrorLog"), "[GameSession] Spiel {GameId}: Fehler bei Computerzug (FEN: {FEN}, Tiefe: {Depth}). Grund: {ErrorMessage}");
+
+        private static readonly Action<ILogger, Guid, string, string, Exception?> _logComputerMakingMoveAction =
+            LoggerMessage.Define<Guid, string, string>(LogLevel.Information, new EventId(26005, "SessionComputerMakingMoveLog"), "[GameSession] Spiel {GameId}: Computer führt Zug {FromSquare} -> {ToSquare} aus.");
+        private static readonly Action<ILogger, Guid, Player, Player, Exception?> _logComputerStartingInitialMoveAction =
+      LoggerMessage.Define<Guid, Player, Player>(LogLevel.Debug, new EventId(26006, "SessionComputerStartingInitialMoveLog"), "[GameSession] Spiel {GameId}: Computer (Farbe: {ComputerColor}, aktuell am Zug: {CurrentPlayer}) startet. Planne initialen Zug.");
+        private static readonly Action<ILogger, Guid, Player, Guid?, Guid?, Exception?> _logGetPlayerIdByColorFailedAction =
+      LoggerMessage.Define<Guid, Player, Guid?, Guid?>(LogLevel.Debug, new EventId(23034, "SessionGetPlayerIdByColorFailedLog"), "[GameSession] Spiel {GameId}: GetPlayerIdByColor Anfrage für Farbe {Color}, aber kein Spieler zugewiesen. WhiteId: {WhiteId}, BlackId: {BlackId}");
+
+        // Für Verzögerung
+
+        private static readonly Action<ILogger, Guid, string, double, Exception?> _logComputerTurnDelayAfterCardAction =
+               LoggerMessage.Define<Guid, string, double>(LogLevel.Information, new EventId(23037, "LogComputerTurnDelayAfterCard"), "[GameSession] Karte {CardTypeId} vom Menschen gespielt. Verzögere Computerzug um {DelaySeconds}s in Spiel {GameId}.");
+
+        private static readonly Action<ILogger, Guid, double, Exception?> _logComputerTurnDelayCardSwapAction =
+            LoggerMessage.Define<Guid, double>(LogLevel.Information, new EventId(23038, "LogComputerTurnDelayCardSwap"), "[GameSession] CardSwap vom Menschen gespielt. Längere Verzögerung für Computerzug um {DelaySeconds}s in Spiel {GameId}.");
+
+        private static readonly Action<ILogger, Guid, Player, Exception?> _logComputerTimerPausedForAnimationAction =
+            LoggerMessage.Define<Guid, Player>(LogLevel.Debug, new EventId(23039, "LogComputerTimerPausedForAnimation"), "[GameSession] Timer für Computer ({ComputerColor}) in Spiel {GameId} für Animations-Delay pausiert.");
+
+        private static readonly Action<ILogger, Guid, Player, Exception?> _logComputerTimerResumedAfterAnimationAction =
+            LoggerMessage.Define<Guid, Player>(LogLevel.Debug, new EventId(23040, "LogComputerTimerResumedAfterAnimation"), "[GameSession] Timer für Computer ({ComputerColor}) in Spiel {GameId} nach Animations-Delay fortgesetzt.");
+
+        private static readonly Action<ILogger, Guid, string, Exception?> _logComputerSkippingTurnAfterAnimationDelayAction =
+            LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(23041, "LogComputerSkippingTurnAfterAnimationDelay"), "[GameSession] Spiel beendet oder nicht mehr Computer-Zug nach Animations-Delay für Karte {CardTypeId}. Computerzug wird nicht ausgeführt. Spiel: {GameId}");
+
+
+        // NEU für Chess.razor.cs - IsChessboardEnabled Status
+
+        private static readonly Action<ILogger, ChessboardEnabledStatusLogArgs, Exception?> _logIsChessboardEnabledStatusAction =
+            LoggerMessage.Define<ChessboardEnabledStatusLogArgs>(LogLevel.Debug, new EventId(20014, "ClientIsChessboardEnabledStatusLog"),
+                "[ChessPage] IsChessboardEnabled Raw Status: {StatusArgs}");
+
+        private static readonly Action<ILogger, Player, GameStatusDto, string?, string?, int, Exception?> _logHandleHubTurnChangedClientInfoAction =
+            LoggerMessage.Define<Player, GameStatusDto, string?, string?, int>(LogLevel.Information, new EventId(20015, "ClientHandleHubTurnChangedInfoLog"),
+                "[ChessPage] HandleHubTurnChangedAsync received. NextPlayer: {NextPlayer}, StatusForNext: {StatusForNextPlayer}, LastMoveFrom: {LastMoveFrom}, LastMoveTo: {LastMoveTo}, CardEffectsCount: {CardEffectsCount}");
+
+        private static readonly Action<ILogger, bool, string, Exception?> _logAwaitingTurnConfirmationStatusAction =
+            LoggerMessage.Define<bool, string>(LogLevel.Debug, new EventId(20016, "ClientAwaitingTurnConfirmationStatusLog"),
+                "[ChessPage] _isAwaitingTurnConfirmationAfterCard status: {FlagStatus}. Reason/Context: {Context}");
+
+
+        // --- ChessClient.State.CardState.cs Logs (NEU) ---
+        private static readonly Action<ILogger, Guid, string, Exception?> _logClientAttemptedToAddDuplicateCardInstanceAction =
+            LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(20017, "ClientAttemptedDuplicateCardInstanceLog"), "[CardState] Client hat versucht, Karte mit bereits vorhandener InstanceId {InstanceId} ('{CardName}') hinzuzufügen. Hinzufügen übersprungen.");
+
 
         public ChessLogger(ILogger<TCategoryName> msLogger)
         {
@@ -300,6 +357,8 @@ namespace Chess.Logging
         public void LogUpdatePlayerNamesMismatch(Player opponentColorRetrieved, Player opponentColorExpected) => _logUpdatePlayerNamesMismatchAction(_msLogger, opponentColorRetrieved, opponentColorExpected, null);
         public void LogUpdatePlayerNamesNotFound(string errorMessage) => _logUpdatePlayerNamesNotFoundAction(_msLogger, errorMessage, null);
         public void LogUpdatePlayerNamesError(Exception ex) => _logUpdatePlayerNamesErrorAction(_msLogger, ex);
+        public void LogClientAttemptedToAddDuplicateCardInstance(Guid instanceId, string cardName) => _logClientAttemptedToAddDuplicateCardInstanceAction(_msLogger, instanceId, cardName, null);
+
         public void LogHandlePlayCardActivationAnimation(string cardTypeId, Guid playerId, Player playerColor) => _logHandlePlayCardActivationAnimationAction(_msLogger, cardTypeId, playerId, playerColor, null);
         public void LogHandleClientAnimationFinishedTriggered(string? lastCardId, bool isPendingSwapNull) => _logHandleClientAnimationFinishedTriggeredAction(_msLogger, lastCardId, isPendingSwapNull, null);
         public void LogHandleReceiveCardSwapDetails(string givenCardName, string receivedCardName, bool isGenericAnimating) => _logHandleReceiveCardSwapDetailsAction(_msLogger, givenCardName, receivedCardName, isGenericAnimating, null);
@@ -422,6 +481,32 @@ namespace Chess.Logging
         public void LogSacrificeEffectFailedWrongColor(Guid gameId, Guid playerId, string attemptedSquare, Player pieceColor) => _logSacrificeEffectFailedWrongColorAction(_msLogger, gameId, playerId, attemptedSquare, pieceColor, null);
         public void LogSacrificeEffectFailedWouldCauseCheck(Guid gameId, Guid playerId, string sacrificedPawnSquare) => _logSacrificeEffectFailedWouldCauseCheckAction(_msLogger, gameId, playerId, sacrificedPawnSquare, null);
         public void LogPawnPromotionPendingAfterCard(Guid gameId, Player player, string promotionSquare, string cardTypeId) => _logPawnPromotionPendingAfterCardAction(_msLogger, gameId, player, promotionSquare, cardTypeId, null);
+
+        // NEU: Implementierungen für PvC Logs
+        public void LogPvCGameCreated(Guid gameId, string playerName, Player playerColor, string computerDifficulty) => _logPvCGameCreatedAction(_msLogger, gameId, playerName, playerColor, computerDifficulty, null);
+        public void LogComputerFetchingMove(Guid gameId, string fen, int depth) => _logComputerFetchingMoveAction(_msLogger, gameId, fen, depth, null);
+        public void LogComputerReceivedMove(Guid gameId, string move, string fen, int depth) => _logComputerReceivedMoveAction(_msLogger, gameId, move, fen, depth, null);
+        public void LogComputerMoveError(Guid gameId, string fen, int depth, string errorMessage) => _logComputerMoveErrorAction(_msLogger, gameId, fen, depth, errorMessage, null);
+        public void LogComputerMakingMove(Guid gameId, string from, string toSquare) => _logComputerMakingMoveAction(_msLogger, gameId, from, toSquare, null);
+
+        public void LogComputerStartingInitialMove(Guid gameId, Player computerColor, Player currentPlayer) => _logComputerStartingInitialMoveAction(_msLogger, gameId, computerColor, currentPlayer, null);
+        public void LogGetPlayerIdByColorFailed(Guid gameId, Player color, Guid? whiteId, Guid? blackId) => _logGetPlayerIdByColorFailedAction(_msLogger, gameId, color, whiteId, blackId, null); // NEU
+
+
+        // NEU: Implementierungen für Verzögerungs-Logs
+        public void LogComputerTurnDelayAfterCard(Guid gameId, string cardTypeId, double delaySeconds) => _logComputerTurnDelayAfterCardAction(_msLogger, gameId, cardTypeId, delaySeconds, null);
+        public void LogComputerTurnDelayCardSwap(Guid gameId, double delaySeconds) => _logComputerTurnDelayCardSwapAction(_msLogger, gameId, delaySeconds, null);
+        public void LogComputerTimerPausedForAnimation(Guid gameId, Player computerColor) => _logComputerTimerPausedForAnimationAction(_msLogger, gameId, computerColor, null);
+        public void LogComputerTimerResumedAfterAnimation(Guid gameId, Player computerColor) => _logComputerTimerResumedAfterAnimationAction(_msLogger, gameId, computerColor, null);
+        public void LogComputerSkippingTurnAfterAnimationDelay(Guid gameId, string cardTypeId) => _logComputerSkippingTurnAfterAnimationDelayAction(_msLogger, gameId, cardTypeId, null);
+
+        public void LogIsChessboardEnabledStatus(ChessboardEnabledStatusLogArgs args) // Parameter geändert
+            => _logIsChessboardEnabledStatusAction(_msLogger, args, null);
+        public void LogHandleHubTurnChangedClientInfo(Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, int cardEffectsCount)
+            => _logHandleHubTurnChangedClientInfoAction(_msLogger, nextPlayer, statusForNextPlayer, lastMoveFromServerFrom, lastMoveFromServerTo, cardEffectsCount, null);
+
+        public void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context)
+            => _logAwaitingTurnConfirmationStatusAction(_msLogger, flagStatus, context, null);
 
     }
 }
