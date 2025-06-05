@@ -1,11 +1,11 @@
 ﻿namespace ChessLogic
 {
-    // Repräsentiert das Ergebnis eines Schachspiels.
+    // Repräsentiert das Ergebnis einer beendeten Schachpartie.
     public class Result
     {
-        // Gewinner des Spiels (None bei Remis).
+        // Der Gewinner des Spiels. Ist Player.None bei einem Remis.
         public Player Winner { get; }
-        // Grund für das Spielende.
+        // Der Grund für das Spielende (z.B. Schachmatt, Patt, Zeitüberschreitung).
         public EndReason Reason { get; }
 
         // Konstruktor für ein Spielergebnis.
@@ -15,13 +15,14 @@
             Reason = reason;
         }
 
-        // Erstellt ein Sieg-Ergebnis.
+        // Statische Hilfsmethode, um ein Sieg-Ergebnis zu erstellen.
+        // Standardmässig ist der Grund Schachmatt.
         public static Result Win(Player winner, EndReason reason = EndReason.Checkmate)
         {
             return new Result(winner, reason);
         }
 
-        // Erstellt ein Remis-Ergebnis.
+        // Statische Hilfsmethode, um ein Remis-Ergebnis zu erstellen.
         public static Result Draw(EndReason reason)
         {
             return new Result(Player.None, reason);

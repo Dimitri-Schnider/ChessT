@@ -3,28 +3,27 @@ using System;
 
 namespace ChessLogic
 {
-    // Repräsentiert eine Bauernumwandlung.
+    // Repräsentiert einen Bauernumwandlungszug.
     public class PawnPromotion : Move
     {
-        // Typ des Zugs.
+        // Typ des Zugs ist immer PawnPromotion.
         public override MoveType Type => MoveType.PawnPromotion;
         // Startposition des Bauern.
         public override Position FromPos { get; }
-        // Zielposition (Umwandlungsfeld).
+        // Zielposition des Bauern (das Umwandlungsfeld auf der letzten Reihe).
         public override Position ToPos { get; }
-        // Figurentyp der Umwandlung.
-        private readonly PieceType _promotionToType;
-        public PieceType PromotionTo => _promotionToType;
+        // Der Figurentyp, zu dem der Bauer umgewandelt wird.
+        public PieceType PromotionTo { get; }
 
-        // Konstruktor für Bauernumwandlung.
+        // Konstruktor für einen Bauernumwandlungszug.
         public PawnPromotion(Position from, Position to, PieceType newType)
         {
             FromPos = from;
             ToPos = to;
-            _promotionToType = newType;
+            PromotionTo = newType;
         }
 
-        // Erstellt die neue Figur.
+        // Erstellt die neue Figur basierend auf dem gewählten PromotionTo Typ und der Farbe des Bauern.
         private Piece CreatePromotionPiece(Player color)
         {
             return PromotionTo switch
@@ -32,21 +31,27 @@ namespace ChessLogic
                 PieceType.Knight => new Knight(color),
                 PieceType.Bishop => new Bishop(color),
                 PieceType.Rook => new Rook(color),
-                _ => new Queen(color) // Standard: Dame.
+                PieceType.Queen => new Queen(color), // Standard und häufigste Wahl.
+                _ => new Queen(color) // Fallback, sollte nicht erreicht werden bei validem PromotionTo.
             };
         }
 
-        // Führt die Umwandlung aus.
+        // Führt die Bauernumwandlung auf dem Brett aus.
+        // Ersetzt den Bauern auf dem Zielfeld durch die neue Figur.
+        // Gibt true zurück, da es ein Bauernzug ist.
         public override bool Execute(Board board)
         {
             Piece? pawn = board[FromPos];
             if (pawn == null || pawn.Type != PieceType.Pawn)
+            {
                 throw new InvalidOperationException("Kein Bauer auf dem Startfeld für die Umwandlung.");
-            board[FromPos] = null;
-            Piece promotionPiece = CreatePromotionPiece(pawn.Color);
-            promotionPiece.HasMoved = true;
-            board[ToPos] = promotionPiece;
-            return true; // Bauernzug, relevant für 50-Züge-Regel.
+            }
+
+            board[FromPos] = null; // Entfernt den Bauern vom Startfeld.
+            Piece promotionPiece = CreatePromotionPiece(pawn.Color); // Erstellt die neue Figur.
+            promotionPiece.HasMoved = true; // Die neue Figur gilt als bewegt.
+            board[ToPos] = promotionPiece; // Setzt die neue Figur auf das Umwandlungsfeld.
+            return true;
         }
     }
 }

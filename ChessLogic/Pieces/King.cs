@@ -1,4 +1,5 @@
 ﻿using ChessLogic.Utilities;
+using System.Collections.Generic; 
 using System.Linq;
 
 namespace ChessLogic
@@ -6,70 +7,91 @@ namespace ChessLogic
     // Repräsentiert die Schachfigur König.
     public class King : Piece
     {
-        // Typ: König.
+        // Definiert den Typ der Figur als König.
         public override PieceType Type => PieceType.King;
-        // Farbe des Königs.
+        // Definiert die Farbe des Königs (Weiss oder Schwarz).
         public override Player Color { get; }
 
-        // Mögliche Bewegungsrichtungen (alle angrenzenden Felder).
+        // Statisches Array der möglichen Bewegungsrichtungen für einen König (alle angrenzenden Felder).
         private static readonly Direction[] dirs = new Direction[]
         {
             Direction.North, Direction.South, Direction.East, Direction.West,
             Direction.NorthWest, Direction.NorthEast, Direction.SouthWest, Direction.SouthEast
         };
-        // Konstruktor.
+
+        // Konstruktor für einen König.
         public King(Player color)
         {
             Color = color;
         }
 
-        // Prüft, ob ein Turm für Rochade unbewegt ist.
+        // Prüft, ob ein Turm auf der gegebenen Position für eine Rochade noch unbewegt ist.
         private static bool IsUnmovedRook(Position pos, Board board)
         {
-            if (board.IsEmpty(pos)) return false;
+            if (board.IsEmpty(pos))
+            {
+                return false;
+            }
             Piece? piece = board[pos];
             return piece != null && piece.Type == PieceType.Rook && !piece.HasMoved;
         }
 
-        // Prüft, ob alle Positionen in einer Liste leer sind.
+        // Prüft, ob alle Positionen in einer Liste von Positionen auf dem Brett leer sind.
         private static bool AllEmpty(IEnumerable<Position> positions, Board board)
         {
             return positions.All(board.IsEmpty);
         }
 
-        // Prüft Möglichkeit zur kurzen Rochade.
+        // Prüft, ob die Bedingungen für eine kurze Rochade (Königsseite) erfüllt sind.
         private bool CanCastleKingSide(Position from, Board board)
         {
-            if (HasMoved) return false;
+            // König darf noch nicht gezogen haben.
+            if (HasMoved)
+            {
+                return false;
+            }
+            // Position des Turms auf der Königsseite.
             Position rookPos = new Position(from.Row, 7);
+            // Felder zwischen König und Turm müssen leer sein.
             Position[] betweenPositions = { new(from.Row, 5), new(from.Row, 6) };
             return IsUnmovedRook(rookPos, board) && AllEmpty(betweenPositions, board);
         }
 
-        // Prüft Möglichkeit zur langen Rochade.
+        // Prüft, ob die Bedingungen für eine lange Rochade (Damenseite) erfüllt sind.
         private bool CanCastleQueenSide(Position from, Board board)
         {
-            if (HasMoved) return false;
+            // König darf noch nicht gezogen haben.
+            if (HasMoved)
+            {
+                return false;
+            }
+            // Position des Turms auf der Damenseite.
             Position rookPos = new Position(from.Row, 0);
+            // Felder zwischen König und Turm müssen leer sein.
             Position[] betweenPositions = { new(from.Row, 1), new(from.Row, 2), new(from.Row, 3) };
             return IsUnmovedRook(rookPos, board) && AllEmpty(betweenPositions, board);
         }
 
-        // Erstellt eine Kopie des Königs.
+        // Erstellt eine tiefe Kopie des König-Objekts.
         public override Piece Copy()
         {
             King copy = new King(Color);
-            copy.HasMoved = HasMoved;
+            copy.HasMoved = HasMoved; // Übernimmt den Bewegungsstatus.
             return copy;
         }
 
-        // Gibt alle möglichen Zielfelder des Königs zurück.
+        // Generiert alle potenziellen normalen (nicht-Rochade) Zielpositionen für den König.
         private IEnumerable<Position> MovePositions(Position from, Board board)
         {
             foreach (Direction dir in dirs)
             {
                 Position to = from + dir;
-                if (!Board.IsInside(to)) continue;
+                // Ziel muss auf dem Brett sein.
+                if (!Board.IsInside(to))
+                {
+                    continue;
+                }
+                // Ziel muss leer oder von einer gegnerischen Figur besetzt sein.
                 if (board.IsEmpty(to) || board[to]?.Color != Color)
                 {
                     yield return to;
@@ -77,26 +99,31 @@ namespace ChessLogic
             }
         }
 
-        // Gibt alle legalen Züge des Königs zurück (inkl. Rochade).
+        // Gibt alle möglichen Züge für den König zurück, inklusive normaler Züge und Rochaden.
         public override IEnumerable<Move> GetMoves(Position from, Board board)
         {
+            // Normale Königszüge.
             foreach (Position to in MovePositions(from, board))
             {
                 yield return new NormalMove(from, to);
             }
+            // Mögliche kurze Rochade.
             if (CanCastleKingSide(from, board))
             {
                 yield return new Castle(MoveType.CastleKS, from);
             }
+            // Mögliche lange Rochade.
             if (CanCastleQueenSide(from, board))
             {
                 yield return new Castle(MoveType.CastleQS, from);
             }
         }
 
-        // Prüft, ob der König einen gegnerischen König schlagen könnte (theoretisch).
+        // Prüft, ob der König von seiner aktuellen Position aus den gegnerischen König (theoretisch) schlagen könnte.
+        // Relevant für die Schachmatt- und Patt-Logik, um zu sehen, ob der gegnerische König ein Feld betreten kann.
         public override bool CanCaptureOpponentKing(Position from, Board board)
         {
+            // Prüft, ob eine der möglichen Zielpositionen vom gegnerischen König besetzt ist.
             return MovePositions(from, board).Any(to =>
             {
                 Piece? piece = board[to];
