@@ -15,6 +15,7 @@ namespace ChessClient.State
         List<PlayedCardInfo> OpponentPlayedCardsForHistory { get; }
         bool IsPreviewingPlayedCard { get; }
         Guid? SelectedCardInstanceIdInHand { get; }
+        bool AreCardsRevealed { get; } 
 
         CardDto? GetCardDefinitionById(string cardTypeId);
         void SetInitialHand(InitialHandDto initialHandDto);
@@ -23,20 +24,17 @@ namespace ChessClient.State
 
         void SelectCardForInfoPanel(CardDto? card, bool isPreview);
         Task SetSelectedHandCardAsync(CardDto card, IGameCoreState gameCoreState, IUiState uiState);
-        // void SetCurrentActivationHandler(IClientCardActivationHandler? handler); // Entfernt
-        // Task ResetCardActivationHandlerAsync(); // Entfernt
         void SetIsCardActivationPending(bool isPending);
         void AddToMyPlayedHistory(PlayedCardInfo cardInfo);
         void AddToOpponentPlayedHistory(PlayedCardInfo cardInfo);
-        // void MarkSingleUseCardAsUsed(string cardTypeId); // Entfernt
         void ClearPlayedCardsHistory();
         void ClearSelectedCardForInfoPanel();
         void DeselectActiveHandCard();
+        void RevealCards();
 
         List<CapturedPieceTypeDto>? CapturedPiecesForRebirth { get; }
         Task LoadCapturedPiecesForRebirthAsync(Guid gameId, Guid playerId, IGameSession gameSession);
         void ClearCapturedPiecesForRebirth();
-
         void UpdateHandAndDrawPile(InitialHandDto newHandInfo);
     }
 }

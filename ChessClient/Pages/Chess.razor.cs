@@ -91,7 +91,7 @@ namespace ChessClient.Pages
             if (Logger == null!) throw new InvalidOperationException($"Dienst {nameof(Logger)} nicht injiziert.");
 
             SubscribeToStateChanges();
-            HubService.OnTurnChanged += HandleHubTurnChangedWrapper; // ALT: HandleHubTurnChanged
+            HubService.OnTurnChanged += HandleHubTurnChangedWrapper; 
             HubService.OnTimeUpdate += HandleHubTimeUpdate;
             HubService.OnPlayerJoined += HandlePlayerJoinedClient;
             HubService.OnPlayerLeft += HandlePlayerLeftClient;
@@ -101,6 +101,7 @@ namespace ChessClient.Pages
             HubService.OnUpdateHandContents += HandleUpdateHandContents;
             HubService.OnPlayerEarnedCardDraw += HandlePlayerEarnedCardDrawNotification;
             HubService.OnReceiveCardSwapAnimationDetails += HandleReceiveCardSwapAnimationDetails;
+            HubService.OnStartGameCountdown += HandleStartGameCountdown;
 
             ModalService.ShowCreateGameModalRequested += OpenCreateGameModalHandler;
             ModalService.ShowJoinGameModalRequested += OpenJoinGameModalHandler;
@@ -117,6 +118,32 @@ namespace ChessClient.Pages
         {
             CardState.UpdateHandAndDrawPile(newHandInfo);
             _ = UiState.SetCurrentInfoMessageForBoxAsync("Deine Handkarten wurden aktualisiert.", true, 3000);
+        }
+        private async void HandleStartGameCountdown()
+        {
+            if (UiState == null || CardState == null) return;
+
+            UiState.ShowCountdown("3");
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(1000);
+
+            UiState.ShowCountdown("2");
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(1000);
+
+            UiState.ShowCountdown("1");
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(1000);
+
+            UiState.ShowCountdown("Spiel beginnt!");
+            await InvokeAsync(StateHasChanged);
+
+            CardState.RevealCards();
+            Logger.LogCardsRevealed(GameCoreState?.GameId);
+
+            await Task.Delay(800);
+            UiState.HideCountdown();
+            await InvokeAsync(StateHasChanged);
         }
 
         private void HandleCardAddedToHand(CardDto drawnCard, int newDrawPileCount)
@@ -213,7 +240,6 @@ namespace ChessClient.Pages
 
         protected bool IsChessboardEnabled()
         {
-            // KORRIGIERTER Log-Aufruf
             Logger.LogIsChessboardEnabledStatus(new ChessboardEnabledStatusLogArgs(
                 ModalState == null,
                 CardState == null,
@@ -227,13 +253,14 @@ namespace ChessClient.Pages
                 _activeCardForBoardSelectionProcess?.Id,
                 _isAwaitingRebirthTargetSquareSelection
             ));
+            if (ModalState == null || CardState == null || GameCoreState == null || HighlightState == null || UiState == null) return false;
 
-            if (ModalState == null || CardState == null || GameCoreState == null || HighlightState == null) return false;
+            if (UiState.IsCountdownVisible || !CardState.AreCardsRevealed) return false;
+
             if (_isAwaitingTurnConfirmationAfterCard) return false;
 
             if (ModalState.ShowCreateGameModal || ModalState.ShowJoinGameModal ||
                 ModalState.ShowPieceSelectionModal || ModalState.ShowCardInfoPanelModal) return false;
-
             if (CardState.IsCardActivationPending && _activeCardForBoardSelectionProcess != null)
             {
                 string cardId = _activeCardForBoardSelectionProcess.Id;
@@ -817,6 +844,13 @@ namespace ChessClient.Pages
         private async Task HandlePlayerMove(MoveDto clientMove)
         {
             if (GameCoreState == null || CardState == null || ModalState == null || UiState == null || GameOrchestrationService == null || HighlightState == null) return;
+
+            // Keine Züge während des Countdowns oder wenn Karten nicht aufgedeckt sind
+            if (UiState.IsCountdownVisible || !CardState.AreCardsRevealed)
+            {
+                return;
+            }
+
             if (ModalState.ShowPieceSelectionModal || ModalState.ShowCardInfoPanelModal) return;
 
             if (CardState.IsCardActivationPending && _activeCardForBoardSelectionProcess != null)
@@ -1742,7 +1776,7 @@ namespace ChessClient.Pages
         public async ValueTask DisposeAsync()
         {
             UnsubscribeFromStateChanges();
-            HubService.OnTurnChanged -= HandleHubTurnChangedWrapper; // ALT: HandleHubTurnChanged
+            HubService.OnTurnChanged -= HandleHubTurnChangedWrapper;
             HubService.OnTimeUpdate -= HandleHubTimeUpdate;
             HubService.OnPlayerJoined -= HandlePlayerJoinedClient;
             HubService.OnPlayerLeft -= HandlePlayerLeftClient;
@@ -1752,6 +1786,7 @@ namespace ChessClient.Pages
             HubService.OnCardAddedToHand -= HandleCardAddedToHand;
             HubService.OnPlayerEarnedCardDraw -= HandlePlayerEarnedCardDrawNotification;
             HubService.OnReceiveCardSwapAnimationDetails -= HandleReceiveCardSwapAnimationDetails;
+            HubService.OnStartGameCountdown -= HandleStartGameCountdown;
 
             DeregisterCardEventHandlers();
             await HubService.DisposeAsync();

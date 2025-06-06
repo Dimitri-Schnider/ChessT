@@ -233,25 +233,7 @@ namespace ChessServer.Services
             {
                 InitializeComputerPlayer();
             }
-            else
-            {
-                // Startet den Timer, wenn zwei menschliche Spieler beigetreten sind
-                bool startTimerForHumanVsHuman = false;
-                Player currentTurnForHumanVsHuman = Player.None;
-                lock (_sessionLock)
-                {
-                    if (_opponentType == "Human" && _players.Count == 2 && !_state.IsGameOver())
-                    {
-                        startTimerForHumanVsHuman = true;
-                        currentTurnForHumanVsHuman = GetCurrentTurnPlayerLogic();
-                    }
-                }
-                if (startTimerForHumanVsHuman)
-                {
-                    _logger.LogMgrPlayerJoinedGameTimerStart(playerName, _gameIdInternal, currentTurnForHumanVsHuman);
-                    StartGameTimer();
-                }
-            }
+
             return assignedColor;
         }
 
@@ -546,17 +528,6 @@ namespace ChessServer.Services
                     UpdateHistoryOnGameOver();
                     NotifyTimerGameOver();
                 }
-                else
-                {
-                    if (!extraTurnGrantedByCard)
-                    {
-                        // Wird außerhalb des Locks behandelt
-                    }
-                    else
-                    {
-                        StartGameTimer();
-                    }
-                }
 
                 moveResultDtoToReturn = new MoveResultDto
                 {
@@ -610,6 +581,23 @@ namespace ChessServer.Services
             }
 
             return moveResultDtoToReturn;
+        }
+
+        // Startet das Spiel und den Timer, wenn zwei Spieler beigetreten sind und das Spiel nicht beendet ist.
+        public void StartTheGameAndTimer()
+        {
+            lock (_sessionLock)
+            {
+                if (_players.Count == 2 && !_state.IsGameOver())
+                {
+                    var turn = GetCurrentTurnPlayerLogic();
+                    var opponentData = _players.Values.FirstOrDefault(p => p.Color == turn);
+                    var opponentName = opponentData.Name ?? "Unbekannt";
+
+                    _logger.LogMgrPlayerJoinedGameTimerStart(opponentName, _gameIdInternal, turn);
+                    StartGameTimer();
+                }
+            }
         }
 
         // Verarbeitet die Aktivierung einer Spezialkarte.

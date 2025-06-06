@@ -71,5 +71,8 @@ namespace ChessServer.Services
 
         // Deregistriert die SignalR-Verbindung eines Spielers.
         void UnregisterPlayerHubConnection(Guid gameId, string connectionId);
+
+        // Startet ein bestehendes Spiel, wenn beide Spieler bereit sind.
+        void StartGame(Guid gameId);
     }
 }

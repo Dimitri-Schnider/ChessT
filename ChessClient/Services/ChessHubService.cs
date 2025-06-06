@@ -1,6 +1,5 @@
-﻿// File: [SolutionDir]/ChessClient/Services/ChessHubService.cs
-using ChessLogic;
-using ChessNetwork.DTOs; // WICHTIG für CardSwapAnimationDetailsDto
+﻿using ChessLogic;
+using ChessNetwork.DTOs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using System;
@@ -20,10 +19,11 @@ namespace ChessClient.Services
         public event Action<Guid>? OnPlayerEarnedCardDraw;
         public event Action<InitialHandDto>? OnUpdateHandContents;
         public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
-        public event Action<CardDto, Guid, Player>? OnPlayCardActivationAnimation; // Neu: CardDto statt string
+        public event Action<CardDto, Guid, Player>? OnPlayCardActivationAnimation;
         public event Action<InitialHandDto>? OnReceiveInitialHand;
         public event Action<CardDto, int>? OnCardAddedToHand;
-        public event Action<CardSwapAnimationDetailsDto>? OnReceiveCardSwapAnimationDetails; // Event ist hier definiert
+        public event Action<CardSwapAnimationDetailsDto>? OnReceiveCardSwapAnimationDetails;
+        public event Action? OnStartGameCountdown; // NEU
 
         public ChessHubService(NavigationManager navManager) { }
 
@@ -57,13 +57,11 @@ namespace ChessClient.Services
                 _hubConnection.On<TimeUpdateDto>("OnTimeUpdate", dto => OnTimeUpdate?.Invoke(dto));
                 _hubConnection.On<string, int>("PlayerJoined", (playerName, playerCount) => OnPlayerJoined?.Invoke(playerName, playerCount));
                 _hubConnection.On<string, int>("PlayerLeft", (playerName, playerCount) => OnPlayerLeft?.Invoke(playerName, playerCount));
-
-                _hubConnection.On<Guid, CardDto>("OnCardPlayed", // Neu
+                _hubConnection.On<Guid, CardDto>("OnCardPlayed",
                     (playingPlayerId, playedCardDto) => OnCardPlayed?.Invoke(playingPlayerId, playedCardDto));
-
                 _hubConnection.On<Guid>("OnPlayerEarnedCardDraw",
                     (playerId) => OnPlayerEarnedCardDraw?.Invoke(playerId));
-                _hubConnection.On<CardDto, Guid, Player>("PlayCardActivationAnimation", // Neu: CardDto
+                _hubConnection.On<CardDto, Guid, Player>("PlayCardActivationAnimation",
                     (cardDtoForAnimation, playerIdActivating, playerColorActivating) => OnPlayCardActivationAnimation?.Invoke(cardDtoForAnimation, playerIdActivating, playerColorActivating));
                 _hubConnection.On<InitialHandDto>("ReceiveInitialHand",
                     (initialHandDto) => OnReceiveInitialHand?.Invoke(initialHandDto));
@@ -71,9 +69,10 @@ namespace ChessClient.Services
                     (drawnCard, newDrawPileCount) => OnCardAddedToHand?.Invoke(drawnCard, newDrawPileCount));
                 _hubConnection.On<InitialHandDto>("UpdateHandContents",
                             (updatedHandInfo) => OnUpdateHandContents?.Invoke(updatedHandInfo));
-
-                _hubConnection.On<CardSwapAnimationDetailsDto>("ReceiveCardSwapAnimationDetails", // Handler registriert
+                _hubConnection.On<CardSwapAnimationDetailsDto>("ReceiveCardSwapAnimationDetails",
                     (details) => OnReceiveCardSwapAnimationDetails?.Invoke(details));
+
+                _hubConnection.On("StartGameCountdown", () => OnStartGameCountdown?.Invoke());
 
                 _hubConnection.Closed += async (error) => {
                     await Task.Delay(new Random().Next(0, 5) * 1000);
@@ -94,13 +93,14 @@ namespace ChessClient.Services
                 _hubConnection.Remove("OnTimeUpdate");
                 _hubConnection.Remove("PlayerJoined");
                 _hubConnection.Remove("PlayerLeft");
-                _hubConnection.Remove("OnCardPlayed"); 
+                _hubConnection.Remove("OnCardPlayed");
                 _hubConnection.Remove("OnPlayerEarnedCardDraw");
                 _hubConnection.Remove("PlayCardActivationAnimation");
                 _hubConnection.Remove("ReceiveInitialHand");
                 _hubConnection.Remove("CardAddedToHand");
                 _hubConnection.Remove("UpdateHandContents");
                 _hubConnection.Remove("ReceiveCardSwapAnimationDetails");
+                _hubConnection.Remove("StartGameCountdown");
 
                 await _hubConnection.StopAsync();
                 await _hubConnection.DisposeAsync();

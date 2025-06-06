@@ -86,6 +86,15 @@ namespace ChessServer.Services
             return (newPlayerId, playerColor);
         }
 
+        // Startet ein Spiel, wenn beide Spieler beigetreten
+        public void StartGame(Guid gameId)
+        {
+            if (_games.TryGetValue(gameId, out var session))
+            {
+                session.StartTheGameAndTimer();
+            }
+        }
+
         #endregion
 
         #region Game Actions

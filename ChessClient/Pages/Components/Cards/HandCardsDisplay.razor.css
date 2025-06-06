@@ -1,12 +1,10 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Components/Cards/HandCardsDisplay.razor.css */
-/* (-und spezifische Media Queries) */
-.hand-cards-display-wrapper {
+﻿.hand-cards-display-wrapper {
     display: flex;
     align-items: center;
     position: relative;
     width: 100%;
-    height: 100%; /* Stellt sicher, dass der Wrapper die Höhe vom Parent übernimmt */
-    min-width: 0; /* Wichtig für Flex-Item in einem Flex-Container */
+    height: 100%;
+    min-width: 0;
 }
 
 .scroll-arrow {
@@ -25,7 +23,7 @@
     transition: background-color 0.2s ease-in-out;
     padding: 0;
     line-height: 1;
-    flex-shrink: 0; /* Verhindert, dass die Pfeile schrumpfen */
+    flex-shrink: 0;
 }
 
     .scroll-arrow:hover:not(:disabled) {
@@ -53,13 +51,13 @@
     padding: 8px;
     background-color: #e9ecef;
     border-radius: 6px;
-    height: 100%; /* Nimmt die volle Höhe des Wrappers ein */
+    height: 100%;
     align-items: center;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: #888 #e0e0e0;
-    flex-grow: 1; /* Lässt den Container den Platz zwischen den Pfeilen füllen */
-    min-width: 0; /* Erlaubt dem Container zu schrumpfen */
+    flex-grow: 1;
+    min-width: 0;
     box-sizing: border-box;
 }
 
@@ -87,42 +85,73 @@
 
 .card-in-hand-wrapper {
     width: 95px;
-    height: calc(95px * (1050 / 750)); /* ca. 133px Höhe */
+    height: calc(95px * (1050 / 750));
     flex-shrink: 0;
     border: 2px solid transparent;
     border-radius: 6px;
     cursor: pointer;
-    transition: transform 0.2s ease-out, border-color 0.2s ease-out, opacity 0.2s ease-out;
+    transition: border-color 0.2s ease-out, opacity 0.2s ease-out;
     box-sizing: border-box;
 }
 
-    .card-in-hand-wrapper:hover {
-        transform: translateY(-4px) scale(1.03);
+.hand-card-perspective {
+    width: 100%;
+    height: 100%;
+    perspective: 800px;
+}
+
+.hand-card-flipper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+    .hand-card-flipper.is-flipped {
+        transform: rotateY(180deg);
     }
 
-    .card-in-hand-wrapper.disabled:hover {
+.hand-card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+    .hand-card-face.card-back {
+        transform: rotateY(180deg);
+    }
+
+.card-in-hand-wrapper:hover .hand-card-flipper:not(.is-flipped) {
+    transform: translateY(-4px) scale(1.03);
+    transition-duration: 0.2s; /* Schnellere Animation für Hover */
+}
+
+.card-in-hand-wrapper.disabled {
+    cursor: not-allowed;
+}
+
+    .card-in-hand-wrapper.disabled:hover .hand-card-flipper {
         transform: none;
     }
 
-    .card-in-hand-wrapper.disabled {
-        cursor: not-allowed;
-    }
+.card-in-hand-wrapper.selected {
+    border-color: #007bff;
+}
 
-    .card-in-hand-wrapper.selected {
-        border-color: #007bff;
+    .card-in-hand-wrapper.selected .hand-card-flipper:not(.is-flipped) {
         transform: translateY(-4px) scale(1.03);
     }
-
-        .card-in-hand-wrapper.selected.disabled {
-            border-color: #007bff;
-            transform: none;
-        }
 
 .card-visual-representation-hand {
     position: relative;
     width: 100%;
     height: 100%;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     border-radius: 5px;
     box-sizing: border-box;
     overflow: hidden;
@@ -198,35 +227,28 @@
     padding: 0 15px;
 }
 
-/* Spezifische Anpassungen für sehr kleine Mobile-Screens */
 @media (max-width: 420px) {
-    .hand-cards-display-wrapper {
-        /* Falls nötig, können Pfeile hier ausgeblendet werden, wenn sie den Platz blockieren */
-        /* .scroll-arrow { display: none; } */
-        /* .hand-cards-container { margin: 0; } */ /* Wenn Pfeile weg sind, keinen Margin für sie */
-    }
-
     .hand-cards-container {
-        height: 120px; /* Höhe weiter reduziert */
-        gap: 3px; /* Karten noch enger zusammen */
-        padding: 4px; /* Padding leicht reduziert */
+        height: 120px;
+        gap: 3px;
+        padding: 4px;
     }
 
     .card-in-hand-wrapper {
-        width: 65px; /* Kartenbreite stark reduziert */
-        height: calc(65px * (1050 / 750)); /* ca. 91px Höhe */
+        width: 65px;
+        height: calc(65px * (1050 / 750));
     }
 
     .card-art-actual-image-hand {
-        margin-top: -43%; /* Ggf. anpassen für das kleinere Bild */
+        margin-top: -43%;
     }
 
     .card-title-text-hand {
-        font-size: 0.45em; /* Titeltext sehr klein */
+        font-size: 0.45em;
     }
 
     .scroll-arrow {
-        width: 26px; /* Pfeile noch kleiner */
+        width: 26px;
         height: 26px;
         font-size: 0.7rem;
     }
@@ -245,17 +267,16 @@
     }
 }
 
-/* Für Screens zwischen 421px und 992px (Standard Mobile) */
 @media (min-width: 421px) and (max-width: 992px) {
     .hand-cards-container {
-        height: 140px; /* Etwas grösser als bei <420px */
+        height: 140px;
         gap: 5px;
         padding: 6px;
     }
 
     .card-in-hand-wrapper {
         width: 80px;
-        height: calc(80px * (1050 / 750)); /* ca. 112px Höhe */
+        height: calc(80px * (1050 / 750));
     }
 
     .card-title-text-hand {

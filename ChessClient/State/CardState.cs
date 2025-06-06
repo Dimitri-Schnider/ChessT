@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\ChessClient\State\CardState.cs
-using System.Globalization;
+﻿using System.Globalization;
 using ChessClient.Models;
 using ChessNetwork.Configuration;
 using ChessLogic;
@@ -21,6 +20,7 @@ namespace ChessClient.State
         public bool IsCardActivationPending { get; private set; }
         public List<CardDto> PlayerHandCards { get; private set; } = [];
         public int MyDrawPileCount { get; private set; }
+        public bool AreCardsRevealed { get; private set; }
 
         public List<PlayedCardInfo> MyPlayedCardsForHistory { get; private set; } = [];
         public List<PlayedCardInfo> OpponentPlayedCardsForHistory { get; private set; } = [];
@@ -84,9 +84,20 @@ namespace ChessClient.State
             SelectedCardForInfoPanel = null;
             IsPreviewingPlayedCard = false;
             IsCardActivationPending = false;
+            AreCardsRevealed = false;
             ClearCapturedPiecesForRebirth();
             Console.WriteLine($"[CardState] Initial hand received. Hand size: {PlayerHandCards.Count}, Draw pile: {MyDrawPileCount}");
             OnStateChanged();
+        }
+
+
+        public void RevealCards()
+        {
+            if (!AreCardsRevealed)
+            {
+                AreCardsRevealed = true;
+                OnStateChanged();
+            }
         }
 
         public void AddReceivedCardToHand(CardDto drawnCard, int newDrawPileCount)

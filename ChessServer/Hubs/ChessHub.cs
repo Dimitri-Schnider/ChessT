@@ -1,4 +1,5 @@
-﻿using Chess.Logging;
+﻿// File: [SolutionDir]\ChessServer\Hubs\ChessHub.cs
+using Chess.Logging;
 using ChessLogic;
 using ChessNetwork.DTOs;
 using ChessServer.Services;
@@ -50,7 +51,6 @@ namespace ChessServer.Hubs
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             _logger.LogHubClientDisconnected(Context.ConnectionId, exception?.Message, exception);
-
             if (connectionToPlayerIdMap.TryRemove(Context.ConnectionId, out Guid playerId))
             {
                 PlayerIdToConnectionMap.TryRemove(playerId, out _);
@@ -106,14 +106,12 @@ namespace ChessServer.Hubs
 
                     _logger.LogHubSendingInitialHand(playerId, Context.ConnectionId, gameId, initialHandDto.Hand.Count, initialHandDto.DrawPileCount);
                     await Clients.Client(Context.ConnectionId).SendAsync("ReceiveInitialHand", initialHandDto);
-
                     var gameInfo = _gameManager.GetGameInfo(gameId);
                     if (gameInfo.HasOpponent && playerCount == 2)
                     {
                         Guid opponentId = Guid.Empty;
                         var playerWhiteId = _gameManager.GetPlayerIdByColor(gameId, Player.White);
                         var playerBlackId = _gameManager.GetPlayerIdByColor(gameId, Player.Black);
-
                         if (playerWhiteId.HasValue && playerWhiteId.Value == playerId && playerBlackId.HasValue)
                         {
                             opponentId = playerBlackId.Value;
@@ -131,6 +129,15 @@ namespace ChessServer.Hubs
                             _logger.LogHubSendingInitialHand(opponentId, opponentConnectionId, gameId, opponentInitialHandDto.Hand.Count, opponentInitialHandDto.DrawPileCount);
                             await Clients.Client(opponentConnectionId).SendAsync("ReceiveInitialHand", opponentInitialHandDto);
                         }
+
+                        // Countdown starten, wenn der zweite Spieler beitritt
+                        _logger.LogStartGameCountdown(gameId);
+                        await Clients.Group(gameId.ToString()).SendAsync("StartGameCountdown");
+
+                        // NEU: Warte ~4 Sekunden, bevor der Server-Timer gestartet wird.
+                        // Gibt dem Client genug Zeit für die Animation.
+                        await Task.Delay(4000);
+                        _gameManager.StartGame(gameId);
                     }
                 }
                 else

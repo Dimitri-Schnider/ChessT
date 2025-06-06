@@ -1,15 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using ChessLogic;
+using ChessNetwork.DTOs;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using ChessLogic;
-using ChessNetwork.DTOs;
-
 namespace Chess.Logging
 {
     public class ChessLogger<TCategoryName> : IChessLogger
     {
         private readonly ILogger<TCategoryName> _msLogger;
-
         // Event-ID Basiswerte für verschiedene Log-Kategorien
         // Diese helfen, die Event-IDs organisiert und eindeutig zu halten.
         private const int ClientLogBaseId = 20000;
@@ -55,6 +53,8 @@ namespace Chess.Logging
             LoggerMessage.Define<bool, string>(LogLevel.Debug, new EventId(ClientLogBaseId + 16, "ClientAwaitingTurnConfirmationStatusLog"), "[ChessPage] _isAwaitingTurnConfirmationAfterCard status: {FlagStatus}. Reason/Context: {Context}");
         private static readonly Action<ILogger, Guid, string, Exception?> _logClientAttemptedToAddDuplicateCardInstanceAction =
             LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(ClientLogBaseId + 17, "ClientAttemptedDuplicateCardInstanceLog"), "[CardState] Client hat versucht, Karte mit bereits vorhandener InstanceId {InstanceId} ('{CardName}') hinzuzufügen. Hinzufügen übersprungen.");
+        private static readonly Action<ILogger, Guid?, Exception?> _logCardsRevealedAction =
+            LoggerMessage.Define<Guid?>(LogLevel.Information, new EventId(ClientLogBaseId + 18, "ClientCardsRevealedLog"), "[ChessPage] Countdown beendet, Karten für Spiel {GameId} werden aufgedeckt."); // NEU
 
         // --- ChessServer.Controllers.GamesController.cs Logs ---
         private static readonly Action<ILogger, Guid, string, string, Exception?> _logMoveErrorAction =
@@ -121,7 +121,6 @@ namespace Chess.Logging
             LoggerMessage.Define<Guid, Guid, string>(LogLevel.Warning, new EventId(ControllerLogBaseId + 31, "CtrlErrorGettingLegalMovesLog"), "Fehler bei LegalMoves für Spiel {GameId}, Spieler {PlayerId}, Von {FromSquare}");
         private static readonly Action<ILogger, Guid, Exception?> _logCtrlConnIdForPlayerNotFoundAction =
             LoggerMessage.Define<Guid>(LogLevel.Warning, new EventId(ControllerLogBaseId + 32, "CtrlConnIdForPlayerNotFoundLog"), "[GamesController] GetConnectionIdForPlayerViaHubMap: Konnte ConnectionId für PlayerId {PlayerId} nicht finden.");
-
         // --- ChessServer.Hubs.ChessHub.cs Logs ---
         private static readonly Action<ILogger, string, Exception?> _logHubClientConnectedAction =
             LoggerMessage.Define<string>(LogLevel.Information, new EventId(HubLogBaseId + 1, "HubClientConnectedLog"), "SignalR Hub: Client verbunden: {ConnectionId}");
@@ -157,8 +156,9 @@ namespace Chess.Logging
               LoggerMessage.Define<string, Guid>(LogLevel.Information, new EventId(HubLogBaseId + 16, "HubConnectionRemovedFromGameOnDisconnectLog"), "SignalR Hub: Connection {ConnectionId} aus Spiel {GameId} bei Disconnect entfernt.");
         private static readonly Action<ILogger, Guid, Guid, Exception?> _logHubErrorSendingInitialHandAction =
             LoggerMessage.Define<Guid, Guid>(LogLevel.Error, new EventId(HubLogBaseId + 17, "HubErrorSendingInitialHandLog"), "[ChessHub] Fehler beim Senden der Starthand an Spieler {PlayerId} in Spiel {GameId}.");
-
-        // --- ChessServer.Services.GameSession.cs Logs ---
+        private static readonly Action<ILogger, Guid, Exception?> _logStartGameCountdownAction =
+            LoggerMessage.Define<Guid>(LogLevel.Information, new EventId(HubLogBaseId + 18, "HubStartGameCountdownLog"), "[ChessHub] Beide Spieler sind beigetreten. Starte Countdown für Spiel {GameId}."); // NEU
+                                                                                                                                                                                                             // --- ChessServer.Services.GameSession.cs Logs ---
         private static readonly Action<ILogger, Guid, Exception?> _logSessionErrorGetNameByColorAction =
             LoggerMessage.Define<Guid>(LogLevel.Warning, new EventId(SessionLogBaseId + 1, "SessionErrorGetNameByColorLog"), "[GameSession] Fehler in MakeMove (GetPlayerColor) für Spiel {GameId}");
         private static readonly Action<ILogger, Guid, TimeSpan, TimeSpan, Player?, Exception?> _logSessionSendTimeUpdateAction =
@@ -319,6 +319,7 @@ namespace Chess.Logging
         }
 
         // Implementierungen der IChessLogger-Methoden
+
         public void LogStartingGenericCardSwapAnimation(Guid playerId, string cardGivenName, string cardReceivedName) => _logStartingGenericCardSwapAnimationAction(_msLogger, playerId, cardGivenName, cardReceivedName, null);
         public void LogCardActivationAnimationFinishedClient() => _logCardActivationAnimationFinishedClientAction(_msLogger, null);
         public void LogSpecificCardSwapAnimationFinishedClient() => _logSpecificCardSwapAnimationFinishedClientAction(_msLogger, null);
@@ -457,5 +458,8 @@ namespace Chess.Logging
         public void LogIsChessboardEnabledStatus(ChessboardEnabledStatusLogArgs args) => _logIsChessboardEnabledStatusAction(_msLogger, args, null);
         public void LogHandleHubTurnChangedClientInfo(Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, int cardEffectsCount) => _logHandleHubTurnChangedClientInfoAction(_msLogger, nextPlayer, statusForNextPlayer, lastMoveFromServerFrom, lastMoveFromServerTo, cardEffectsCount, null);
         public void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context) => _logAwaitingTurnConfirmationStatusAction(_msLogger, flagStatus, context, null);
+        public void LogCardsRevealed(Guid? gameId) => _logCardsRevealedAction(_msLogger, gameId, null);
+        public void LogStartGameCountdown(Guid gameId) => _logStartGameCountdownAction(_msLogger, gameId, null);
+
     }
 }

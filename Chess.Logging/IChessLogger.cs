@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: [SolutionDir]\Chess.Logging\IChessLogger.cs
+using System;
 using System.Collections.Generic;
 using ChessLogic;
 using ChessNetwork.DTOs;
@@ -25,6 +26,7 @@ namespace Chess.Logging
         void LogHandleHubTurnChangedClientInfo(Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, int cardEffectsCount);
         void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context);
         void LogClientAttemptedToAddDuplicateCardInstance(Guid instanceId, string cardName);
+        void LogCardsRevealed(Guid? gameId); // KORREKTUR: Hinzugefügt
 
         // --- ChessServer.Controllers.GamesController.cs Logs ---
         void LogMoveProcessingError(Guid gameId, string fromSquare, string toSquare, Exception? ex);
@@ -79,6 +81,7 @@ namespace Chess.Logging
         void LogHubPlayerMappingRemovedOnDisconnect(Guid playerId);
         void LogHubConnectionRemovedFromGameOnDisconnect(string connectionId, Guid gameId);
         void LogHubErrorSendingInitialHand(Guid playerId, Guid gameId, Exception? ex);
+        void LogStartGameCountdown(Guid gameId);
 
         // --- ChessServer.Services.GameSession.cs Logs ---
         void LogSessionErrorGetNameByColor(Guid gameId, Exception? ex);

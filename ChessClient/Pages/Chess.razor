@@ -13,6 +13,15 @@
 @using ChessNetwork.Configuration
 @using ChessClient.State
 
+@if (UiState != null && UiState.IsCountdownVisible)
+{
+    <div class="game-start-countdown-overlay">
+        <div class="countdown-content">
+            @UiState.CountdownMessage
+        </div>
+    </div>
+}
+
 @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && GameCoreState.BoardDto != null)
 {
     var gameCoreStateVerifiedForTimers = GameCoreState;

@@ -13,6 +13,9 @@ namespace ChessClient.State
         public string CurrentInfoMessageForBox { get; private set; } = "";
         public bool IsConnecting { get; private set; }
 
+        public bool IsCountdownVisible { get; private set; }
+        public string CountdownMessage { get; private set; } = "";
+
         public bool InfoBoxShowActionButton { get; private set; }
         public string InfoBoxActionButtonText { get; private set; } = "Abbrechen";
         public EventCallback InfoBoxOnActionButtonClicked { get; private set; }
@@ -30,22 +33,17 @@ namespace ChessClient.State
         public void ClearErrorMessage()
         {
             ErrorMessage = "";
-            OnStateChanged(); 
+            OnStateChanged();
         }
 
-        // Geänderte Methode: Gibt Task.CompletedTask zurück, um blockierende Awaits zu vermeiden.
-        // Die InfoBox Komponente behandelt ihr eigenes AutoHide.
         public Task SetCurrentInfoMessageForBoxAsync(string message, bool autoClear = false, int durationMs = 5000, bool showActionButton = false, string actionButtonText = "Abbrechen", EventCallback? onActionButtonClicked = null)
         {
-            CurrentInfoMessageForBox = message; 
+            CurrentInfoMessageForBox = message;
             InfoBoxShowActionButton = showActionButton;
             InfoBoxActionButtonText = actionButtonText;
             InfoBoxOnActionButtonClicked = onActionButtonClicked ?? new EventCallback();
 
-            OnStateChanged(); 
-
-            // Logik für Task.Delay entfernt, da InfoBox.razor dies handhabt.
-            // Sicherstellen, dass die Nachricht korrekt geleert wird, wenn sie leer gesetzt wird.
+            OnStateChanged();
             if (string.IsNullOrEmpty(message) && !showActionButton)
             {
                 ClearCurrentInfoMessageForBox();
@@ -55,17 +53,38 @@ namespace ChessClient.State
 
         public void ClearCurrentInfoMessageForBox()
         {
-            CurrentInfoMessageForBox = ""; 
-            InfoBoxShowActionButton = false; 
+            CurrentInfoMessageForBox = "";
+            InfoBoxShowActionButton = false;
             InfoBoxActionButtonText = "Abbrechen";
             InfoBoxOnActionButtonClicked = new EventCallback();
-            OnStateChanged(); 
+            OnStateChanged();
         }
 
         public void SetIsConnecting(bool isConnecting)
         {
             IsConnecting = isConnecting;
-            OnStateChanged(); 
+            OnStateChanged();
+        }
+
+        // NEUE Methoden
+        public void ShowCountdown(string message)
+        {
+            CountdownMessage = message;
+            if (!IsCountdownVisible)
+            {
+                IsCountdownVisible = true;
+            }
+            OnStateChanged();
+        }
+
+        public void HideCountdown()
+        {
+            if (IsCountdownVisible)
+            {
+                IsCountdownVisible = false;
+                CountdownMessage = "";
+                OnStateChanged();
+            }
         }
     }
 }
