@@ -5,10 +5,9 @@
     {
         // Der Gewinner des Spiels. Ist Player.None bei einem Remis.
         public Player Winner { get; }
-        // Der Grund für das Spielende (z.B. Schachmatt, Patt, Zeitüberschreitung).
+        // Der Grund für das Spielende (z.B. Schachmatt, Patt).
         public EndReason Reason { get; }
 
-        // Konstruktor für ein Spielergebnis.
         public Result(Player winner, EndReason reason)
         {
             Winner = winner;
@@ -16,7 +15,6 @@
         }
 
         // Statische Hilfsmethode, um ein Sieg-Ergebnis zu erstellen.
-        // Standardmässig ist der Grund Schachmatt.
         public static Result Win(Player winner, EndReason reason = EndReason.Checkmate)
         {
             return new Result(winner, reason);

@@ -191,6 +191,7 @@ namespace ChessLogic
 
             Position? wBishopPos = FindPiece(Player.White, PieceType.Bishop);
             Position? bBishopPos = FindPiece(Player.Black, PieceType.Bishop);
+
             // Remis, wenn beide Läufer auf Feldern derselben Farbe stehen.
             return wBishopPos != null && bBishopPos != null && wBishopPos.SquareColor() == bBishopPos.SquareColor();
         }
@@ -260,6 +261,7 @@ namespace ChessLogic
         {
             // Holt die Position, die der gegnerische Bauer im letzten Zug übersprungen hat.
             Position? skipPos = GetPawnSkipPosition(player.Opponent());
+
             if (skipPos == null) // Wenn keine solche Position existiert, ist kein En Passant möglich.
             {
                 return false;

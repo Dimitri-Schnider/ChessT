@@ -1,57 +1,41 @@
 ﻿using System;
-using System.Collections.Generic; // Wird hier nicht direkt verwendet, aber oft im Kontext von Positionen
 
 namespace ChessLogic.Utilities
 {
-    // Repräsentiert eine Position auf dem Schachbrett mittels Zeilen- und Spaltenindizes (0-7).
+    // Repräsentiert eine Position (Feld) auf dem Schachbrett.
     public class Position
     {
-        // Zeilenindex, wobei 0 die oberste Reihe (schwarze Grundreihe) und 7 die unterste Reihe (weisse Grundreihe) ist.
-        public int Row { get; }
-        // Spaltenindex, wobei 0 die a-Linie und 7 die h-Linie ist.
-        public int Column { get; }
+        public int Row { get; }      // Zeilenindex (0-7).
+        public int Column { get; }   // Spaltenindex (0-7).
 
-        // Konstruktor zur Erstellung eines Positionsobjekts.
         public Position(int row, int column)
         {
             Row = row;
             Column = column;
         }
 
-        // Bestimmt die Farbe des Schachfeldes an dieser Position.
-        // Felder mit gerader Summe von Zeile und Spalte sind hier als "Weiss" definiert,
-        // ungerade als "Schwarz". Dies hängt von der Konvention ab (ob A1 hell oder dunkel ist).
+        // Bestimmt die Farbe des Schachfeldes (Weiss oder Schwarz).
         public Player SquareColor()
         {
-            if ((Row + Column) % 2 == 0)
-            {
-                return Player.White; // Oder Player.Light, je nach Definition der Feldfarben.
-            }
-            return Player.Black; // Oder Player.Dark.
+            return (Row + Column) % 2 == 0 ? Player.White : Player.Black;
         }
 
-        // Überschreibt die Equals-Methode, um zwei Positionen auf Gleichheit ihrer Koordinaten zu prüfen.
+        // Überschreibt Equals für den Wertvergleich von Positionen.
         public override bool Equals(object? obj)
         {
-            return obj is Position position &&
-                   Row == position.Row &&
-                   Column == position.Column;
+            return obj is Position position && Row == position.Row && Column == position.Column;
         }
 
-        // Überschreibt GetHashCode, um konsistente Hashwerte für gleiche Positionen zu gewährleisten.
+        // Stellt einen konsistenten Hashcode sicher.
         public override int GetHashCode()
         {
             return HashCode.Combine(Row, Column);
         }
 
-        // Überlädt den Gleichheitsoperator (==) für den direkten Vergleich zweier Positionsobjekte.
+        // Überlädt den Gleichheitsoperator (==).
         public static bool operator ==(Position? left, Position? right)
         {
-            if (left is null)
-            {
-                return right is null; // Null ist nur gleich null.
-            }
-            return left.Equals(right); // Verwendet die überschriebene Equals-Methode.
+            return System.Collections.Generic.EqualityComparer<Position>.Default.Equals(left, right);
         }
 
         // Überlädt den Ungleichheitsoperator (!=).
@@ -60,8 +44,7 @@ namespace ChessLogic.Utilities
             return !(left == right);
         }
 
-        // Überlädt den Additionsoperator (+), um eine Richtung zu einer Position zu addieren
-        // und eine neue Position zurückzugeben.
+        // Addiert eine Richtung zu einer Position, um eine neue Position zu erhalten.
         public static Position operator +(Position pos, Direction dir)
         {
             return new Position(pos.Row + dir.RowDelta, pos.Column + dir.ColumnDelta);

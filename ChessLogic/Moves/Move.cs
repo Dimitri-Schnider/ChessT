@@ -5,31 +5,23 @@ namespace ChessLogic
     // Abstrakte Basisklasse für alle Arten von Schachzügen.
     public abstract class Move
     {
-        // Definiert den Typ des Zugs (z.B. Normal, Castle, EnPassant).
-        public abstract MoveType Type { get; }
-        // Definiert die Startposition der Figur, die den Zug ausführt.
-        public abstract Position FromPos { get; }
-        // Definiert die Zielposition der Figur nach dem Zug.
-        public abstract Position ToPos { get; }
+        public abstract MoveType Type { get; }      // Definiert den Typ des Zugs (z.B. Normal, Castle).
+        public abstract Position FromPos { get; }   // Definiert die Startposition der Figur.
+        public abstract Position ToPos { get; }     // Definiert die Zielposition der Figur.
+        public abstract bool Execute(Board board);  // Führt den Zug auf dem Brett aus. Gibt true zurück, wenn es ein Schlag- oder Bauernzug war.
 
-        // Führt den Zug auf dem gegebenen Schachbrett aus.
-        // Gibt true zurück, wenn der Zug ein Schlagzug oder ein Bauernzug war
-        // (relevant für die 50-Züge-Regel).
-        public abstract bool Execute(Board board);
-
-        // Prüft, ob der Zug unter den aktuellen Brettbedingungen legal ist.
-        // Die Standardimplementierung prüft, ob der eigene König nach dem Zug im Schach steht.
+        // Prüft, ob der Zug legal ist, insbesondere ob der eigene König danach im Schach stehen würde.
         public virtual bool IsLegal(Board board)
         {
-            // Ein Zug von einem leeren Feld ist nie legal.
             if (board.IsEmpty(FromPos))
             {
                 return false;
             }
-            Player player = board[FromPos]!.Color; // Farbe des Spielers, der am Zug ist.
-            Board boardCopy = board.Copy(); // Erstellt eine Kopie des Bretts, um den Zug zu testen.
-            Execute(boardCopy); // Führt den Zug auf der Kopie aus.
-            return !boardCopy.IsInCheck(player); // Der Zug ist legal, wenn der eigene König nicht im Schach steht.
+
+            Player player = board[FromPos]!.Color;
+            Board boardCopy = board.Copy();
+            Execute(boardCopy);
+            return !boardCopy.IsInCheck(player);
         }
     }
 }

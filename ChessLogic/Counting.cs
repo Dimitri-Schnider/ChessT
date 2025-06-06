@@ -3,18 +3,16 @@ using System.Collections.Generic;
 
 namespace ChessLogic
 {
-    // Hilfsklasse zum Zählen der verschiedenen Figurentypen für jeden Spieler auf dem Brett.
+    // Hilfsklasse zum Zählen der verschiedenen Figurentypen für jeden Spieler.
     public class Counting
     {
-        // Speichert die Anzahl der weissen Figuren pro Typ.
-        private readonly Dictionary<PieceType, int> whiteCount = new();
-        // Speichert die Anzahl der schwarzen Figuren pro Typ.
-        private readonly Dictionary<PieceType, int> blackCount = new();
+        private readonly Dictionary<PieceType, int> whiteCount = new(); // Speichert die Anzahl der weissen Figuren pro Typ.
+        private readonly Dictionary<PieceType, int> blackCount = new(); // Speichert die Anzahl der schwarzen Figuren pro Typ.
 
         // Die Gesamtzahl aller Figuren auf dem Brett.
-        public int TotalCount { get; private set; }
+        public int TotalCount { get; private set; }        
 
-        // Konstruktor: Initialisiert alle Zähler für jeden Figurentyp mit 0.
+        // Initialisiert alle Zähler für jeden Figurentyp mit 0.
         public Counting()
         {
             foreach (PieceType type in Enum.GetValues<PieceType>())
@@ -22,10 +20,9 @@ namespace ChessLogic
                 whiteCount[type] = 0;
                 blackCount[type] = 0;
             }
-            TotalCount = 0; // Gesamtzahl initial auch 0.
         }
 
-        // Erhöht den Zähler für die angegebene Figur (Farbe und Typ) und die Gesamtzahl.
+        // Erhöht den Zähler für die angegebene Figur und die Gesamtzahl.
         public void Increment(Player color, PieceType type)
         {
             if (color == Player.White)

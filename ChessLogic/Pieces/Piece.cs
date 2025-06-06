@@ -1,71 +1,52 @@
 ﻿using ChessLogic.Utilities;
 using System.Collections.Generic;
-using System.Linq; 
+using System.Linq;
 
 namespace ChessLogic
 {
     // Abstrakte Basisklasse für alle Schachfiguren.
     public abstract class Piece
     {
-        // Definiert den Typ der Figur (Bauer, Springer, Dame, etc.).
-        public abstract PieceType Type { get; }
-        // Definiert die Farbe der Figur (Weiss oder Schwarz).
-        public abstract Player Color { get; }
-        // Gibt an, ob die Figur im Laufe des Spiels bereits bewegt wurde.
-        // Wichtig für Rochade (König, Turm) und Bauern-Doppelschritt.
-        public bool HasMoved { get; set; } = false; // Standardwert ist false.
+        public abstract PieceType Type { get; } // Der Typ der Figur (Bauer, Springer, etc.).
+        public abstract Player Color { get; }   // Die Farbe der Figur (Weiss oder Schwarz).
+        public bool HasMoved { get; set; }      // Gibt an, ob die Figur bereits bewegt wurde.
 
-        // Erstellt eine tiefe Kopie der Figur. Jede abgeleitete Klasse muss dies implementieren.
+        // Erstellt eine tiefe Kopie der Figur.
         public abstract Piece Copy();
 
-        // Gibt alle möglichen Züge zurück, die diese Figur von der gegebenen Position 'from'
-        // auf dem Brett 'board' ausführen kann. Beinhaltet keine Legalitätsprüfung bezüglich Selbstschach.
+        // Gibt alle möglichen Züge für diese Figur von der Position 'from' zurück.
         public abstract IEnumerable<Move> GetMoves(Position from, Board board);
 
-        // Generiert alle möglichen Zielpositionen in einer einzelnen, gegebenen Richtung.
-        // Die Bewegung stoppt, wenn das Brettende erreicht wird, eine eigene Figur im Weg steht
-        // oder eine gegnerische Figur geschlagen werden kann (danach kann nicht weitergezogen werden).
+        // Generiert alle möglichen Zielpositionen in einer einzelnen Richtung.
         protected IEnumerable<Position> MovePositionsInDir(Position from, Board board, Direction dir)
         {
             for (Position pos = from + dir; Board.IsInside(pos); pos += dir)
             {
-                // Wenn das Feld leer ist, ist es ein mögliches Ziel.
                 if (board.IsEmpty(pos))
                 {
                     yield return pos;
-                    continue; // Suche weiter in diese Richtung.
+                    continue;
                 }
 
-                Piece? piece = board[pos];
-                // Wenn das Feld von einer gegnerischen Figur besetzt ist, kann diese geschlagen werden.
-                if (piece?.Color != Color)
+                if (board[pos]?.Color != Color)
                 {
                     yield return pos;
                 }
-                // Eigene Figur oder geschlagene gegnerische Figur blockiert weiteren Weg.
+
                 yield break;
             }
         }
 
         // Generiert alle möglichen Zielpositionen in einem Array von Richtungen.
-        // Nützlich für Figuren wie Turm, Läufer, Dame.
         protected IEnumerable<Position> MovePositionsInDirs(Position from, Board board, Direction[] dirs)
         {
-            // Kombiniert die Ergebnisse von MovePositionsInDir für jede angegebene Richtung.
             return dirs.SelectMany(dir => MovePositionsInDir(from, board, dir));
         }
 
-        // Prüft, ob diese Figur von ihrer aktuellen Position 'from' aus den gegnerischen König (theoretisch) schlagen könnte.
-        // Wird verwendet, um Schachsituationen zu erkennen.
-        // Die Standardimplementierung prüft alle generierten Züge der Figur.
+        // Prüft, ob diese Figur von ihrer Position aus den gegnerischen König bedrohen kann.
         public virtual bool CanCaptureOpponentKing(Position from, Board board)
         {
-            // Prüft, ob einer der möglichen Züge auf ein Feld zielt, das vom gegnerischen König besetzt ist.
-            return GetMoves(from, board).Any(move =>
-            {
-                Piece? pieceOnToPos = board[move.ToPos];
-                return pieceOnToPos != null && pieceOnToPos.Type == PieceType.King;
-            });
+            return GetMoves(from, board).Any(move => board[move.ToPos] is { Type: PieceType.King });
         }
     }
 }
