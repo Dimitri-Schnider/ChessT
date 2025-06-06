@@ -1,18 +1,15 @@
-﻿using System;
-using ChessLogic;
+﻿using ChessLogic;
+using System;
 
 namespace ChessNetwork.DTOs
 {
-    // DTO für das Ergebnis der Spielerstellung.
+    // DTO, das das Ergebnis der Spielerstellung an den Client zurückgibt.
     public class CreateGameResultDto
     {
-        // Eindeutige ID des erstellten Spiels.
-        public Guid GameId { get; set; }
-        // Eindeutige ID des erstellenden Spielers.
-        public Guid PlayerId { get; set; }
-        // Tatsächlich zugewiesene Farbe des erstellenden Spielers.
-        public Player Color { get; set; }
-        // Anfänglicher Zustand des Schachbretts. Erforderlich.
-        public required BoardDto Board { get; set; }
+        public Guid GameId { get; set; }                // Die eindeutige ID des neu erstellten Spiels.
+        public Guid PlayerId { get; set; }              // Die eindeutige ID des erstellenden Spielers.
+        public Player Color { get; set; }               // Die tatsächlich zugewiesene Farbe des erstellenden Spielers.
+        public required BoardDto Board { get; set; }    // Der anfängliche Zustand des Schachbretts.
+
     }
 }

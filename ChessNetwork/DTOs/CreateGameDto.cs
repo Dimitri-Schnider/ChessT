@@ -2,18 +2,13 @@
 
 namespace ChessNetwork.DTOs
 {
-    // DTO zum Erstellen eines neuen Spiels.
+    // DTO mit den Parametern zum Erstellen eines neuen Spiels.
     public class CreateGameDto
     {
-        // Name des Spielers, der das Spiel erstellt. Erforderlich.
-        public required string PlayerName { get; set; }
-        // Gewünschte Farbe des erstellenden Spielers.
-        public Player Color { get; set; }
-        // Anfängliche Bedenkzeit pro Spieler in Minuten.
-        public int InitialMinutes { get; set; }
-
-        // NEUE Properties (verwenden Sie hier einfache Typen für DTOs)
-        public string OpponentType { get; set; } = "Human"; // z.B. "Human", "Computer"
-        public string ComputerDifficulty { get; set; } = "Medium"; // z.B. "Easy", "Medium", "Hard"
+        public required string PlayerName { get; set; }             // Der Name des Spielers, der das Spiel erstellt.
+        public Player Color { get; set; }                           // Die vom Spieler gewünschte Farbe.
+        public int InitialMinutes { get; set; }                     // Die anfängliche Bedenkzeit pro Spieler in Minuten.
+        public string OpponentType { get; set; } = "Human";         // Der Typ des Gegners (z.B. "Human" oder "Computer").
+        public string ComputerDifficulty { get; set; } = "Easy";    // Die Schwierigkeitsstufe des Computergegners (z.B. "Easy", "Medium", "Hard").
     }
 }

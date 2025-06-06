@@ -1,26 +1,26 @@
-﻿using System;
+﻿using ChessLogic;
+using System;
 using System.ComponentModel.DataAnnotations;
-using ChessLogic;
 
 namespace ChessNetwork.DTOs
 {
-    // DTO für die Übermittlung eines Zugs.
+    // DTO zur Übermittlung eines Zugs vom Client zum Server.
     public record MoveDto(
-        // Startkoordinate des Zugs (z.B. "e2"). Erforderlich, Format a1-h8.
+        // Startkoordinate des Zugs in algebraischer Notation (z.B. "e2").
         [Required(ErrorMessage = "Startfeld (From) ist erforderlich.")]
         [RegularExpression("^[a-h][1-8]$", ErrorMessage = "From muss im Format a1–h8 sein.")]
         string From,
 
-        // Zielkoordinate des Zugs (z.B. "e4"). Erforderlich, Format a1-h8.
+        // Zielkoordinate des Zugs in algebraischer Notation (z.B. "e4").
         [Required(ErrorMessage = "Zielfeld (To) ist erforderlich.")]
         [RegularExpression("^[a-h][1-8]$", ErrorMessage = "To muss im Format a1–h8 sein.")]
         string To,
 
-        // Eindeutige ID des ziehenden Spielers. Erforderlich.
+        // Die eindeutige ID des Spielers, der den Zug ausführt.
         [Required(ErrorMessage = "PlayerId darf nicht leer sein.")]
         Guid PlayerId,
 
-        // Optional: Figurentyp für Bauernumwandlung.
+        // Der Figurentyp, zu dem ein Bauer umgewandelt werden soll (optional).
         PieceType? PromotionTo = null
     );
 }

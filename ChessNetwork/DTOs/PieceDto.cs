@@ -1,6 +1,6 @@
 ﻿namespace ChessNetwork.DTOs
 {
-    // Enum-DTO zur Repräsentation von Schachfiguren und deren Farben für die Datenübertragung.
+    // Enum-basiertes DTO zur Repräsentation von Schachfiguren und deren Farben.
     public enum PieceDto
     {
         WhiteKing, WhiteQueen, WhiteRook, WhiteBishop, WhiteKnight, WhitePawn,

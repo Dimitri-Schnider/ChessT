@@ -1,13 +1,13 @@
-﻿using System;
-using ChessLogic;
+﻿using ChessLogic;
+using System;
 
 namespace ChessNetwork.DTOs
 {
     // DTO für grundlegende Spielinformationen.
-    // Wird z.B. für beitretende Spieler verwendet.
     public record GameInfoDto(
-        Guid CreatorId,         // ID des Spielerstellers.
-        Player CreatorColor,    // Ursprünglich gewählte Farbe des Erstellers.
-        bool HasOpponent        // Gibt an, ob ein Gegner beigetreten ist.
+
+        Guid CreatorId,         // Die ID des Spielers, der das Spiel erstellt hat.
+        Player CreatorColor,    // Die ursprünglich vom Ersteller gewählte Farbe.
+        bool HasOpponent        // Gibt an, ob bereits ein Gegner dem Spiel beigetreten ist.
     );
 }

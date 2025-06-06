@@ -20,27 +20,15 @@ namespace ChessNetwork.DTOs
     // DTO für das Ergebnis eines ausgeführten Zugs.
     public class MoveResultDto
     {
-        // Gibt an, ob der Zug gültig war.
-        public bool IsValid { get; init; }
-        // Fehlermeldung, falls Zug ungültig.
-        public string? ErrorMessage { get; init; }
-        // Neuer Brettzustand nach dem Zug.
-        public required BoardDto NewBoard { get; init; }
-        // Gibt an, ob der anfragende Spieler am Zug ist.
-        public bool IsYourTurn { get; init; }
-        // Spielstatus aus Sicht des ziehenden Spielers nach dem Zug.
-        public GameStatusDto Status { get; init; }
-        // ID des Spielers, der nach diesem Zug eine Karte ziehen darf.
-        public Guid? PlayerIdToSignalCardDraw { get; init; }
-        // NEU: Die tatsächlich gezogene Karte, falls eine durch den Zug gezogen wurde.
-        public CardDto? NewlyDrawnCard { get; init; }
-
-
-        // Startquadrat des letzten Zugs (für Hervorhebung)
-        public string? LastMoveFrom { get; init; }
-        // Zielquadrat des letzten Zugs (für Hervorhebung)
-        public string? LastMoveTo { get; init; }
-        // Quadrate, die durch einen Karteneffekt hervorgehoben werden sollen
-        public List<AffectedSquareInfo>? CardEffectSquares { get; init; }
+        public bool IsValid { get; init; }                                  // Gibt an, ob der Zug gültig war.
+        public string? ErrorMessage { get; init; }                          // Fehlermeldung, falls Zug ungültig.
+        public required BoardDto NewBoard { get; init; }                    // Neuer Brettzustand nach dem Zug.
+        public bool IsYourTurn { get; init; }                               // Gibt an, ob der anfragende Spieler am Zug ist.
+        public GameStatusDto Status { get; init; }                          // Spielstatus aus Sicht des ziehenden Spielers.
+        public Guid? PlayerIdToSignalCardDraw { get; init; }                // ID des Spielers, der eine Karte ziehen darf.
+        public CardDto? NewlyDrawnCard { get; init; }                       // Die gezogene Karte, falls eine durch den Zug verdient wurde.
+        public string? LastMoveFrom { get; init; }                          // Startquadrat des letzten Zugs (für Hervorhebung).
+        public string? LastMoveTo { get; init; }                            // Zielquadrat des letzten Zugs (für Hervorhebung).
+        public List<AffectedSquareInfo>? CardEffectSquares { get; init; }   // Quadrate, die durch einen Karteneffekt hervorgehoben werden sollen.
     }
 }

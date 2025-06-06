@@ -2,18 +2,14 @@
 
 namespace ChessNetwork.DTOs
 {
-    // Datenübertragungsobjekt für eine Spielkarte.
+    // DTO zur Repräsentation einer Spielkarte.
     public class CardDto
     {
-        // Eindeutige ID dieser spezifischen Karteninstanz.
-        // Wird serverseitig beim Erstellen/Ziehen der Karte generiert.
-        public Guid InstanceId { get; set; }
+        public Guid InstanceId { get; set; }                // Eindeutige ID dieser spezifischen Karteninstanz in der Hand eines Spielers
+        public required string Id { get; set; }             // Identifiziert den Kartentyp (z.B. "extrazug") und definiert dessen Effekt.
+        public required string Name { get; set; }           // Der Name der Karte, der dem Spieler angezeigt wird.
+        public required string Description { get; set; }    // Die Beschreibung des Karteneffekts.
+        public required string ImageUrl { get; set; }       // Die URL zum Bild der Karte.
 
-        // ID, die den KARTENTYP definiert (z.B. "extrazug", "teleport").
-        // Kommt aus CardConstants.
-        public required string Id { get; set; }
-        public required string Name { get; set; }
-        public required string Description { get; set; }
-        public required string ImageUrl { get; set; }
     }
 }

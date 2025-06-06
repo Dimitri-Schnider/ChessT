@@ -7,6 +7,6 @@ namespace ChessNetwork.DTOs
     public record TimeUpdateDto(
         TimeSpan WhiteTime,             // Verbleibende Zeit für Weiss.
         TimeSpan BlackTime,             // Verbleibende Zeit für Schwarz.
-        Player? PlayerWhoseTurnItIs   // Spieler, dessen Uhr läuft; null wenn keine Uhr aktiv.
+        Player? PlayerWhoseTurnItIs     // Spieler, dessen Uhr läuft; null wenn keine Uhr aktiv.
     );
 }
