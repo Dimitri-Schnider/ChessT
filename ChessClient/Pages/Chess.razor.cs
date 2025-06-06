@@ -121,7 +121,7 @@ namespace ChessClient.Pages
         }
         private async void HandleStartGameCountdown()
         {
-            if (UiState == null || CardState == null) return;
+            if (UiState == null || CardState == null || GameCoreState == null) return;
 
             UiState.ShowCountdown("3");
             await InvokeAsync(StateHasChanged);
@@ -139,6 +139,7 @@ namespace ChessClient.Pages
             await InvokeAsync(StateHasChanged);
 
             CardState.RevealCards();
+            GameCoreState.SetGameRunning(true); 
             Logger.LogCardsRevealed(GameCoreState?.GameId);
 
             await Task.Delay(800);
@@ -426,7 +427,7 @@ namespace ChessClient.Pages
             }
         }
 
-        public async Task TriggerCreateNewGame(CreateGameParameters args) // Nimmt CreateGameParameters
+        public async Task TriggerCreateNewGame(CreateGameParameters args)
         {
             if (GameOrchestrationService == null || ModalState == null || GameCoreState == null || HubService == null || MyMainLayout == null || Logger == null)
             {
@@ -434,14 +435,16 @@ namespace ChessClient.Pages
                 return;
             }
 
-            // OpponentType wird jetzt direkt aus args.OpponentType.ToString() in GameOrchestrationService.CreateNewGameAsync verwendet
             (bool success, Guid gameId) = await GameOrchestrationService.CreateNewGameAsync(args);
 
             if (success && GameCoreState.CurrentPlayerInfo != null)
             {
+                ModalState.CloseCreateGameModal(); 
+                await InvokeAsync(StateHasChanged);
+
                 MyMainLayout.UpdateActiveGameId(gameId);
-                await ResetMessagesAndTimersAsync(TimeSpan.FromMinutes(args.TimeMinutes)); // Verwende args.TimeMinutes
-                await InitializeGameRelatedData(); // Dies sollte PlayerNames aktualisieren (inkl. Computer)
+                await ResetMessagesAndTimersAsync(TimeSpan.FromMinutes(args.TimeMinutes));
+                await InitializeGameRelatedData();
                 await InitializeSignalRConnection();
                 if (HubService.IsConnected)
                 {
@@ -452,13 +455,10 @@ namespace ChessClient.Pages
                     Logger.LogClientSignalRConnectionWarning("SignalR nicht verbunden nach InitializeSignalRConnection in TriggerCreateNewGame. PlayerId-Registrierung und Starthand-Empfang verzögert.");
                 }
 
-                // KORREKTUR: InviteLinkModal nur zeigen, wenn es kein PvC-Spiel ist
                 if (!GameCoreState.OpponentJoined && gameId != Guid.Empty && !GameCoreState.IsPvCGame)
                 {
                     ModalState.OpenInviteLinkModal(InviteLink);
                 }
-                // Wenn es ein PvC-Spiel ist und der Computer Weiß ist, muss er seinen ersten Zug machen.
-                // Dies wird serverseitig in GameSession.InitializeComputerPlayer angestoßen.
             }
             else
             {
@@ -468,10 +468,15 @@ namespace ChessClient.Pages
 
         public async Task TriggerJoinExistingGame(string name, string gameIdToJoin)
         {
-            if (GameOrchestrationService == null || HubService == null || GameCoreState == null) return;
+            if (GameOrchestrationService == null || HubService == null || GameCoreState == null || ModalState == null) return;
+
             (bool success, Guid gameId) = await GameOrchestrationService.JoinExistingGameAsync(name, gameIdToJoin);
+
             if (success && GameCoreState.CurrentPlayerInfo != null)
             {
+                ModalState.CloseJoinGameModal(); 
+                await InvokeAsync(StateHasChanged);
+
                 MyMainLayout?.UpdateActiveGameId(gameId);
                 await ResetMessagesAndTimersAsync();
                 await InitializeGameRelatedData();
@@ -574,6 +579,9 @@ namespace ChessClient.Pages
             if (GameCoreState == null || UiState == null) return;
             if (playerCount == 2)
             {
+                // Schliesse Einladungsmodal, wenn es offen ist
+                ModalState.CloseInviteLinkModal();
+
                 GameCoreState.SetOpponentJoined(true);
                 _ = UiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Spieler '{0}' ist beigetreten. Das Spiel kann beginnen!", playerNameJoining));
                 MyMainLayout?.SetCanDownloadGameHistory(true);
@@ -785,13 +793,16 @@ namespace ChessClient.Pages
             _ = HandleHubTurnChangedAsync(newBoard, nextPlayer, statusForNextPlayer, lastMoveFromServerFrom, lastMoveFromServerTo, cardEffectSquaresFromServer);
         }
 
-        private void HandleHubTimeUpdate(TimeUpdateDto timeUpdate)
+        private void HandleHubTimeUpdate(TimeUpdateDto timeUpdateDto)
         {
             if (GameCoreState == null) return;
-            GameCoreState.UpdateDisplayedTimes(timeUpdate.WhiteTime, timeUpdate.BlackTime, timeUpdate.PlayerWhoseTurnItIs);
-            if (timeUpdate.PlayerWhoseTurnItIs.HasValue)
+
+            if (!GameCoreState.IsGameRunning) return;
+
+            GameCoreState.UpdateDisplayedTimes(timeUpdateDto.WhiteTime, timeUpdateDto.BlackTime, timeUpdateDto.PlayerWhoseTurnItIs);
+            if (timeUpdateDto.PlayerWhoseTurnItIs.HasValue)
             {
-                GameCoreState.SetCurrentTurnPlayer(timeUpdate.PlayerWhoseTurnItIs.Value);
+                GameCoreState.SetCurrentTurnPlayer(timeUpdateDto.PlayerWhoseTurnItIs.Value);
             }
         }
 

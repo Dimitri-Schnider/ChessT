@@ -25,7 +25,8 @@ namespace ChessClient.State
         private bool _isGameSpecificDataInitialized;
         private string _whiteTimeDisplay = "00:00";
         private string _blackTimeDisplay = "00:00";
-        private bool _isPvCGame; // NEU
+        private bool _isPvCGame;
+        private bool _isGameRunning;
 
         public PlayerDto? CurrentPlayerInfo { get => _currentPlayerInfo; private set => _currentPlayerInfo = value; }
         public BoardDto? BoardDto { get => _boardDto; private set => _boardDto = value; }
@@ -40,7 +41,8 @@ namespace ChessClient.State
         public bool IsGameSpecificDataInitialized { get => _isGameSpecificDataInitialized; private set => _isGameSpecificDataInitialized = value; }
         public string WhiteTimeDisplay { get => _whiteTimeDisplay; private set => _whiteTimeDisplay = value; }
         public string BlackTimeDisplay { get => _blackTimeDisplay; private set => _blackTimeDisplay = value; }
-        public bool IsPvCGame { get => _isPvCGame; private set => _isPvCGame = value; } // NEU
+        public bool IsPvCGame { get => _isPvCGame; private set => _isPvCGame = value; }
+        public bool IsGameRunning { get => _isGameRunning; private set => _isGameRunning = value; }
 
         public GameCoreState()
         {
@@ -69,6 +71,7 @@ namespace ChessClient.State
             IsGameSpecificDataInitialized = false;
             EndGameMessage = "";
             UpdateDisplayedTimes(TimeSpan.FromMinutes(initialTimeMinutes), TimeSpan.FromMinutes(initialTimeMinutes), Player.White);
+            IsGameRunning = false;
             OnStateChanged();
         }
 
@@ -84,13 +87,21 @@ namespace ChessClient.State
             if (CurrentPlayerInfo != null) PlayerNames[MyColor] = CurrentPlayerInfo.Name;
             IsGameSpecificDataInitialized = false;
             EndGameMessage = "";
+            IsGameRunning = false;
             OnStateChanged();
         }
 
-        public void SetIsPvCGame(bool isPvC) // NEU
+        public void SetIsPvCGame(bool isPvC) 
         {
             if (_isPvCGame == isPvC) return;
             _isPvCGame = isPvC;
+            OnStateChanged();
+        }
+
+        public void SetGameRunning(bool isRunning)
+        {
+            if (_isGameRunning == isRunning) return;
+            _isGameRunning = isRunning;
             OnStateChanged();
         }
 
@@ -180,7 +191,8 @@ namespace ChessClient.State
             EndGameMessage = "";
             PlayerNames.Clear();
             IsGameSpecificDataInitialized = false;
-            IsPvCGame = false; // NEU: Reset
+            IsPvCGame = false;
+            IsGameRunning = false;
             UpdateDisplayedTimes(TimeSpan.FromMinutes(initialTimeMinutes), TimeSpan.FromMinutes(initialTimeMinutes), Player.White);
             OnStateChanged();
         }

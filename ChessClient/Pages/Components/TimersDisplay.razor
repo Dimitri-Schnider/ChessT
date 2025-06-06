@@ -1,5 +1,10 @@
 ﻿@using ChessLogic
+@using ChessClient.State
 @using System.Collections.Generic
+
+@code {
+    [CascadingParameter] public IGameCoreState? GameCoreState { get; set; }
+}
 
 @if (PlayerNames != null)
 {
