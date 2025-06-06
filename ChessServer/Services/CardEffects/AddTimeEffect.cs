@@ -1,13 +1,12 @@
-﻿// File: [SolutionDir]/ChessServer/Services/CardEffects/AddTimeEffect.cs
-using System;
+﻿using Chess.Logging;
 using ChessLogic;
-using ChessServer.Services;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, der dem Spieler Zeit hinzufügt.
     public class AddTimeEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -17,6 +16,7 @@ namespace ChessServer.Services.CardEffects
             _logger = logger;
         }
 
+        // Führt den Effekt aus: Fügt dem Spieler 2 Minuten Zeit hinzu.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,
@@ -32,6 +32,7 @@ namespace ChessServer.Services.CardEffects
                 _logger.LogAddTimeEffectApplied(playerDataColor, playerId, session.GameId);
                 return new CardActivationResult(true, BoardUpdatedByCardEffect: false);
             }
+
             return new CardActivationResult(false, ErrorMessage: "Zeit konnte nicht hinzugefügt werden (Timer-Fehler).");
         }
     }

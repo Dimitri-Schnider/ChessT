@@ -1,14 +1,14 @@
-﻿// File: [SolutionDir]/ChessServer/Services/CardEffects/CardSwapEffect.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Chess.Logging;
 using ChessLogic;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, bei dem eine Karte mit dem Gegner getauscht wird.
     public class CardSwapEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -19,6 +19,7 @@ namespace ChessServer.Services.CardEffects
             _logger = logger;
         }
 
+        // Führt den Tauscheffekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,
@@ -33,7 +34,7 @@ namespace ChessServer.Services.CardEffects
 
             if (string.IsNullOrEmpty(cardInstanceIdToSwapFromHandString) || !Guid.TryParse(cardInstanceIdToSwapFromHandString, out Guid ownCardInstanceIdToSwap))
             {
-                _logger.LogCardSwapEffectPlayerCardInstanceNotFound(Guid.Empty, playerId, session.GameId); // Annahme: Kein spezifischer Log, oder einen generischen verwenden
+                _logger.LogCardSwapEffectPlayerCardInstanceNotFound(Guid.Empty, playerId, session.GameId);
                 return new CardActivationResult(
                     Success: true,
                     ErrorMessage: "Keine eigene Karte zum Tauschen ausgewählt oder vorhanden. Kartentausch-Karte verfällt.",
@@ -58,16 +59,13 @@ namespace ChessServer.Services.CardEffects
             {
                 return new CardActivationResult(false, ErrorMessage: "Kein Gegner im Spiel für Kartentausch gefunden.");
             }
+
             Guid opponentId = opponentInfo.OpponentId;
             List<CardDto> opponentHand = session.GetPlayerHand(opponentId);
             if (opponentHand.Count == 0)
             {
                 _logger.LogCardSwapEffectOpponentNoCards(playerId, session.GameId);
-                bool removed = session.RemoveCardFromPlayerHand(playerId, cardToGive.InstanceId);
-                if (!removed)
-                {
-                    // Kein spezifischer Log, ggf. generischen Error-Log verwenden
-                }
+                session.RemoveCardFromPlayerHand(playerId, cardToGive.InstanceId);
                 return new CardActivationResult(
                     Success: true,
                     ErrorMessage: "Dein Gegner hat keine Handkarten. Deine ausgewählte Karte verfällt.",
@@ -86,7 +84,6 @@ namespace ChessServer.Services.CardEffects
 
             if (!(ownCardRemoved && opponentCardRemoved))
             {
-                // Kein spezifischer Log, ggf. generischen Error-Log verwenden
                 return new CardActivationResult(false, ErrorMessage: "Interner Fehler beim Entfernen der Karten während des Tauschs.");
             }
 

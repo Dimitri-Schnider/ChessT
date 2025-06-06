@@ -1,43 +1,45 @@
-// File: [SolutionDir]\ChessServer\Program.cs
-// File: [SolutionDir]/ChessServer/Program.cs
+using Chess.Logging;
+using ChessServer.Configuration;
 using ChessServer.Hubs;
 using ChessServer.Services;
-using ChessServer.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Chess.Logging; // Hinzufuegen fuer IChessLogger und ChessLogger
-using Microsoft.Extensions.Logging; // Hinzufuegen fuer ILogger<T>
-using System.Net.Http; // Sicherstellen, dass dies vorhanden ist
+using Microsoft.Extensions.Logging;
+using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
-// Konfiguriert Dienste fuer die Anwendung.
+
+// Dienste für die Anwendung konfigurieren.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHttpClient("ChessApi"); // Fügt einen benannten HttpClient hinzu, falls spezifische Konfiguration nötig
+builder.Services.AddHttpClient("ChessApi");
 
-
-// CORS-Konfiguration anpassen
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://schacht.app", // Deine Azure-Domain
-                           "https://localhost:7224", // Typischer ChessClient Kestrel HTTPS Port (pruefe deine launchSettings.json)
-                           "http://localhost:5170",  // Typischer ChessClient Kestrel HTTP Port (pruefe deine launchSettings.json)
-                           "https://localhost:7144", // Dein ChessServer Port (falls Client und Server auf derselben Maschine fuer lokale Tests laufen)
-                           "http://localhost:5245",  // Dein ChessServer HTTP Port (falls Client und Server auf derselben Maschine fuer lokale
-                           "https://localhost:7276", // Typischer ChessClient Kestrel HTTPS Port (pruefe deine launchSettings.json)
-                           "http://localhost:7144")  // Typischer ChessClient Kestrel HTTP Port (pruefe deine launchSettings.json) Tests laufen)
+        policy.WithOrigins(
+                "https://schacht.app",      // Azure-Domain
+                "https://localhost:7224",   // ChessClient Kestrel HTTPS
+                "http://localhost:5170",    // ChessClient Kestrel HTTP
+                "https://localhost:7144",   // ChessServer HTTPS
+                "http://localhost:5245",    // ChessServer HTTP
+                "https://localhost:7276",   // Alternative Ports
+                "http://localhost:7144"     // Alternative Ports
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Wichtig für SignalR mit Authentifizierung oder sitzungsbasierten Szenarien
+              .AllowCredentials();          // Wichtig für SignalR
     });
 });
+
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-// === HIER DIE FEHLENDE REGISTRIERUNG HINZUFUEGEN ===
+// Registriert den GameManager als Singleton (eine Instanz für die gesamte Anwendung).
+builder.Services.AddSingleton<IGameManager, InMemoryGameManager>();
+
 // Registriere IChessLogger so, dass wenn InMemoryGameManager danach fragt,
 // ein ChessLogger<InMemoryGameManager> bereitgestellt wird.
 builder.Services.AddSingleton<IChessLogger>(sp =>
@@ -45,14 +47,10 @@ builder.Services.AddSingleton<IChessLogger>(sp =>
         sp.GetRequiredService<ILogger<InMemoryGameManager>>()
     )
 );
-// Wenn andere Dienste IChessLogger mit ihrer eigenen Kategorie benoetigen,
-// muessten sie aehnlich registriert werden oder eine generischere Factory verwendet werden.
-// Fuer GameSession und CardEffects wird der IChessLogger manuell mit der korrekten Kategorie erstellt.
-// Registriert den GameManager als Singleton (eine Instanz fuer die gesamte Anwendung).
-builder.Services.AddSingleton<IGameManager, InMemoryGameManager>();
 
 var app = builder.Build();
-// Konfiguriert die HTTP-Request-Pipeline.
+
+// HTTP-Request-Pipeline konfigurieren.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -64,7 +62,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
-app.UseCors(); // Stelle sicher, dass UseCors() hier aufgerufen wird, typischerweise nach UseRouting() und vor UseAuthorization()/UseEndpoints()
+app.UseCors();
 app.UseWebSockets();
 app.MapControllers();
 app.MapHub<ChessHub>(ServerConstants.ChessHubRoute);

@@ -1,13 +1,12 @@
-﻿// File: [SolutionDir]/ChessServer/Services/CardEffects/TimeSwapEffect.cs
-using System;
+﻿using Chess.Logging;
 using ChessLogic;
-using ChessServer.Services;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, der die Bedenkzeiten der Spieler tauscht.
     public class TimeSwapEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -17,6 +16,7 @@ namespace ChessServer.Services.CardEffects
             _logger = logger;
         }
 
+        // Führt den Zeittausch-Effekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,
@@ -39,6 +39,7 @@ namespace ChessServer.Services.CardEffects
                 _logger.LogTimeSwapEffectApplied(playerDataColor, opponentColor, session.GameId);
                 return new CardActivationResult(true, BoardUpdatedByCardEffect: false);
             }
+
             return new CardActivationResult(false, ErrorMessage: "Zeiten konnten nicht getauscht werden (Timer-Fehler).");
         }
     }

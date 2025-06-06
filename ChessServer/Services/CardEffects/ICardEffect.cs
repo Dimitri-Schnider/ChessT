@@ -1,12 +1,11 @@
-﻿// File: [SolutionDir]/ChessServer/Services/CardEffects/ICardEffect.cs
+﻿using ChessLogic;
+using ChessNetwork.DTOs;
 using System;
 using System.Collections.Generic;
-using ChessLogic;
-using ChessNetwork.DTOs;
-using ChessServer.Services;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Definiert das Ergebnis einer Kartenaktivierung, das vom Server an den Client zurückgegeben wird.
     public record CardActivationResult(
         bool Success,
         string? ErrorMessage = null,
@@ -14,19 +13,21 @@ namespace ChessServer.Services.CardEffects
         Guid? PlayerIdToSignalDraw = null,
         bool BoardUpdatedByCardEffect = false,
         List<AffectedSquareInfo>? AffectedSquaresByCard = null,
-        CardDto? CardGivenByPlayerForSwapEffect = null, // Für Kartentausch-Animation
-        CardDto? CardReceivedByPlayerForSwapEffect = null // Für Kartentausch-Animation
+        CardDto? CardGivenByPlayerForSwapEffect = null,
+        CardDto? CardReceivedByPlayerForSwapEffect = null
     );
 
+    // Definiert den Vertrag für alle Karteneffekt-Implementierungen.
     public interface ICardEffect
     {
+        // Führt den spezifischen Karteneffekt aus und gibt das Ergebnis zurück.
         CardActivationResult Execute(
             GameSession session,
             Guid playerId,
             Player playerDataColor,
             string cardTypeId,
-            string? fromSquareAlg,   // 1. optionaler Parameter
-            string? toSquareAlg      // 2. optionaler Parameter
+            string? fromSquareAlg,
+            string? toSquareAlg
         );
     }
 }

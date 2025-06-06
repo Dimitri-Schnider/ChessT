@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]/ChessClient/State/AnimationState.cs
-using System;
+﻿using System;
 using ChessNetwork.DTOs;
 
 namespace ChessClient.State

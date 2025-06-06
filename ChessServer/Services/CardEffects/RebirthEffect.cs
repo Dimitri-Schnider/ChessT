@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Chess.Logging;
 using ChessLogic;
 using ChessLogic.Utilities;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, der eine geschlagene Figur wiederbelebt.
     public class RebirthEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -18,18 +19,20 @@ namespace ChessServer.Services.CardEffects
             _logger = logger;
         }
 
+        // Erstellt eine neue Figur basierend auf dem gewählten Typ.
         private static Piece CreateNewPieceByType(PieceType type, Player color)
         {
-            switch (type)
+            return type switch
             {
-                case PieceType.Queen: return new Queen(color);
-                case PieceType.Rook: return new Rook(color);
-                case PieceType.Bishop: return new Bishop(color);
-                case PieceType.Knight: return new Knight(color);
-                default: throw new ArgumentException($"Ungültiger oder nicht unterstützter Figurentyp für Wiederbelebung: {type}");
-            }
+                PieceType.Queen => new Queen(color),
+                PieceType.Rook => new Rook(color),
+                PieceType.Bishop => new Bishop(color),
+                PieceType.Knight => new Knight(color),
+                _ => throw new ArgumentException($"Ungültiger oder nicht unterstützter Figurentyp für Wiederbelebung: {type}"),
+            };
         }
 
+        // Führt den Wiederbelebungseffekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,
@@ -48,8 +51,7 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: "Informationen zur wiederzubelebenden Figur oder zum Zielfeld fehlen. Bitte wähle eine Figur und ein Feld.");
             }
 
-            PieceType pieceTypeToRevive;
-            if (!Enum.TryParse<PieceType>(pieceTypeToReviveStringInternal, true, out pieceTypeToRevive))
+            if (!Enum.TryParse<PieceType>(pieceTypeToReviveStringInternal, true, out PieceType pieceTypeToRevive))
             {
                 _logger.LogRebirthEffectFailedString($"Ungültiger Figurentyp: {pieceTypeToReviveStringInternal}", pieceTypeToReviveStringInternal, targetRevivalSquareAlgInternal, session.GameId);
                 return new CardActivationResult(false, ErrorMessage: $"Ungültiger Figurentyp angegeben: {pieceTypeToReviveStringInternal}");
@@ -106,6 +108,7 @@ namespace ChessServer.Services.CardEffects
             session.CurrentGameState.Board[targetRevivalSquare] = revivedPiece;
             session.RemoveCapturedPieceOfType(playerDataColor, pieceTypeToRevive);
             _logger.LogRebirthEffectExecuted(pieceTypeToRevive, targetRevivalSquareAlgInternal, playerDataColor, playerId, session.GameId);
+
             var affectedSquares = new List<AffectedSquareInfo>
             {
                 new AffectedSquareInfo { Square = targetRevivalSquareAlgInternal, Type = "card-rebirth" }

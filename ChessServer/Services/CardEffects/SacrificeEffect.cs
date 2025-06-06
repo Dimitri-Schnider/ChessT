@@ -1,14 +1,14 @@
-﻿// File: [SolutionDir]\ChessServer\Services\CardEffects\SacrificeEffect.cs
-using System;
-using System.Collections.Generic;
+﻿using Chess.Logging;
 using ChessLogic;
 using ChessLogic.Utilities;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
+using System.Collections.Generic;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, bei dem ein Bauer geopfert wird, um eine neue Karte zu ziehen.
     public class SacrificeEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -18,6 +18,7 @@ namespace ChessServer.Services.CardEffects
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        // Führt den Opfer-Effekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,
@@ -69,13 +70,11 @@ namespace ChessServer.Services.CardEffects
             boardCopy[pawnPos] = null;
             if (boardCopy.IsInCheck(playerDataColor))
             {
-                // Verwendet die spezifische IChessLogger Methode
                 _logger.LogSacrificeEffectFailedWouldCauseCheck(session.GameId, playerId, fromSquareAlg);
                 return new CardActivationResult(false, ErrorMessage: "Opfergabe nicht möglich, da dies deinen König ins Schach stellen würde.");
             }
 
             session.CurrentGameState.Board[pawnPos] = null;
-            // Verwendet die spezifische IChessLogger Methode
             _logger.LogSacrificeEffectExecuted(session.GameId, playerId, fromSquareAlg);
 
             return new CardActivationResult(

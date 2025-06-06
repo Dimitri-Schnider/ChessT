@@ -1,20 +1,17 @@
-﻿// File: [SolutionDir]\ChessServer\Controllers\GamesController.cs
+﻿using Chess.Logging;
+using ChessLogic;
+using ChessNetwork.Configuration;
+using ChessNetwork.DTOs;
+using ChessServer.Hubs;
+using ChessServer.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
-using ChessNetwork.DTOs;
-using ChessServer.Services;
-using ChessLogic;
-using Microsoft.AspNetCore.SignalR;
-using ChessServer.Hubs;
+using System.Globalization;
 using System.Text.Json;
 using System.Threading.Tasks;
-using ChessNetwork.Configuration;
-using System.Globalization;
-using System.Linq;
-using System.Collections.Concurrent;
-using Microsoft.AspNetCore.Http;
-using Chess.Logging;
 
 namespace ChessServer.Controllers
 {
@@ -22,9 +19,10 @@ namespace ChessServer.Controllers
     [Route("api/[controller]")]
     public class GamesController : ControllerBase
     {
-        private readonly IGameManager _mgr;
-        private readonly IChessLogger _logger;
-        private readonly IHubContext<ChessHub> _hubContext;
+        private readonly IGameManager _mgr;                 // Dienst zur Verwaltung aller Spielsitzungen.
+        private readonly IChessLogger _logger;              // Dienst für das Logging von Spielereignissen.
+        private readonly IHubContext<ChessHub> _hubContext; // Kontext für die Echtzeit-Kommunikation via SignalR.
+
         public GamesController(IGameManager mgr, IChessLogger logger, IHubContext<ChessHub> hubContext)
         {
             _mgr = mgr;
@@ -32,6 +30,120 @@ namespace ChessServer.Controllers
             _hubContext = hubContext;
         }
 
+        #region Public API Endpoints
+
+        // POST: api/games/{gameId}/player/{playerId}/activatecard
+        // Aktiviert eine Spezialkarte für einen Spieler.
+        [HttpPost("{gameId}/player/{playerId}/activatecard")]
+        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ServerCardActivationResultDto>> ActivateCard(Guid gameId, Guid playerId, [FromBody] ActivateCardRequestDto dto)
+        {
+            _logger.LogCardActivationAttempt(gameId, playerId, dto.CardTypeId);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ServerCardActivationResultDto { Success = false, ErrorMessage = "Die Anfrage ist ungültig.", CardId = dto.CardTypeId });
+            }
+
+            try
+            {
+                Player playerDataColor;
+                try
+                {
+                    playerDataColor = _mgr.GetPlayerColor(gameId, playerId);
+                }
+                catch (KeyNotFoundException)
+                {
+                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spieler oder Spiel nicht gefunden, um Farbe für Animation zu bestimmen.");
+                    return NotFound(new ServerCardActivationResultDto { Success = false, ErrorMessage = $"Spiel oder Spieler für Kartenaktivierung nicht gefunden.", CardId = dto.CardTypeId });
+                }
+                catch (InvalidOperationException)
+                {
+                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spielerfarbe konnte nicht ermittelt werden.");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ServerCardActivationResultDto { Success = false, ErrorMessage = "Interner Fehler: Spielerfarbe konnte nicht ermittelt werden.", CardId = dto.CardTypeId });
+                }
+
+                CardDto? cardForAnimation = null;
+                if (_mgr is InMemoryGameManager concreteMgr)
+                {
+                    var sessionForCardDef = concreteMgr.GetSessionForDirectHubSend(gameId);
+                    if (sessionForCardDef != null)
+                    {
+                        cardForAnimation = sessionForCardDef.GetCardDefinitionForAnimation(dto.CardTypeId);
+                    }
+                }
+
+                if (cardForAnimation == null)
+                {
+                    _logger.LogGameNotFoundOnMove(gameId, playerId);
+                }
+
+                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("PlayCardActivationAnimation", cardForAnimation ?? new CardDto { Id = dto.CardTypeId, Name = dto.CardTypeId, Description = "Lade...", ImageUrl = CardConstants.DefaultCardBackImageUrl, InstanceId = Guid.Empty }, playerId, playerDataColor);
+
+                ServerCardActivationResultDto activationResultFull = await _mgr.ActivateCardEffect(gameId, playerId, dto);
+                if (!activationResultFull.Success)
+                {
+                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, activationResultFull.ErrorMessage ?? "Unbekannter Kartenaktivierungsfehler");
+                    return BadRequest(activationResultFull);
+                }
+
+                _logger.LogCardActivationSuccessController(gameId, playerId, dto.CardTypeId);
+                if (dto.CardTypeId == CardConstants.CardSwap && activationResultFull.CardGivenByPlayerForSwap != null && activationResultFull.CardReceivedByPlayerForSwap != null)
+                {
+                    await SendCardSwapAnimationDetails(gameId, playerId, activationResultFull.CardGivenByPlayerForSwap, activationResultFull.CardReceivedByPlayerForSwap);
+                    await SendHandUpdatesAfterCardSwap(gameId, playerId, _mgr.GetOpponentInfo(gameId, playerId));
+                }
+
+                var timeUpdate = _mgr.GetTimeUpdate(gameId);
+                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTimeUpdate", timeUpdate);
+                _logger.LogOnTimeUpdateSentAfterMove(gameId);
+
+                if (activationResultFull.PlayerIdToSignalCardDraw.HasValue && activationResultFull.NewlyDrawnCard != null)
+                {
+                    Guid playerIdDrew = activationResultFull.PlayerIdToSignalCardDraw.Value;
+                    string? targetConnectionId = GetConnectionIdForPlayerViaHubMap(playerIdDrew);
+                    if (!string.IsNullOrEmpty(targetConnectionId))
+                    {
+                        int drawPileCount = _mgr.GetDrawPileCount(gameId, playerIdDrew);
+                        await _hubContext.Clients.Client(targetConnectionId)
+                                                 .SendAsync("CardAddedToHand", activationResultFull.NewlyDrawnCard, drawPileCount);
+                        _logger.LogControllerActivateCardSentCardToHand(activationResultFull.NewlyDrawnCard.Name, targetConnectionId, playerIdDrew);
+                    }
+                    else if (activationResultFull.NewlyDrawnCard.Name.Contains(CardConstants.NoMoreCardsName))
+                    {
+                        _logger.LogControllerConnectionIdNotFoundNoMoreCards("ActivateCard", playerIdDrew);
+                    }
+                    else
+                    {
+                        await _hubContext.Clients.Group(gameId.ToString())
+                                         .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
+                        _logger.LogControllerConnectionIdNotFoundGeneric("ActivateCard", playerIdDrew);
+                    }
+                }
+
+                return Ok(activationResultFull);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spiel nicht gefunden");
+                return NotFound(new ServerCardActivationResultDto { Success = false, ErrorMessage = $"Spiel mit ID {gameId} nicht gefunden.", CardId = dto.CardTypeId });
+            }
+            catch (InvalidOperationException ioEx)
+            {
+                _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, $"Ungültige Operation: {ioEx.Message}");
+                return BadRequest(new ServerCardActivationResultDto { Success = false, ErrorMessage = ioEx.Message, CardId = dto.CardTypeId });
+            }
+            catch (Exception)
+            {
+                _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Allgemeiner Fehler");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ServerCardActivationResultDto { Success = false, ErrorMessage = "Interner Serverfehler bei der Kartenaktivierung.", CardId = dto.CardTypeId });
+            }
+        }
+
+        // POST: api/games
+        // Erstellt ein neues Spiel.
         [HttpPost]
         [ProducesResponseType(typeof(CreateGameResultDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
@@ -82,6 +194,150 @@ namespace ChessServer.Controllers
             }
         }
 
+        // GET: api/games/{gameId}/player/{playerId}/capturedpieces
+        // Ruft die geschlagenen Figuren eines Spielers ab.
+        [HttpGet("{gameId}/player/{playerId}/capturedpieces")]
+        [ProducesResponseType(typeof(IEnumerable<CapturedPieceTypeDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<CapturedPieceTypeDto>>> GetCapturedPieces(Guid gameId, Guid playerId)
+        {
+            _logger.LogGettingCapturedPieces(gameId, playerId);
+            try
+            {
+                var capturedPieces = await _mgr.GetCapturedPieces(gameId, playerId);
+                return Ok(capturedPieces);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogGameNotFoundCapturedPieces(gameId, playerId);
+                return NotFound($"Spiel mit ID {gameId} oder Spieler mit ID {playerId} nicht gefunden.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogErrorGettingCapturedPieces(gameId, playerId, ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen der geschlagenen Figuren.");
+            }
+        }
+
+        // GET: api/games/{gameId}/currentplayer
+        // Ruft den Spieler ab, der aktuell am Zug ist.
+        [HttpGet("{gameId}/currentplayer")]
+        [ProducesResponseType(typeof(Player), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        public ActionResult<Player> GetCurrentPlayerRoute(Guid gameId)
+        {
+            try { return Ok(_mgr.GetCurrentTurnPlayer(gameId)); }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogControllerGameNotFound(gameId, nameof(GetCurrentPlayerRoute));
+                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
+            }
+        }
+
+        // GET: api/games/{gameId}/downloadhistory
+        // Stellt die Spielhistorie als JSON-Datei zum Download bereit.
+        [HttpGet("{gameId}/downloadhistory")]
+        [ProducesResponseType(typeof(GameHistoryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+        public ActionResult GetGameHistory(Guid gameId)
+        {
+            try
+            {
+                var gameHistory = _mgr.GetGameHistory(gameId);
+                if (gameHistory == null)
+                {
+                    _logger.LogGameHistoryNullFromManager(gameId);
+                    return NotFound($"Spielverlauf für Spiel-ID {gameId} nicht gefunden.");
+                }
+                Response.Headers.Append("Content-Disposition", $"attachment; filename=\"chess_game_{gameId}.json\"");
+                var serializerOptions = new JsonSerializerOptions { WriteIndented = true };
+                return new JsonResult(gameHistory, serializerOptions);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogGameHistoryKeyNotFound(gameId);
+                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogGameHistoryGenericError(gameId, ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen des Spielverlaufs.");
+            }
+        }
+
+        // GET: api/games/{gameId}/info
+        // Ruft grundlegende Informationen zu einem Spiel ab.
+        [HttpGet("{gameId}/info")]
+        [ProducesResponseType(typeof(GameInfoDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        public ActionResult<GameInfoDto> GetInfo(Guid gameId)
+        {
+            try
+            {
+                var info = _mgr.GetGameInfo(gameId);
+                return Ok(info);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogControllerGameNotFound(gameId, nameof(GetInfo));
+                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
+            }
+        }
+
+        // GET: api/games/{gameId}/player/{playerId}/opponentinfo
+        // Ruft Informationen über den Gegner ab.
+        [HttpGet("{gameId}/player/{playerId}/opponentinfo")]
+        [ProducesResponseType(typeof(OpponentInfoDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+        public ActionResult<OpponentInfoDto> GetOpponentInfo(Guid gameId, Guid playerId)
+        {
+            try
+            {
+                var opponentInfo = _mgr.GetOpponentInfo(gameId, playerId);
+                if (opponentInfo == null)
+                {
+                    return NotFound($"Keine Gegnerinformationen für Spiel {gameId} und Spieler {playerId} gefunden.");
+                }
+                return Ok(opponentInfo);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogControllerGameNotFound(gameId, nameof(GetOpponentInfo));
+                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogControllerErrorGettingOpponentInfo(gameId, playerId, ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen der Gegnerinformationen.");
+            }
+        }
+
+        // GET: api/games/{gameId}/time
+        // Ruft die aktuellen Bedenkzeiten des Spiels ab.
+        [HttpGet("{gameId}/time")]
+        [ProducesResponseType(typeof(TimeUpdateDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+        public ActionResult<TimeUpdateDto> GetTime(Guid gameId)
+        {
+            try { return Ok(_mgr.GetTimeUpdate(gameId)); }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogGameNotFoundOnTimeRequest(gameId);
+                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogErrorGettingTime(gameId, ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen der Zeit.");
+            }
+        }
+
+        // POST: api/games/{gameId}/join
+        // Ermöglicht einem Spieler, einem bestehenden Spiel beizutreten.
         [HttpPost("{gameId}/join")]
         [ProducesResponseType(typeof(JoinGameResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
@@ -129,6 +385,33 @@ namespace ChessServer.Controllers
             }
         }
 
+        // GET: api/games/{gameId}/legalmoves
+        // Ruft alle legalen Züge für eine Figur an einer bestimmten Position ab.
+        [HttpGet("{gameId}/legalmoves")]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        public ActionResult<IEnumerable<string>> LegalMoves(Guid gameId, [FromQuery] string from, [FromQuery] Guid playerId)
+        {
+            try
+            {
+                var moves = _mgr.GetLegalMoves(gameId, playerId, from);
+                return Ok(moves);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogControllerGameNotFound(gameId, nameof(LegalMoves));
+                return NotFound($"Spiel mit ID {gameId} nicht gefunden oder Spieler/Feld ungültig.");
+            }
+            catch (InvalidOperationException ioEx)
+            {
+                _logger.LogControllerErrorGettingLegalMoves(gameId, playerId, from, ioEx);
+                return BadRequest(ioEx.Message);
+            }
+        }
+
+        // POST: api/games/{gameId}/move
+        // Verarbeitet einen vom Client gesendeten Zug.
         [HttpPost("{gameId}/move")]
         [ProducesResponseType(typeof(MoveResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(MoveResultDto), StatusCodes.Status400BadRequest)]
@@ -164,6 +447,7 @@ namespace ChessServer.Controllers
 
                 string? cardEffectSquareCountLog = moveResult.CardEffectSquares != null ? moveResult.CardEffectSquares.Count.ToString(CultureInfo.InvariantCulture) : "0";
                 _logger.LogSignalRUpdateInfo(gameId, nextPlayerTurn, statusForNextPlayer, moveResult.LastMoveFrom, moveResult.LastMoveTo, cardEffectSquareCountLog);
+
                 await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTurnChanged",
                     moveResult.NewBoard,
                     nextPlayerTurn,
@@ -172,9 +456,11 @@ namespace ChessServer.Controllers
                     moveResult.LastMoveTo,
                     moveResult.CardEffectSquares);
                 _logger.LogOnTurnChangedSentToHub(gameId);
+
                 var timeUpdate = _mgr.GetTimeUpdate(gameId);
                 await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTimeUpdate", timeUpdate);
                 _logger.LogOnTimeUpdateSentAfterMove(gameId);
+
                 if (moveResult.PlayerIdToSignalCardDraw.HasValue && moveResult.NewlyDrawnCard != null)
                 {
                     Guid playerIdDrew = moveResult.PlayerIdToSignalCardDraw.Value;
@@ -194,7 +480,7 @@ namespace ChessServer.Controllers
                     else
                     {
                         await _hubContext.Clients.Group(gameId.ToString())
-                                       .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
+                                         .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
                         _logger.LogControllerConnectionIdNotFoundGeneric("Move", playerIdDrew);
                     }
                 }
@@ -204,164 +490,54 @@ namespace ChessServer.Controllers
             catch (KeyNotFoundException ex)
             {
                 _logger.LogGameNotFoundOnMove(gameId, dto.PlayerId);
-                BoardDto? currentBoard = null; try { currentBoard = _mgr.GetState(gameId); } catch { /* ignored */ }
+                BoardDto? currentBoard = null; try { currentBoard = _mgr.GetState(gameId); } catch { }
                 return NotFound(new MoveResultDto { IsValid = false, ErrorMessage = ex.Message, NewBoard = currentBoard ?? new BoardDto(System.Array.Empty<PieceDto?[]>()), Status = GameStatusDto.None });
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogInvalidOperationOnMove(gameId, dto.PlayerId);
-                BoardDto? currentBoard = null; try { currentBoard = _mgr.GetState(gameId); } catch { /* ignored */ }
+                BoardDto? currentBoard = null; try { currentBoard = _mgr.GetState(gameId); } catch { }
                 return BadRequest(new MoveResultDto { IsValid = false, ErrorMessage = ex.Message, NewBoard = currentBoard ?? new BoardDto(System.Array.Empty<PieceDto?[]>()), Status = GameStatusDto.None });
             }
             catch (Exception ex)
             {
                 _logger.LogMoveProcessingError(gameId, dto.From, dto.To, ex);
-                BoardDto? currentBoard = null; try { currentBoard = _mgr.GetState(gameId); } catch { /* ignored */ }
+                BoardDto? currentBoard = null; try { currentBoard = _mgr.GetState(gameId); } catch { }
                 return StatusCode(StatusCodes.Status500InternalServerError, new MoveResultDto { IsValid = false, ErrorMessage = "Ein interner Fehler ist beim Verarbeiten des Zugs aufgetreten.", NewBoard = currentBoard ?? new BoardDto(System.Array.Empty<PieceDto?[]>()), Status = GameStatusDto.None });
             }
         }
 
-        [HttpPost("{gameId}/player/{playerId}/activatecard")]
-        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ServerCardActivationResultDto), StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ServerCardActivationResultDto>> ActivateCard(Guid gameId, Guid playerId, [FromBody] ActivateCardRequestDto dto)
+        // GET: api/games/{gameId}/status
+        // Ruft den Spielstatus für einen bestimmten Spieler ab.
+        [HttpGet("{gameId}/status")]
+        [ProducesResponseType(typeof(GameStatusDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        public ActionResult<GameStatusDto> Status(Guid gameId, [FromQuery] Guid playerId)
         {
-            _logger.LogCardActivationAttempt(gameId, playerId, dto.CardTypeId);
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ServerCardActivationResultDto { Success = false, ErrorMessage = "Die Anfrage ist ungültig.", CardId = dto.CardTypeId });
-            }
-
-            try
-            {
-                Player playerDataColor;
-                try
-                {
-                    playerDataColor = _mgr.GetPlayerColor(gameId, playerId);
-                }
-                catch (KeyNotFoundException)
-                {
-                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spieler oder Spiel nicht gefunden, um Farbe für Animation zu bestimmen.");
-                    return NotFound(new ServerCardActivationResultDto { Success = false, ErrorMessage = $"Spiel oder Spieler für Kartenaktivierung nicht gefunden.", CardId = dto.CardTypeId });
-                }
-                catch (InvalidOperationException)
-                {
-                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spielerfarbe konnte nicht ermittelt werden.");
-                    return StatusCode(StatusCodes.Status500InternalServerError, new ServerCardActivationResultDto { Success = false, ErrorMessage = "Interner Fehler: Spielerfarbe konnte nicht ermittelt werden.", CardId = dto.CardTypeId });
-                }
-
-
-                CardDto? cardForAnimation = null;
-                if (_mgr is InMemoryGameManager concreteMgr)
-                {
-                    var sessionForCardDef = concreteMgr.GetSessionForDirectHubSend(gameId);
-                    if (sessionForCardDef != null)
-                    {
-                        cardForAnimation = sessionForCardDef.GetCardDefinitionForAnimation(dto.CardTypeId);
-                    }
-                }
-
-                if (cardForAnimation == null)
-                {
-                    _logger.LogGameNotFoundOnMove(gameId, playerId);
-                }
-
-                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("PlayCardActivationAnimation", cardForAnimation ?? new CardDto { Id = dto.CardTypeId, Name = dto.CardTypeId, Description = "Lade...", ImageUrl = CardConstants.DefaultCardBackImageUrl, InstanceId = Guid.Empty }, playerId, playerDataColor);
-                ServerCardActivationResultDto activationResultFull = await _mgr.ActivateCardEffect(gameId, playerId, dto);
-                if (!activationResultFull.Success)
-                {
-                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, activationResultFull.ErrorMessage ?? "Unbekannter Kartenaktivierungsfehler");
-                    if (dto.CardTypeId == CardConstants.CardSwap &&
-                        activationResultFull.ErrorMessage != null &&
-                        (activationResultFull.ErrorMessage.Contains("Gegner hat keine Handkarten") ||
-                         activationResultFull.ErrorMessage.Contains("Keine eigene Karte zum Tauschen")))
-                    {
-                        // Logik für diesen speziellen Fehlschlag, falls nötig
-                    }
-                    return BadRequest(activationResultFull);
-                }
-
-                _logger.LogCardActivationSuccessController(gameId, playerId, dto.CardTypeId);
-                if (dto.CardTypeId == CardConstants.CardSwap && activationResultFull.CardGivenByPlayerForSwap != null && activationResultFull.CardReceivedByPlayerForSwap != null)
-                {
-                    await SendCardSwapAnimationDetails(gameId, playerId, activationResultFull.CardGivenByPlayerForSwap, activationResultFull.CardReceivedByPlayerForSwap);
-                    await SendHandUpdatesAfterCardSwap(gameId, playerId, _mgr.GetOpponentInfo(gameId, playerId));
-                }
-
-                // Der folgende Block wurde entfernt, da die OnTurnChanged-Benachrichtigung
-                // nun von der GameSession nach der Kartenaktivierung gesendet wird.
-                /*
-                var currentBoardDto = _mgr.GetState(gameId);
-                var currentPlayerAfterCard = _mgr.GetCurrentTurnPlayer(gameId);
-                GameStatusDto statusForNextPlayerSignalR;
-                Guid? idOfPlayerNowAtTurn = _mgr.GetPlayerIdByColor(gameId, currentPlayerAfterCard);
-                if (idOfPlayerNowAtTurn.HasValue)
-                {
-                    statusForNextPlayerSignalR = _mgr.GetGameStatus(gameId, idOfPlayerNowAtTurn.Value);
-                }
-                else
-                {
-                    statusForNextPlayerSignalR = GameStatusDto.None;
-                    _logger.LogControllerCouldNotDeterminePlayerIdForStatus(gameId, currentPlayerAfterCard);
-                }
-
-                string? cardEffectSquareCountLogCard = activationResultFull.AffectedSquaresByCard != null ? activationResultFull.AffectedSquaresByCard.Count.ToString(CultureInfo.InvariantCulture) : "0";
-                _logger.LogSignalRUpdateInfo(gameId, currentPlayerAfterCard, statusForNextPlayerSignalR, null, null, cardEffectSquareCountLogCard);
-
-                List<AffectedSquareInfo>? affectedSquaresForSignalR = activationResultFull.AffectedSquaresByCard;
-                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTurnChanged", currentBoardDto, currentPlayerAfterCard, statusForNextPlayerSignalR, null, null, affectedSquaresForSignalR);
-                _logger.LogOnTurnChangedSentToHub(gameId);
-                */
-
-                var timeUpdate = _mgr.GetTimeUpdate(gameId);
-                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTimeUpdate", timeUpdate);
-                _logger.LogOnTimeUpdateSentAfterMove(gameId); // Dieser Log könnte präzisiert werden, da es kein "Move" im klassischen Sinn war.
-                                                              // Aber für den Moment belassen wir es so, da die Zeit aktualisiert wurde.
-                if (activationResultFull.PlayerIdToSignalCardDraw.HasValue && activationResultFull.NewlyDrawnCard != null)
-                {
-                    Guid playerIdDrew = activationResultFull.PlayerIdToSignalCardDraw.Value;
-                    string? targetConnectionId = GetConnectionIdForPlayerViaHubMap(playerIdDrew);
-                    if (!string.IsNullOrEmpty(targetConnectionId))
-                    {
-                        int drawPileCount = _mgr.GetDrawPileCount(gameId, playerIdDrew);
-                        await _hubContext.Clients.Client(targetConnectionId)
-                                                 .SendAsync("CardAddedToHand", activationResultFull.NewlyDrawnCard, drawPileCount);
-                        _logger.LogControllerActivateCardSentCardToHand(activationResultFull.NewlyDrawnCard.Name, targetConnectionId, playerIdDrew);
-                    }
-                    else if (activationResultFull.NewlyDrawnCard.Name.Contains(CardConstants.NoMoreCardsName))
-                    {
-                        _logger.LogControllerConnectionIdNotFoundNoMoreCards("ActivateCard", playerIdDrew);
-                    }
-                    else
-                    {
-                        await _hubContext.Clients.Group(gameId.ToString())
-                                       .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
-                        _logger.LogControllerConnectionIdNotFoundGeneric("ActivateCard", playerIdDrew);
-                    }
-                }
-
-                return Ok(activationResultFull);
-            }
+            try { return Ok(_mgr.GetGameStatus(gameId, playerId)); }
             catch (KeyNotFoundException)
             {
-                _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spiel nicht gefunden");
-                return NotFound(new ServerCardActivationResultDto { Success = false, ErrorMessage = $"Spiel mit ID {gameId} nicht gefunden.", CardId = dto.CardTypeId });
-            }
-            catch (InvalidOperationException ioEx)
-            {
-                _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, $"Ungültige Operation: {ioEx.Message}");
-                return BadRequest(new ServerCardActivationResultDto { Success = false, ErrorMessage = ioEx.Message, CardId = dto.CardTypeId });
-            }
-            catch (Exception)
-            {
-                _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Allgemeiner Fehler");
-                return StatusCode(StatusCodes.Status500InternalServerError, new ServerCardActivationResultDto { Success = false, ErrorMessage = "Interner Serverfehler bei der Kartenaktivierung.", CardId = dto.CardTypeId });
+                _logger.LogControllerGameNotFound(gameId, nameof(Status));
+                return NotFound($"Spiel mit ID {gameId} oder Spieler-ID {playerId} nicht gefunden.");
             }
         }
 
+        #endregion
 
+        #region Private Helper Methods
+
+        // Findet die SignalR-Verbindungs-ID für eine gegebene Spieler-ID.
+        private string? GetConnectionIdForPlayerViaHubMap(Guid playerId)
+        {
+            if (ChessHub.PlayerIdToConnectionMap.TryGetValue(playerId, out string? connId))
+            {
+                return connId;
+            }
+            _logger.LogControllerConnectionIdForPlayerNotFound(playerId);
+            return null;
+        }
+
+        // Sendet die Animationsdetails für einen Kartentausch an beide beteiligten Spieler.
         private async Task SendCardSwapAnimationDetails(Guid gameId, Guid activatingPlayerId, CardDto cardGivenByActivatingPlayer, CardDto cardReceivedByActivatingPlayer)
         {
             string? playerConnectionId = GetConnectionIdForPlayerViaHubMap(activatingPlayerId);
@@ -383,6 +559,7 @@ namespace ChessServer.Controllers
             }
         }
 
+        // Sendet nach einem Kartentausch die aktualisierten Handkarten an beide Spieler.
         private async Task SendHandUpdatesAfterCardSwap(Guid gameId, Guid playerId, OpponentInfoDto? opponentInfo)
         {
             string? playerConnectionId = GetConnectionIdForPlayerViaHubMap(playerId);
@@ -407,180 +584,7 @@ namespace ChessServer.Controllers
                 }
             }
         }
-        private string? GetConnectionIdForPlayerViaHubMap(Guid playerId)
-        {
-            if (ChessHub.PlayerIdToConnectionMap.TryGetValue(playerId, out string? connId))
-            {
-                return connId;
-            }
-            _logger.LogControllerConnectionIdForPlayerNotFound(playerId);
-            return null;
-        }
 
-        [HttpGet("{gameId}/player/{playerId}/capturedpieces")]
-        [ProducesResponseType(typeof(IEnumerable<CapturedPieceTypeDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<CapturedPieceTypeDto>>> GetCapturedPieces(Guid gameId, Guid playerId)
-        {
-            _logger.LogGettingCapturedPieces(gameId, playerId);
-            try
-            {
-                var capturedPieces = await _mgr.GetCapturedPieces(gameId, playerId);
-                return Ok(capturedPieces);
-            }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogGameNotFoundCapturedPieces(gameId, playerId);
-                return NotFound($"Spiel mit ID {gameId} oder Spieler mit ID {playerId} nicht gefunden.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogErrorGettingCapturedPieces(gameId, playerId, ex);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen der geschlagenen Figuren.");
-            }
-        }
-
-        [HttpGet("{gameId}/player/{playerId}/opponentinfo")]
-        [ProducesResponseType(typeof(OpponentInfoDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
-        public ActionResult<OpponentInfoDto> GetOpponentInfo(Guid gameId, Guid playerId)
-        {
-            try
-            {
-                var opponentInfo = _mgr.GetOpponentInfo(gameId, playerId);
-                if (opponentInfo == null)
-                {
-                    return NotFound($"Keine Gegnerinformationen für Spiel {gameId} und Spieler {playerId} gefunden.");
-                }
-                return Ok(opponentInfo);
-            }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogControllerGameNotFound(gameId, nameof(GetOpponentInfo));
-                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogControllerErrorGettingOpponentInfo(gameId, playerId, ex);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen der Gegnerinformationen.");
-            }
-        }
-
-        [HttpGet("{gameId}/info")]
-        [ProducesResponseType(typeof(GameInfoDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        public ActionResult<GameInfoDto> GetInfo(Guid gameId)
-        {
-            try
-            {
-                var info = _mgr.GetGameInfo(gameId);
-                return Ok(info);
-            }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogControllerGameNotFound(gameId, nameof(GetInfo));
-                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
-            }
-        }
-
-        [HttpGet("{gameId}/legalmoves")]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<string>> LegalMoves(Guid gameId, [FromQuery] string from, [FromQuery] Guid playerId)
-        {
-            try
-            {
-                var moves = _mgr.GetLegalMoves(gameId, playerId, from);
-                return Ok(moves);
-            }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogControllerGameNotFound(gameId, nameof(LegalMoves));
-                return NotFound($"Spiel mit ID {gameId} nicht gefunden oder Spieler/Feld ungültig.");
-            }
-            catch (InvalidOperationException ioEx)
-            {
-                _logger.LogControllerErrorGettingLegalMoves(gameId, playerId, from, ioEx);
-                return BadRequest(ioEx.Message);
-            }
-        }
-
-        [HttpGet("{gameId}/status")]
-        [ProducesResponseType(typeof(GameStatusDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        public ActionResult<GameStatusDto> Status(Guid gameId, [FromQuery] Guid playerId)
-        {
-            try { return Ok(_mgr.GetGameStatus(gameId, playerId)); }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogControllerGameNotFound(gameId, nameof(Status));
-                return NotFound($"Spiel mit ID {gameId} oder Spieler-ID {playerId} nicht gefunden.");
-            }
-        }
-
-        [HttpGet("{gameId}/currentplayer")]
-        [ProducesResponseType(typeof(Player), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        public ActionResult<Player> GetCurrentPlayerRoute(Guid gameId)
-        {
-            try { return Ok(_mgr.GetCurrentTurnPlayer(gameId)); }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogControllerGameNotFound(gameId, nameof(GetCurrentPlayerRoute));
-                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
-            }
-        }
-
-        [HttpGet("{gameId}/time")]
-        [ProducesResponseType(typeof(TimeUpdateDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
-        public ActionResult<TimeUpdateDto> GetTime(Guid gameId)
-        {
-            try { return Ok(_mgr.GetTimeUpdate(gameId)); }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogGameNotFoundOnTimeRequest(gameId);
-                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogErrorGettingTime(gameId, ex);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen der Zeit.");
-            }
-        }
-
-        [HttpGet("{gameId}/downloadhistory")]
-        [ProducesResponseType(typeof(GameHistoryDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
-        public ActionResult GetGameHistory(Guid gameId)
-        {
-            try
-            {
-                var gameHistory = _mgr.GetGameHistory(gameId);
-                if (gameHistory == null)
-                {
-                    _logger.LogGameHistoryNullFromManager(gameId);
-                    return NotFound($"Spielverlauf für Spiel-ID {gameId} nicht gefunden.");
-                }
-                Response.Headers.Append("Content-Disposition", $"attachment; filename=\"chess_game_{gameId}.json\"");
-                var serializerOptions = new JsonSerializerOptions { WriteIndented = true };
-                return new JsonResult(gameHistory, serializerOptions);
-            }
-            catch (KeyNotFoundException)
-            {
-                _logger.LogGameHistoryKeyNotFound(gameId);
-                return NotFound($"Spiel mit ID {gameId} nicht gefunden.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogGameHistoryGenericError(gameId, ex);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Interner Serverfehler beim Abrufen des Spielverlaufs.");
-            }
-        }
+        #endregion
     }
 }

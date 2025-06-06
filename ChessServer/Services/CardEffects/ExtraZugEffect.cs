@@ -1,13 +1,12 @@
-﻿// File: [SolutionDir]/ChessServer/Services/CardEffects/ExtraZugEffect.cs
-using System;
+﻿using Chess.Logging;
 using ChessLogic;
-using ChessServer.Services;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, der dem Spieler einen zusätzlichen Zug gewährt.
     public class ExtraZugEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -17,6 +16,7 @@ namespace ChessServer.Services.CardEffects
             _logger = logger;
         }
 
+        // Führt den Effekt aus: Markiert, dass der nächste Zug ein Extrazug ist.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,

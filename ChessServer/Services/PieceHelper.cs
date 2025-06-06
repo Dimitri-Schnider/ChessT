@@ -1,9 +1,7 @@
 ﻿using ChessLogic;
-using ChessLogic.Utilities; 
-using System;
+using ChessLogic.Utilities;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
 namespace ChessServer.Services
 {
@@ -35,7 +33,6 @@ namespace ChessServer.Services
                     squares.Add(new Position(rank, 1)); // b-Linie
                     squares.Add(new Position(rank, 6)); // g-Linie
                     break;
-                    // Bauern werden hier nicht behandelt, da sie nicht wiederbelebt werden.
             }
             return squares;
         }
@@ -45,7 +42,7 @@ namespace ChessServer.Services
         {
             if (pos == null) return string.Empty;
             char file = (char)('a' + pos.Column);
-            string rankNum = (8 - pos.Row).ToString(CultureInfo.InvariantCulture); // Korrektur
+            string rankNum = (8 - pos.Row).ToString(CultureInfo.InvariantCulture);
             return $"{file}{rankNum}";
         }
     }

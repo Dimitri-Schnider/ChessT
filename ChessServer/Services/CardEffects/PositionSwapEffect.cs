@@ -1,17 +1,15 @@
-﻿// File: [SolutionDir]/ChessServer/Services/CardEffects/PositionSwapEffect.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Chess.Logging;
 using ChessLogic;
 using ChessLogic.Moves;
 using ChessLogic.Utilities;
-using ChessServer.Services;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
+using System.Collections.Generic;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, der die Positionen zweier eigener Figuren tauscht.
     public class PositionSwapEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -21,6 +19,7 @@ namespace ChessServer.Services.CardEffects
             _logger = logger;
         }
 
+        // Führt den Tauscheffekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,
@@ -35,6 +34,7 @@ namespace ChessServer.Services.CardEffects
             {
                 return new CardActivationResult(false, ErrorMessage: "FromSquare oder ToSquare nicht angegeben für Positionstausch.");
             }
+
             if (fromSquareAlg == toSquareAlg)
             {
                 return new CardActivationResult(false, ErrorMessage: "FromSquare und ToSquare dürfen für Positionstausch nicht identisch sein.");
@@ -54,10 +54,12 @@ namespace ChessServer.Services.CardEffects
 
             Piece? piece1 = session.CurrentGameState.Board[piece1Pos];
             Piece? piece2 = session.CurrentGameState.Board[piece2Pos];
+
             if (piece1 == null || piece2 == null)
             {
                 return new CardActivationResult(false, ErrorMessage: "Eines oder beide Felder für Positionstausch sind leer.");
             }
+
             if (piece1.Color != playerDataColor || piece2.Color != playerDataColor)
             {
                 return new CardActivationResult(false, ErrorMessage: "Nicht beide Figuren für Positionstausch gehören dem Spieler.");

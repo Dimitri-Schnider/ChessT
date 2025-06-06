@@ -1,16 +1,15 @@
-﻿// File: [SolutionDir]/ChessServer/Services/CardEffects/TeleportEffect.cs
-using System;
-using System.Collections.Generic;
+﻿using Chess.Logging;
 using ChessLogic;
 using ChessLogic.Moves;
 using ChessLogic.Utilities;
-using ChessServer.Services;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using Chess.Logging;
+using System;
+using System.Collections.Generic;
 
 namespace ChessServer.Services.CardEffects
 {
+    // Implementiert den Karteneffekt, der eine Figur auf ein anderes leeres Feld teleportiert.
     public class TeleportEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
@@ -20,6 +19,7 @@ namespace ChessServer.Services.CardEffects
             _logger = logger;
         }
 
+        // Führt den Teleport-Effekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
                                             string cardTypeId,
                                             string? fromSquareAlg,
@@ -52,6 +52,7 @@ namespace ChessServer.Services.CardEffects
             {
                 return new CardActivationResult(false, ErrorMessage: "Ungültige Figur auf FromSquare für Teleport ausgewählt.");
             }
+
             if (!session.CurrentGameState.Board.IsEmpty(toPos))
             {
                 return new CardActivationResult(false, ErrorMessage: "ToSquare für Teleport ist nicht leer.");
