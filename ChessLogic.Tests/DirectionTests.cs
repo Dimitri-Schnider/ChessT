@@ -1,58 +1,53 @@
-﻿using Xunit;
-using ChessLogic.Utilities;
+﻿using ChessLogic.Utilities;
+using Xunit;
 
 namespace ChessLogic.Tests
 {
-    // Testklasse für die Direction-Funktionalität
+    // Testklasse für die Funktionalität der Direction-Hilfsklasse.
     public class DirectionTests
     {
-        // Testfall: Addition von zwei Richtungen
+        // Testfall: Testet, ob die Addition von zwei Richtungen das korrekte, kombinierte Ergebnis liefert.
         [Fact]
         public void AddingTwoDirectionsReturnsCorrectCombinedDirection()
         {
             // Arrange
-            Direction dir1 = Direction.North; // (-1, 0)
-            Direction dir2 = Direction.East;  // (0, 1)
-            Direction expectedCombinedDir = Direction.NorthEast; // (-1, 1)
+            Direction dir1 = Direction.North;
+            Direction dir2 = Direction.East;
+            Direction expectedCombinedDir = new Direction(-1, 1);
 
             // Act
             Direction actualCombinedDir = dir1 + dir2;
 
             // Assert
-            Assert.Equal(expectedCombinedDir.RowDelta, actualCombinedDir.RowDelta);
-            Assert.Equal(expectedCombinedDir.ColumnDelta, actualCombinedDir.ColumnDelta);
+            Assert.Equal(expectedCombinedDir, actualCombinedDir);
         }
 
-        // Testfall: Multiplikation einer Richtung mit einem Skalar
+        // Testfall: Prüft, ob die Multiplikation einer Richtung mit einem Skalar die Bewegung korrekt skaliert.
         [Fact]
         public void MultiplyingDirectionByScalarReturnsCorrectScaledDirection()
         {
             // Arrange
-            Direction dir = Direction.South; // (1, 0)
+            Direction dir = Direction.South;
             int scalar = 2;
-            Direction expectedScaledDir = new Direction(2, 0); // Zwei Schritte nach Süden
+            Direction expectedScaledDir = new Direction(2, 0);
 
             // Act
             Direction actualScaledDir = scalar * dir;
 
             // Assert
-            Assert.Equal(expectedScaledDir.RowDelta, actualScaledDir.RowDelta);
-            Assert.Equal(expectedScaledDir.ColumnDelta, actualScaledDir.ColumnDelta);
+            Assert.Equal(expectedScaledDir, actualScaledDir);
         }
 
-        // Testfall: Gleichheit vordefinierter Richtungen (hier für NorthEast als Beispiel)
+        // Testfall: Stellt sicher, dass vordefinierte diagonale Richtungen korrekt aus Hauptrichtungen zusammengesetzt sind.
         [Fact]
         public void PredefinedDiagonalDirectionsAreCorrectlyComposed()
         {
             // Arrange
             Direction expectedNorthEast = new Direction(-1, 1);
-
             // Act
             Direction actualNorthEast = Direction.NorthEast;
-
             // Assert
-            Assert.Equal(expectedNorthEast.RowDelta, actualNorthEast.RowDelta);
-            Assert.Equal(expectedNorthEast.ColumnDelta, actualNorthEast.ColumnDelta);
+            Assert.Equal(expectedNorthEast, actualNorthEast);
         }
     }
 }

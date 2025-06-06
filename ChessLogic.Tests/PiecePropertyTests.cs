@@ -1,27 +1,25 @@
 ﻿using Xunit;
-using ChessLogic; 
 
 namespace ChessLogic.Tests
 {
-    // Testklasse für grundlegende Eigenschaften von Schachfiguren
+    // Testklasse für grundlegende Eigenschaften von Schachfiguren.
     public class PiecePropertyTests
     {
-        // Testfälle für den Bauern (Pawn)
+        // Testfall: Überprüft die korrekten Standardeigenschaften eines neu erstellten Bauern.
         [Theory]
-        [InlineData(Player.White)] // Testlauf 1: Weißer Bauer
-        [InlineData(Player.Black)] // Testlauf 2: Schwarzer Bauer
+        [InlineData(Player.White)]
+        [InlineData(Player.Black)]
         public void PawnPropertiesAreCorrect(Player color)
         {
             // Arrange & Act
             Pawn pawn = new Pawn(color);
-
             // Assert
-            Assert.Equal(PieceType.Pawn, pawn.Type);       // Typ muss Bauer sein
-            Assert.Equal(color, pawn.Color);              // Farbe muss der übergebenen Farbe entsprechen
-            Assert.False(pawn.HasMoved);                  // Ein neuer Bauer darf noch nicht gezogen sein
+            Assert.Equal(PieceType.Pawn, pawn.Type);
+            Assert.Equal(color, pawn.Color);
+            Assert.False(pawn.HasMoved);
         }
 
-        // Testfälle für den Turm (Rook)
+        // Testfall: Überprüft die korrekten Standardeigenschaften eines neu erstellten Turms.
         [Theory]
         [InlineData(Player.White)]
         [InlineData(Player.Black)]
@@ -29,14 +27,13 @@ namespace ChessLogic.Tests
         {
             // Arrange & Act
             Rook rook = new Rook(color);
-
             // Assert
             Assert.Equal(PieceType.Rook, rook.Type);
             Assert.Equal(color, rook.Color);
             Assert.False(rook.HasMoved);
         }
 
-        // Testfälle für den Springer (Knight)
+        // Testfall: Überprüft die korrekten Standardeigenschaften eines neu erstellten Springers.
         [Theory]
         [InlineData(Player.White)]
         [InlineData(Player.Black)]
@@ -44,14 +41,13 @@ namespace ChessLogic.Tests
         {
             // Arrange & Act
             Knight knight = new Knight(color);
-
             // Assert
             Assert.Equal(PieceType.Knight, knight.Type);
             Assert.Equal(color, knight.Color);
             Assert.False(knight.HasMoved);
         }
 
-        // Testfälle für den Läufer (Bishop)
+        // Testfall: Überprüft die korrekten Standardeigenschaften eines neu erstellten Läufers.
         [Theory]
         [InlineData(Player.White)]
         [InlineData(Player.Black)]
@@ -59,14 +55,13 @@ namespace ChessLogic.Tests
         {
             // Arrange & Act
             Bishop bishop = new Bishop(color);
-
             // Assert
             Assert.Equal(PieceType.Bishop, bishop.Type);
             Assert.Equal(color, bishop.Color);
             Assert.False(bishop.HasMoved);
         }
 
-        // Testfälle für die Dame (Queen)
+        // Testfall: Überprüft die korrekten Standardeigenschaften einer neu erstellten Dame.
         [Theory]
         [InlineData(Player.White)]
         [InlineData(Player.Black)]
@@ -74,14 +69,13 @@ namespace ChessLogic.Tests
         {
             // Arrange & Act
             Queen queen = new Queen(color);
-
             // Assert
             Assert.Equal(PieceType.Queen, queen.Type);
             Assert.Equal(color, queen.Color);
             Assert.False(queen.HasMoved);
         }
 
-        // Testfälle für den König (King)
+        // Testfall: Überprüft die korrekten Standardeigenschaften eines neu erstellten Königs.
         [Theory]
         [InlineData(Player.White)]
         [InlineData(Player.Black)]
@@ -89,29 +83,25 @@ namespace ChessLogic.Tests
         {
             // Arrange & Act
             King king = new King(color);
-
             // Assert
             Assert.Equal(PieceType.King, king.Type);
             Assert.Equal(color, king.Color);
             Assert.False(king.HasMoved);
         }
 
-        // Testfall: Kopieren einer Figur erhält Eigenschaften
+        // Testfall: Stellt sicher, dass das Kopieren einer Figur alle Eigenschaften korrekt übernimmt.
         [Fact]
         public void CopiedPieceRetainsProperties()
         {
             // Arrange
-            Pawn originalPawn = new Pawn(Player.White);
-            originalPawn.HasMoved = true; // Zustand ändern
-
+            Pawn originalPawn = new Pawn(Player.White) { HasMoved = true };
             // Act
-            Piece copiedPiece = originalPawn.Copy(); // Kopie erstellen
-
+            Piece copiedPiece = originalPawn.Copy();
             // Assert
             Assert.Equal(originalPawn.Type, copiedPiece.Type);
             Assert.Equal(originalPawn.Color, copiedPiece.Color);
-            Assert.Equal(originalPawn.HasMoved, copiedPiece.HasMoved); // Auch HasMoved muss kopiert werden
-            Assert.NotSame(originalPawn, copiedPiece); // Es muss eine neue Instanz sein, nicht dieselbe
+            Assert.Equal(originalPawn.HasMoved, copiedPiece.HasMoved);
+            Assert.NotSame(originalPawn, copiedPiece);
         }
     }
 }

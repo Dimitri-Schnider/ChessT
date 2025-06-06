@@ -1,7 +1,8 @@
 ﻿namespace ChessLogic.Utilities
 {
     // Repräsentiert eine Richtung auf dem Schachbrett als Änderung der Zeilen- und Spaltenindizes.
-    public class Direction
+    // Umgewandelt von 'class' zu 'record class' für automatischen Wertvergleich.
+    public record Direction
     {
         // Vordefinierte Hauptrichtungen.
         public readonly static Direction North = new Direction(-1, 0); // Bewegung eine Reihe nach oben.

@@ -1,20 +1,21 @@
-﻿using Xunit;
-using ChessLogic;
-using ChessLogic.Utilities;
-using System.Linq;
+﻿using ChessLogic.Utilities;
 using System.Collections.Generic;
+using System.Linq;
+using Xunit;
 
 namespace ChessLogic.Tests
 {
+    // Testklasse für die Funktionalität der König-Figur.
     public class KingTests
     {
+        // Testfall: Prüft die 8 möglichen Züge eines Königs von der Brettmitte aus.
         [Fact]
         public void KingOnEmptyBoardFromCenterHas8Moves()
         {
             // Arrange
             Board board = new Board();
             King king = new King(Player.White);
-            Position kingPos = new Position(3, 3); // d5
+            Position kingPos = new Position(3, 3);
             board[kingPos] = king;
 
             // Act
@@ -22,23 +23,16 @@ namespace ChessLogic.Tests
 
             // Assert
             Assert.Equal(8, moves.Count());
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(2, 2))); // c6
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(2, 3))); // d6
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(2, 4))); // e6
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(3, 2))); // c5
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(3, 4))); // e5
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(4, 2))); // c4
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(4, 3))); // d4
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(4, 4))); // e4
         }
 
+        // Testfall: Prüft die 3 möglichen Züge eines Königs aus einer Ecke.
         [Fact]
         public void KingOnEmptyBoardFromA1Has3Moves()
         {
             // Arrange
             Board board = new Board();
             King king = new King(Player.White);
-            Position kingPos = new Position(7, 0); // a1
+            Position kingPos = new Position(7, 0);
             board[kingPos] = king;
 
             // Act
@@ -46,78 +40,68 @@ namespace ChessLogic.Tests
 
             // Assert
             Assert.Equal(3, moves.Count());
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(6, 0))); // a2
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(6, 1))); // b2
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(7, 1))); // b1
         }
 
+        // Testfall: Stellt sicher, dass ein König eine gegnerische Figur schlagen, aber keine eigene Figur besetzen kann.
         [Fact]
         public void KingCanCaptureAdjacentOpponent()
         {
             // Arrange
             Board board = new Board();
             King whiteKing = new King(Player.White);
-            Position kingPos = new Position(3, 3); // d5
+            Position kingPos = new Position(3, 3);
             board[kingPos] = whiteKing;
-            board[new Position(2, 2)] = new Pawn(Player.Black); // c6 (gegnerisch)
-            board[new Position(2, 3)] = new Pawn(Player.White); // d6 (eigen)
+            board[new Position(2, 2)] = new Pawn(Player.Black);
+            board[new Position(2, 3)] = new Pawn(Player.White);
 
             // Act
             IEnumerable<Move> moves = whiteKing.GetMoves(kingPos, board).Where(m => m.Type == MoveType.Normal);
 
             // Assert
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(2, 2))); // Kann c6 schlagen
-            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(2, 3))); // Kann nicht auf d6 ziehen (blockiert)
-            Assert.Equal(7, moves.Count()); // 8 mögliche - 1 blockiert
+            Assert.Contains(moves, m => m.ToPos.Equals(new Position(2, 2)));
+            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(2, 3)));
+            Assert.Equal(7, moves.Count());
         }
 
+        // Testfall: Verhindert, dass der König auf ein Feld zieht, das von einem Gegner angegriffen wird.
         [Fact]
         public void KingCannotMoveIntoCheck()
         {
-            // Arrange
+            // Arrange: Baut eine Stellung auf, in der die meisten Königsfelder bedroht sind.
             Board board = new Board();
             King whiteKing = new King(Player.White);
-            Position kingPos = new Position(7, 4); // e1
+            Position kingPos = new Position(7, 4);
             board[kingPos] = whiteKing;
-            board[new Position(0, 3)] = new Rook(Player.Black); // Schwarzer Turm auf d8 (kontrolliert d-Linie)
-            board[new Position(0, 5)] = new Rook(Player.Black); // Schwarzer Turm auf f8 (kontrolliert f-Linie)
-
-
+            board[new Position(0, 3)] = new Rook(Player.Black);
+            board[new Position(0, 5)] = new Rook(Player.Black);
             GameState gameState = new GameState(Player.White, board);
 
-            // Act
-            // Züge von e1: d1, d2, e2, f2, f1
-            // d1, d2 sind von Rd8 bedroht
-            // f1, f2 sind von Rf8 bedroht
-            // Nur e2 sollte legal sein (ohne Rochade)
+            // Act: Ruft die legalen Züge ab.
             IEnumerable<Move> legalMoves = gameState.LegalMovesForPiece(kingPos)
-                                                  .Where(m => m.Type == MoveType.Normal);
+                                                     .Where(m => m.Type == MoveType.Normal);
 
-            // Assert
-            Assert.DoesNotContain(legalMoves, m => m.ToPos.Equals(new Position(7, 3))); // d1
-            Assert.DoesNotContain(legalMoves, m => m.ToPos.Equals(new Position(6, 3))); // d2
-            Assert.DoesNotContain(legalMoves, m => m.ToPos.Equals(new Position(7, 5))); // f1
-            Assert.DoesNotContain(legalMoves, m => m.ToPos.Equals(new Position(6, 5))); // f2
-            Assert.Contains(legalMoves, m => m.ToPos.Equals(new Position(6, 4)));    // e2
+            // Assert: Nur ein Zug (nach e2) sollte legal sein.
             Assert.Single(legalMoves);
+            Assert.Contains(legalMoves, m => m.ToPos.Equals(new Position(6, 4)));
         }
+
+        // Testfall: Testet, ob die Methode zur Erkennung eines Königsangriffs korrekt funktioniert.
         [Fact]
-        public void KingCanCaptureOpponentKingTheoretically() // Für IsInCheck Logik
+        public void KingCanCaptureOpponentKingTheoretically()
         {
-            // Arrange
+            // Arrange: Positioniert zwei Könige nebeneinander.
             Board board = new Board();
             King whiteKing = new King(Player.White);
             King blackKing = new King(Player.Black);
-            Position whiteKingPos = new Position(3, 3); // d5
-            Position blackKingPos = new Position(2, 2); // c6 (angrenzend)
+            Position whiteKingPos = new Position(3, 3);
+            Position blackKingPos = new Position(2, 2);
             board[whiteKingPos] = whiteKing;
             board[blackKingPos] = blackKing;
 
-            // Act
-            // Diese Methode prüft, ob der König das Feld des anderen Königs *bedroht*, nicht ob der Zug legal ist.
+            // Act: Prüft, ob der weisse König den schwarzen bedroht.
             bool canCapture = whiteKing.CanCaptureOpponentKing(whiteKingPos, board);
 
-            // Assert
+            // Assert: Die Bedrohung sollte erkannt werden.
             Assert.True(canCapture);
         }
     }

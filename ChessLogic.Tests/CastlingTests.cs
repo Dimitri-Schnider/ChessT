@@ -1,164 +1,136 @@
-﻿// File: [SolutionDir]/ChessLogic.Tests/CastlingTests.cs
-using Xunit;
-using ChessLogic;
-using ChessLogic.Utilities;
-using System.Linq;
+﻿using ChessLogic.Utilities;
 using System.Collections.Generic;
+using System.Linq;
+using Xunit;
 
 namespace ChessLogic.Tests
 {
-    // Testklasse für die Rochade-Funktionalität
+    // Testklasse für die Funktionalität der Rochade.
     public class CastlingTests
     {
-        // Testfall: Erfolgreiche kurze Rochade für Weiß
+        // Testfall: Testet die kurze Rochade für Weiß bei freien Feldern.
         [Fact]
         public void WhiteCanCastleKingSideWhenConditionsMet()
         {
-            // Arrange
+            // Arrange: Initialisiert ein Brett und macht den Weg für die Rochade frei.
             Board board = Board.Initial();
-            // Entferne Springer und Läufer zwischen König und Turm
             board[new Position(7, 5)] = null; // f1
             board[new Position(7, 6)] = null; // g1
+            Piece? kingPiece = board[new Position(7, 4)];
+            Assert.IsType<King>(kingPiece);
+            King whiteKing = (King)kingPiece!;
 
-            Piece? kingPiece = board[new Position(7, 4)]; // e1
-            Assert.NotNull(kingPiece); // Sicherstellen, dass der König da ist
-            Assert.IsType<King>(kingPiece); // Sicherstellen, dass es ein König ist
-            King whiteKing = (King)kingPiece;
-
+            // Act: Ruft die möglichen Züge für den König ab.
             IEnumerable<Move> kingMoves = whiteKing.GetMoves(new Position(7, 4), board);
-
-            // Act
             Move? castleMove = kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS);
 
-            // Assert
+            // Assert: Stellt sicher, dass die Rochade als legaler Zug angeboten wird.
             Assert.NotNull(castleMove);
             Assert.True(castleMove.IsLegal(board));
         }
 
-        // Testfall: Erfolgreiche lange Rochade für Schwarz
+        // Testfall: Testet die lange Rochade für Schwarz bei freien Feldern.
         [Fact]
         public void BlackCanCastleQueenSideWhenConditionsMet()
         {
-            // Arrange
+            // Arrange: Initialisiert ein Brett und macht den Weg für die Rochade frei.
             Board board = Board.Initial();
-            // Entferne Figuren zwischen König und Turm
-            board[new Position(0, 1)] = null; // b8
-            board[new Position(0, 2)] = null; // c8
-            board[new Position(0, 3)] = null; // d8
-
-            Piece? kingPiece = board[new Position(0, 4)]; // e8
-            Assert.NotNull(kingPiece);
+            board[new Position(0, 1)] = null;
+            board[new Position(0, 2)] = null;
+            board[new Position(0, 3)] = null;
+            Piece? kingPiece = board[new Position(0, 4)];
             Assert.IsType<King>(kingPiece);
-            King blackKing = (King)kingPiece;
+            King blackKing = (King)kingPiece!;
 
+            // Act: Ruft die möglichen Züge ab.
             IEnumerable<Move> kingMoves = blackKing.GetMoves(new Position(0, 4), board);
-
-            // Act
             Move? castleMove = kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleQS);
 
-            // Assert
+            // Assert: Stellt sicher, dass die Rochade als legaler Zug angeboten wird.
             Assert.NotNull(castleMove);
             Assert.True(castleMove.IsLegal(board));
         }
 
-        // Testfall: Keine Rochade, wenn König bereits gezogen hat
+        // Testfall: Stellt sicher, dass keine Rochade möglich ist, wenn der König bereits gezogen hat.
         [Fact]
         public void NoCastlingIfKingHasMoved()
         {
-            // Arrange
+            // Arrange: Simuliert, dass der König bereits gezogen hat.
             Board board = Board.Initial();
             board[new Position(7, 5)] = null;
             board[new Position(7, 6)] = null;
-
             Piece? kingPiece = board[new Position(7, 4)];
-            Assert.NotNull(kingPiece);
             Assert.IsType<King>(kingPiece);
-            King whiteKing = (King)kingPiece;
-            whiteKing.HasMoved = true; // König hat bereits gezogen
+            King whiteKing = (King)kingPiece!;
+            whiteKing.HasMoved = true;
 
-            // Act
+            // Act: Ruft die Züge ab.
             IEnumerable<Move> kingMoves = whiteKing.GetMoves(new Position(7, 4), board);
-            Move? castleMoveKS = kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS);
 
-            // Assert
-            Assert.Null(castleMoveKS);
+            // Assert: Die Rochade darf nicht unter den Zügen sein.
+            Assert.Null(kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS));
         }
 
-        // Testfall: Keine Rochade, wenn der entsprechende Turm bereits gezogen hat
+        // Testfall: Stellt sicher, dass keine Rochade möglich ist, wenn der relevante Turm bereits gezogen hat.
         [Fact]
         public void NoCastlingIfRookHasMoved()
         {
-            // Arrange
+            // Arrange: Simuliert, dass der Turm bereits gezogen hat.
             Board board = Board.Initial();
             board[new Position(7, 5)] = null;
             board[new Position(7, 6)] = null;
-
-            Piece? rookPiece = board[new Position(7, 7)]; // h1
-            Assert.NotNull(rookPiece);
+            Piece? rookPiece = board[new Position(7, 7)];
             Assert.IsType<Rook>(rookPiece);
-            Rook whiteRookKS = (Rook)rookPiece;
-            whiteRookKS.HasMoved = true; // Turm hat bereits gezogen
-
-            Piece? kingPiece = board[new Position(7, 4)];
-            Assert.NotNull(kingPiece);
-            Assert.IsType<King>(kingPiece);
-            King whiteKing = (King)kingPiece;
-
-            IEnumerable<Move> kingMoves = whiteKing.GetMoves(new Position(7, 4), board);
+            Rook whiteRookKS = (Rook)rookPiece!;
+            whiteRookKS.HasMoved = true;
 
             // Act
-            Move? castleMoveKS = kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS);
+            Piece? kingPiece = board[new Position(7, 4)];
+            Assert.IsType<King>(kingPiece);
+            King whiteKing = (King)kingPiece!;
+            IEnumerable<Move> kingMoves = whiteKing.GetMoves(new Position(7, 4), board);
 
             // Assert
-            Assert.Null(castleMoveKS);
+            Assert.Null(kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS));
         }
 
-        // Testfall: Keine Rochade, wenn Felder zwischen König und Turm blockiert sind
+        // Testfall: Prüft, ob die Rochade durch blockierte Felder verhindert wird.
         [Fact]
         public void NoCastlingIfPathIsBlocked()
         {
-            // Arrange
+            // Arrange: Verwendet die Grundaufstellung, in der die Felder blockiert sind.
             Board board = Board.Initial();
-            // Felder sind NICHT frei, Standardaufstellung (f1 ist Läufer)
-
             Piece? kingPiece = board[new Position(7, 4)];
-            Assert.NotNull(kingPiece);
             Assert.IsType<King>(kingPiece);
-            King whiteKing = (King)kingPiece;
-
-            IEnumerable<Move> kingMoves = whiteKing.GetMoves(new Position(7, 4), board);
+            King whiteKing = (King)kingPiece!;
 
             // Act
-            Move? castleMoveKS = kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS);
+            IEnumerable<Move> kingMoves = whiteKing.GetMoves(new Position(7, 4), board);
 
             // Assert
-            Assert.Null(castleMoveKS);
+            Assert.Null(kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS));
         }
 
-        // Testfall: Keine Rochade, wenn König im Schach steht
+        // Testfall: Verhindert die Rochade, wenn der König im Schach steht.
         [Fact]
         public void NoCastlingIfKingIsInCheck()
         {
-            // Arrange
+            // Arrange: Stellt eine Schachsituation her.
             Board board = Board.Initial();
-            board[new Position(7, 5)] = null; // f1 frei
-            board[new Position(7, 6)] = null; // g1 frei
-            board[new Position(6, 4)] = null; // e2 Bauer weg
-            board[new Position(5, 4)] = new Rook(Player.Black); // Schwarzer Turm auf e3 setzt König auf e1 Schach
-
-            Piece? kingPiece = board[new Position(7, 4)]; // e1
-            Assert.NotNull(kingPiece);
-            Assert.IsType<King>(kingPiece);
-            King whiteKing = (King)kingPiece;
-
+            board[new Position(7, 5)] = null;
+            board[new Position(7, 6)] = null;
+            board[new Position(6, 4)] = null;
+            board[new Position(5, 4)] = new Rook(Player.Black);
             Assert.True(board.IsInCheck(Player.White));
 
             // Act
+            Piece? kingPiece = board[new Position(7, 4)];
+            Assert.IsType<King>(kingPiece);
+            King whiteKing = (King)kingPiece!;
             IEnumerable<Move> kingMoves = whiteKing.GetMoves(new Position(7, 4), board);
-            Move? castleMoveKS = kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS && m.IsLegal(board));
 
             // Assert
-            Assert.Null(castleMoveKS);
+            Assert.Null(kingMoves.FirstOrDefault(m => m.Type == MoveType.CastleKS && m.IsLegal(board)));
         }
     }
 }

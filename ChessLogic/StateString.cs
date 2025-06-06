@@ -27,7 +27,7 @@ namespace ChessLogic
             sb.Append(' ');
             AddCastlingRights(board); // 3. Verfügbare Rochaderechte.
             sb.Append(' ');
-            AddEnPassant(board, currentPlayer, lastMoveForEPContext); // 4. Mögliches En-Passant-Zielfeld.
+            AddEnPassant(board, lastMoveForEPContext); // 4. Mögliches En-Passant-Zielfeld.
 
             if (includeMoveCounts)
             {
@@ -131,70 +131,24 @@ namespace ChessLogic
         }
 
         // Fügt das mögliche En-Passant-Zielfeld zum FEN-String hinzu.
-        // Das Feld wird in algebraischer Notation angegeben (z.B. "e3").
-        // Ist kein En-Passant-Schlag möglich, wird '-' angehängt.
-        // `currentPlayer` ist der Spieler, der *jetzt* am Zug ist und potenziell En Passant schlagen könnte.
-        // `lastMoveForEPContext` ist der unmittelbar vorhergegangene Zug des Gegners.
-        private void AddEnPassant(Board board, Player currentPlayer, Move? lastMoveForEPContext)
+        private void AddEnPassant(Board board, Move? lastMoveForEPContext)
         {
-            Position? enPassantSquareForFen = null;
-
-            // En Passant ist nur möglich, wenn der *Gegner* (`currentPlayer.Opponent()`)
-            // im vorherigen Zug einen Bauern-Doppelschritt gemacht hat.
-            if (lastMoveForEPContext is DoublePawn dpMove)
+            // Wenn der letzte Zug kein Bauern-Doppelschritt war, gibt es kein En-Passant-Feld.
+            if (lastMoveForEPContext is not DoublePawn dpMove)
             {
-                Piece? pawnThatMadeDoubleMove = board[dpMove.ToPos]; // Der Bauer nach seinem Doppelschritt.
-                if (pawnThatMadeDoubleMove != null && pawnThatMadeDoubleMove.Color == currentPlayer.Opponent())
-                {
-                    // Das übersprungene Feld ist das potenzielle En-Passant-Zielfeld.
-                    Position skippedSquare = new Position((dpMove.FromPos.Row + dpMove.ToPos.Row) / 2, dpMove.FromPos.Column);
-
-                    // Prüfe, ob der `currentPlayer` einen Bauern hat, der dieses `skippedSquare` En Passant schlagen kann.
-                    // Linker Angreifer für `currentPlayer`:
-                    Position leftAttackerPos = new Position(dpMove.ToPos.Row, dpMove.ToPos.Column - 1);
-                    if (Board.IsInside(leftAttackerPos) &&
-                        board[leftAttackerPos]?.Type == PieceType.Pawn &&
-                        board[leftAttackerPos]?.Color == currentPlayer)
-                    {
-                        // Simuliere den En-Passant-Zug und prüfe, ob er legal ist (kein Selbstschach).
-                        EnPassant epMoveTest = new EnPassant(leftAttackerPos, skippedSquare);
-                        if (epMoveTest.IsLegal(board))
-                        {
-                            enPassantSquareForFen = skippedSquare;
-                        }
-                    }
-
-                    // Rechter Angreifer für `currentPlayer` (nur prüfen, wenn links keiner gefunden/legal war):
-                    if (enPassantSquareForFen == null)
-                    {
-                        Position rightAttackerPos = new Position(dpMove.ToPos.Row, dpMove.ToPos.Column + 1);
-                        if (Board.IsInside(rightAttackerPos) &&
-                            board[rightAttackerPos]?.Type == PieceType.Pawn &&
-                            board[rightAttackerPos]?.Color == currentPlayer)
-                        {
-                            EnPassant epMoveTest = new EnPassant(rightAttackerPos, skippedSquare);
-                            if (epMoveTest.IsLegal(board))
-                            {
-                                enPassantSquareForFen = skippedSquare;
-                            }
-                        }
-                    }
-                }
+                sb.Append('-');
+                return;
             }
 
-            if (enPassantSquareForFen == null)
-            {
-                sb.Append('-'); // Kein En-Passant möglich.
-            }
-            else
-            {
-                // Konvertiert die 0-basierte Position in algebraische Notation (z.B. "e3").
-                char file = (char)('a' + enPassantSquareForFen.Column);
-                int rank = 8 - enPassantSquareForFen.Row; // FEN-Rang ist 1-8 von unten nach oben.
-                sb.Append(file);
-                sb.Append(rank);
-            }
+            // Das En-Passant-Feld ist das Feld, das vom Bauern übersprungen wurde.
+            // Die FEN-Notation erfordert dieses Feld, unabhängig davon, ob ein Schlag tatsächlich möglich ist.
+            Position skippedSquare = new Position((dpMove.FromPos.Row + dpMove.ToPos.Row) / 2, dpMove.FromPos.Column);
+            char file = (char)('a' + skippedSquare.Column);
+            int rank = 8 - skippedSquare.Row;
+            sb.Append(file);
+            sb.Append(rank);
         }
+
 
         // Fügt den Halbzugzähler zum FEN-String hinzu (Anzahl der Halbzüge seit dem letzten Bauernzug oder Schlagzug).
         // Wird für die 50-Züge-Regel verwendet.

@@ -1,111 +1,107 @@
-﻿using Xunit;
-using ChessLogic;
-using ChessLogic.Utilities;
-using System.Linq;
+﻿using ChessLogic.Utilities;
 using System.Collections.Generic;
+using System.Linq;
+using Xunit;
 
 namespace ChessLogic.Tests
 {
+    // Testklasse für die Funktionalität der Läufer-Figur.
     public class BishopTests
     {
+        // Testfall: Überprüft die maximale Bewegungsreichweite eines Läufers auf einem leeren Brett von der Mitte aus.
         [Fact]
-        public void BishopOnEmptyBoardFromCenterHasUpTo13Moves() // Max ist 13 (c3,c6,f3,f6 -> 7+7+9+9 min-Diagonalen 7, max-Diagonalen 13)
+        public void BishopOnEmptyBoardFromCenterHasUpTo13Moves()
         {
-            // Arrange
+            // Arrange: Initialisiert ein leeres Brett und platziert einen Läufer in der Mitte.
             Board board = new Board();
             Bishop bishop = new Bishop(Player.White);
             Position bishopPos = new Position(3, 3); // d5
             board[bishopPos] = bishop;
 
-            // Act
+            // Act: Ruft die möglichen Züge für den Läufer ab.
             IEnumerable<Move> moves = bishop.GetMoves(bishopPos, board);
 
-            // Assert
+            // Assert: Stellt sicher, dass die Anzahl der Züge der erwarteten maximalen Anzahl entspricht.
             Assert.Equal(13, moves.Count());
         }
 
+        // Testfall: Überprüft die Bewegungsreichweite eines Läufers von einer Ecke des Bretts.
         [Fact]
         public void BishopOnEmptyBoardFromA1Has7Moves()
         {
-            // Arrange
+            // Arrange: Platziert einen Läufer auf dem Feld a1.
             Board board = new Board();
             Bishop bishop = new Bishop(Player.White);
             Position bishopPos = new Position(7, 0); // a1
             board[bishopPos] = bishop;
 
-            // Act
+            // Act: Ruft die möglichen Züge ab.
             IEnumerable<Move> moves = bishop.GetMoves(bishopPos, board);
 
-            // Assert
-            Assert.Equal(7, moves.Count()); // Diagonale a1-h8
+            // Assert: Stellt sicher, dass von der Ecke aus 7 Züge möglich sind.
+            Assert.Equal(7, moves.Count());
         }
 
+        // Testfall: Stellt sicher, dass ein Läufer durch Figuren der eigenen Farbe blockiert wird.
         [Fact]
         public void BishopIsBlockedByOwnPieces()
         {
-            // Arrange
+            // Arrange: Platziert einen Läufer und blockierende Figuren der eigenen Farbe.
             Board board = new Board();
             Bishop whiteBishop = new Bishop(Player.White);
-            Position bishopPos = new Position(3, 3); // d5
+            Position bishopPos = new Position(3, 3);
             board[bishopPos] = whiteBishop;
-            board[new Position(1, 1)] = new Pawn(Player.White); // Eigener Bauer auf b7 (blockiert NordWest)
-            board[new Position(5, 5)] = new Pawn(Player.White); // Eigener Bauer auf f3 (blockiert SüdOst)
+            board[new Position(1, 1)] = new Pawn(Player.White);
+            board[new Position(5, 5)] = new Pawn(Player.White);
 
-            // Act
+            // Act: Ruft die möglichen Züge ab.
             IEnumerable<Move> moves = whiteBishop.GetMoves(bishopPos, board);
 
-            // Assert
-            // Von d5: NW-Diagonale (c6,b7) -> b7 ist Blocker, nur c6 ist frei (1 Zug)
-            // Von d5: NE-Diagonale (e6,f7,g8) -> (3 Züge)
-            // Von d5: SW-Diagonale (c4,b3,a2) -> (3 Züge)
-            // Von d5: SO-Diagonale (e4,f3) -> f3 ist Blocker, nur e4 ist frei (1 Zug)
-            // Total = 1 + 3 + 3 + 1 = 8
+            // Assert: Die Anzahl der Züge ist durch die Blockaden reduziert.
             Assert.Equal(8, moves.Count());
-            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(0, 0))); // a8 nicht erreichbar
-            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(6, 6))); // g2 nicht erreichbar
+            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(0, 0)));
+            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(6, 6)));
         }
 
+        // Testfall: Überprüft, ob ein Läufer eine gegnerische Figur schlagen kann und dahinter blockiert wird.
         [Fact]
         public void BishopCanCaptureOpponentAndIsBlocked()
         {
-            // Arrange
+            // Arrange: Platziert einen Läufer, eine schlagbare gegnerische Figur und eine blockierende eigene Figur.
             Board board = new Board();
             Bishop whiteBishop = new Bishop(Player.White);
-            Position bishopPos = new Position(3, 3); // d5
+            Position bishopPos = new Position(3, 3);
             board[bishopPos] = whiteBishop;
-            board[new Position(1, 1)] = new Pawn(Player.Black); // Gegnerischer Bauer auf b7 (kann geschlagen werden)
-            board[new Position(5, 5)] = new Pawn(Player.White); // Eigener Bauer auf f3 (blockiert)
+            board[new Position(1, 1)] = new Pawn(Player.Black);
+            board[new Position(5, 5)] = new Pawn(Player.White);
 
-            // Act
+            // Act: Ruft die möglichen Züge ab.
             IEnumerable<Move> moves = whiteBishop.GetMoves(bishopPos, board);
 
-            // Assert
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(1, 1))); // Schlag auf b7
-            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(0, 0))); // a8 nicht erreichbar (hinter b7)
-            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(6, 6))); // g2 nicht erreichbar
-            // Von d5: NW-Diagonale (c6,b7) -> b7 ist Schlag (2 Züge)
-            // Von d5: NE-Diagonale (e6,f7,g8) -> (3 Züge)
-            // Von d5: SW-Diagonale (c4,b3,a2) -> (3 Züge)
-            // Von d5: SO-Diagonale (e4,f3) -> f3 ist Blocker, nur e4 ist frei (1 Zug)
-            // Total = 2 + 3 + 3 + 1 = 9
+            // Assert: Der Schlagzug ist enthalten, aber Züge hinter der geschlagenen Figur sind es nicht.
             Assert.Equal(9, moves.Count());
+            Assert.Contains(moves, m => m.ToPos.Equals(new Position(1, 1)));
+            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(0, 0)));
+            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(6, 6)));
         }
+
+        // Testfall: Testet, ob die Methode zur Erkennung eines Königsangriffs korrekt funktioniert.
         [Fact]
         public void BishopCanCaptureOpponentKing()
         {
-            // Arrange
+            // Arrange: Positioniert einen Läufer so, dass er den gegnerischen König bedroht.
             Board board = new Board();
             Bishop whiteBishop = new Bishop(Player.White);
             King blackKing = new King(Player.Black);
-            Position bishopPos = new Position(2, 2); // c6
-            Position kingPos = new Position(5, 5);   // f3
+            Position bishopPos = new Position(2, 2);
+            Position kingPos = new Position(5, 5);
             board[bishopPos] = whiteBishop;
             board[kingPos] = blackKing;
 
-            // Act
+            // Act: Prüft, ob der Läufer den König schlagen kann.
             bool canCaptureKing = whiteBishop.CanCaptureOpponentKing(bishopPos, board);
 
-            // Assert
+            // Assert: Die Methode sollte true zurückgeben.
             Assert.True(canCaptureKing);
         }
     }

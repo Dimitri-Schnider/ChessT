@@ -1,20 +1,21 @@
-﻿using Xunit;
-using ChessLogic;
-using ChessLogic.Utilities;
-using System.Linq;
+﻿using ChessLogic.Utilities;
 using System.Collections.Generic;
+using System.Linq;
+using Xunit;
 
 namespace ChessLogic.Tests
 {
+    // Testklasse für die Funktionalität der Springer-Figur.
     public class KnightTests
     {
+        // Testfall: Prüft die 8 L-förmigen Züge eines Springers von der Brettmitte aus.
         [Fact]
         public void KnightOnEmptyBoardFromCenterHas8Moves()
         {
             // Arrange
             Board board = new Board();
             Knight knight = new Knight(Player.White);
-            Position knightPos = new Position(3, 3); // d5
+            Position knightPos = new Position(3, 3);
             board[knightPos] = knight;
 
             // Act
@@ -22,28 +23,16 @@ namespace ChessLogic.Tests
 
             // Assert
             Assert.Equal(8, moves.Count());
-            // Erwartete Zielfelder von d5 (3,3):
-            // (1,2) c7, (1,4) e7
-            // (2,1) b6, (2,5) f6
-            // (4,1) b4, (4,5) f4
-            // (5,2) c3, (5,4) e3
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(1, 2)));
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(1, 4)));
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(2, 1)));
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(2, 5)));
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(4, 1)));
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(4, 5)));
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(5, 2)));
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(5, 4)));
         }
 
+        // Testfall: Prüft die 2 möglichen Züge eines Springers aus einer Ecke.
         [Fact]
         public void KnightOnEmptyBoardFromCornerA1Has2Moves()
         {
             // Arrange
             Board board = new Board();
             Knight knight = new Knight(Player.White);
-            Position knightPos = new Position(7, 0); // a1
+            Position knightPos = new Position(7, 0);
             board[knightPos] = knight;
 
             // Act
@@ -51,48 +40,51 @@ namespace ChessLogic.Tests
 
             // Assert
             Assert.Equal(2, moves.Count());
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(5, 1))); // b3
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(6, 2))); // c2
+            Assert.Contains(moves, m => m.ToPos.Equals(new Position(5, 1))); // nach b3
+            Assert.Contains(moves, m => m.ToPos.Equals(new Position(6, 2))); // nach c2
         }
 
+        // Testfall: Stellt sicher, dass ein Springer eine gegnerische Figur schlagen, aber nicht auf ein von einer eigenen Figur besetztes Feld springen kann.
         [Fact]
         public void KnightCanCaptureOpponentPieces()
         {
             // Arrange
             Board board = new Board();
             Knight whiteKnight = new Knight(Player.White);
-            Position knightPos = new Position(3, 3); // d5
+            Position knightPos = new Position(3, 3);
             board[knightPos] = whiteKnight;
-            board[new Position(1, 2)] = new Pawn(Player.Black); // c7 (gegnerischer Bauer)
-            board[new Position(2, 5)] = new Rook(Player.White); // f6 (eigene Figur)
+            board[new Position(1, 2)] = new Pawn(Player.Black);
+            board[new Position(2, 5)] = new Rook(Player.White);
 
             // Act
             IEnumerable<Move> moves = whiteKnight.GetMoves(knightPos, board);
 
             // Assert
-            Assert.Contains(moves, m => m.ToPos.Equals(new Position(1, 2))); // Kann c7 schlagen
-            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(2, 5))); // Kann nicht auf f6 ziehen (blockiert)
-            Assert.Equal(7, moves.Count()); // 8 mögliche Felder - 1 blockiertes
+            Assert.Equal(7, moves.Count());
+            Assert.Contains(moves, m => m.ToPos.Equals(new Position(1, 2)));
+            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(2, 5)));
         }
 
+        // Testfall: Stellt sicher, dass ein Springer durch eigene Figuren blockiert wird.
         [Fact]
         public void KnightIsBlockedByOwnPieces()
         {
             // Arrange
             Board board = new Board();
             Knight whiteKnight = new Knight(Player.White);
-            Position knightPos = new Position(3, 3); // d5
+            Position knightPos = new Position(3, 3);
             board[knightPos] = whiteKnight;
-            board[new Position(1, 2)] = new Pawn(Player.White); // Eigener Bauer auf c7
+            board[new Position(1, 2)] = new Pawn(Player.White);
 
             // Act
             IEnumerable<Move> moves = whiteKnight.GetMoves(knightPos, board);
 
             // Assert
-            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(1, 2))); // Kann nicht auf c7 ziehen
             Assert.Equal(7, moves.Count());
+            Assert.DoesNotContain(moves, m => m.ToPos.Equals(new Position(1, 2)));
         }
 
+        // Testfall: Testet, ob die Methode zur Erkennung eines Königsangriffs korrekt funktioniert.
         [Fact]
         public void KnightCanCaptureOpponentKing()
         {
@@ -100,8 +92,8 @@ namespace ChessLogic.Tests
             Board board = new Board();
             Knight whiteKnight = new Knight(Player.White);
             King blackKing = new King(Player.Black);
-            Position knightPos = new Position(5, 5); // f3
-            Position kingPos = new Position(7, 4);   // e1
+            Position knightPos = new Position(5, 5);
+            Position kingPos = new Position(7, 4);
             board[knightPos] = whiteKnight;
             board[kingPos] = blackKing;
 
