@@ -53,6 +53,7 @@ namespace ChessClient.Pages
         private bool _isAwaitingTurnConfirmationAfterCard;
         private bool _showMobilePlayedCardsHistory;
         private bool _isAwaitingSacrificePawnSelection;
+        private bool _isGameActiveForLeaveWarning;
 
         private CardDto? _activeCardForBoardSelectionProcess;
 
@@ -90,6 +91,9 @@ namespace ChessClient.Pages
             if (GameOrchestrationService == null!) throw new InvalidOperationException($"Dienst {nameof(GameOrchestrationService)} nicht injiziert.");
             if (Logger == null!) throw new InvalidOperationException($"Dienst {nameof(Logger)} nicht injiziert.");
 
+            // Listener für Seiten-Verlassen-Warnung hinzufügen
+            await JSRuntime.InvokeVoidAsync("navigationInterop.addBeforeUnloadListener");
+
             SubscribeToStateChanges();
             HubService.OnTurnChanged += HandleHubTurnChangedWrapper; 
             HubService.OnTimeUpdate += HandleHubTimeUpdate;
@@ -107,6 +111,17 @@ namespace ChessClient.Pages
             ModalService.ShowJoinGameModalRequested += OpenJoinGameModalHandler;
             RegisterCardEventHandlers();
             await InitializePageBasedOnUrl();
+        }
+
+        // Steuert das Flag für die Warnung
+        private async Task UpdateGameActiveStateForLeaveWarning(bool isActive)
+        {
+            if (_isGameActiveForLeaveWarning == isActive || JSRuntime == null)
+            {
+                return;
+            }
+            _isGameActiveForLeaveWarning = isActive;
+            await JSRuntime.InvokeVoidAsync("navigationInterop.setGameActiveState", isActive);
         }
 
         private void HandleReceiveInitialHand(InitialHandDto initialHandDto)
@@ -459,6 +474,7 @@ namespace ChessClient.Pages
                 {
                     ModalState.OpenInviteLinkModal(InviteLink);
                 }
+                await UpdateGameActiveStateForLeaveWarning(true);
             }
             else
             {
@@ -585,6 +601,7 @@ namespace ChessClient.Pages
                 GameCoreState.SetOpponentJoined(true);
                 _ = UiState.SetCurrentInfoMessageForBoxAsync(string.Format(CultureInfo.CurrentCulture, "Spieler '{0}' ist beigetreten. Das Spiel kann beginnen!", playerNameJoining));
                 MyMainLayout?.SetCanDownloadGameHistory(true);
+                await UpdateGameActiveStateForLeaveWarning(true);
             }
             else
             {
@@ -739,6 +756,7 @@ namespace ChessClient.Pages
                 bool amIMatt = false;
                 if (statusForNextPlayer == GameStatusDto.Checkmate)
                 {
+                    await UpdateGameActiveStateForLeaveWarning(false);
                     if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer) { GameCoreState.SetEndGameMessage("Schachmatt! Du hast verloren."); amIMatt = true; }
                     else if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor != nextPlayer)
                     {
@@ -751,6 +769,7 @@ namespace ChessClient.Pages
                 }
                 else if (statusForNextPlayer == GameStatusDto.TimeOut)
                 {
+                    await UpdateGameActiveStateForLeaveWarning(false);
                     if (GameCoreState.CurrentPlayerInfo != null && GameCoreState.MyColor == nextPlayer)
                     {
                         GameCoreState.SetEndGameMessage("Zeit abgelaufen! Du hast gewonnen!");
@@ -825,16 +844,19 @@ namespace ChessClient.Pages
                 if (status == GameStatusDto.Stalemate)
                 {
                     GameCoreState.SetEndGameMessage("Patt! Unentschieden.");
+                    await UpdateGameActiveStateForLeaveWarning(false);
                 }
                 else if (status is GameStatusDto.Draw50MoveRule or GameStatusDto.DrawInsufficientMaterial or GameStatusDto.DrawThreefoldRepetition)
                 {
                     GameCoreState.SetEndGameMessage("Unentschieden!");
+                    await UpdateGameActiveStateForLeaveWarning(false);
                 }
             }
         }
 
-        private void StartNewGameFromEndGame()
+        private async Task StartNewGameFromEndGame()
         {
+            await UpdateGameActiveStateForLeaveWarning(false);
             NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
         }
 
@@ -1785,7 +1807,14 @@ namespace ChessClient.Pages
         }
 
         public async ValueTask DisposeAsync()
-        {
+        {   
+            // Listener und Flag beim Verlassen der Komponente zurücksetzen
+            if (JSRuntime != null)
+            {
+                await JSRuntime.InvokeVoidAsync("navigationInterop.setGameActiveState", false);
+                await JSRuntime.InvokeVoidAsync("navigationInterop.removeBeforeUnloadListener");
+            }
+
             UnsubscribeFromStateChanges();
             HubService.OnTurnChanged -= HandleHubTurnChangedWrapper;
             HubService.OnTimeUpdate -= HandleHubTimeUpdate;
