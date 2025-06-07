@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: [SolutionDir]\ChessClient\State\AnimationState.cs
+using System;
 using ChessNetwork.DTOs;
 
 namespace ChessClient.State
@@ -11,14 +12,21 @@ namespace ChessClient.State
         public bool IsCardActivationAnimating { get; private set; }
         public CardDto? CardForAnimation { get; private set; }
         public bool IsOwnCardForAnimation { get; private set; }
-
         public bool IsCardSwapAnimating { get; private set; }
         public CardDto? CardGivenForSwap { get; private set; }
         public CardDto? CardReceivedForSwap { get; private set; }
 
+        // NEU: Implementierung
+        public CardDto? LastAnimatedCard { get; private set; }
 
         public AnimationState()
         {
+        }
+
+        // NEU: Implementierung
+        public void SetLastAnimatedCard(CardDto card)
+        {
+            LastAnimatedCard = card;
         }
 
         public void StartCardActivationAnimation(CardDto card, bool isOwnCard)
@@ -32,6 +40,7 @@ namespace ChessClient.State
         public void FinishCardActivationAnimation()
         {
             IsCardActivationAnimating = false;
+            LastAnimatedCard = null; // Zurücksetzen nach Abschluss
             OnStateChanged();
         }
 

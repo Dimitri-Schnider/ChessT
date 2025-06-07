@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: [SolutionDir]\ChessClient\State\IAnimationState.cs
+using System;
 using ChessNetwork.DTOs;
 
 namespace ChessClient.State
@@ -10,10 +11,13 @@ namespace ChessClient.State
         CardDto? CardForAnimation { get; }
         bool IsOwnCardForAnimation { get; }
 
+        // NEU: Hinzugefügt
+        CardDto? LastAnimatedCard { get; }
+        void SetLastAnimatedCard(CardDto card);
+
         void StartCardActivationAnimation(CardDto card, bool isOwnCard);
         void FinishCardActivationAnimation();
 
-        // Für Kartentausch Animation
         bool IsCardSwapAnimating { get; }
         CardDto? CardGivenForSwap { get; }
         CardDto? CardReceivedForSwap { get; }

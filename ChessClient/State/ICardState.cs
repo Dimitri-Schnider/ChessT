@@ -1,6 +1,10 @@
 ﻿using ChessNetwork.DTOs;
 using ChessNetwork;
 using ChessClient.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using ChessLogic;
 
 namespace ChessClient.State
 {
@@ -15,7 +19,15 @@ namespace ChessClient.State
         List<PlayedCardInfo> OpponentPlayedCardsForHistory { get; }
         bool IsPreviewingPlayedCard { get; }
         Guid? SelectedCardInstanceIdInHand { get; }
-        bool AreCardsRevealed { get; } 
+        bool AreCardsRevealed { get; }
+
+        // NEUE Properties für den Aktivierungsprozess
+        CardDto? ActiveCardForBoardSelection { get; }
+        bool IsAwaitingRebirthTargetSquareSelection { get; }
+        string? FirstSquareSelectedForTeleportOrSwap { get; }
+        bool IsAwaitingSacrificePawnSelection { get; }
+        PieceType? PieceTypeSelectedForRebirth { get; }
+        bool IsAwaitingTurnConfirmation { get; }
 
         CardDto? GetCardDefinitionById(string cardTypeId);
         void SetInitialHand(InitialHandDto initialHandDto);
@@ -36,5 +48,13 @@ namespace ChessClient.State
         Task LoadCapturedPiecesForRebirthAsync(Guid gameId, Guid playerId, IGameSession gameSession);
         void ClearCapturedPiecesForRebirth();
         void UpdateHandAndDrawPile(InitialHandDto newHandInfo);
+
+        // NEUE Methoden zur Zustandsverwaltung
+        void StartCardActivation(CardDto card);
+        void ResetCardActivationState(bool fromCancel, string? messageToKeep = null);
+        void SetAwaitingRebirthTargetSquareSelection(PieceType pieceType);
+        void SetFirstSquareForTeleportOrSwap(string square);
+        void SetAwaitingSacrificePawnSelection(bool isAwaiting);
+        void SetAwaitingTurnConfirmation(bool isAwaiting);
     }
 }

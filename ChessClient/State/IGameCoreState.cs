@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: [SolutionDir]\ChessClient\State\IGameCoreState.cs
+using System;
 using System.Collections.Generic;
 using ChessLogic;
 using ChessNetwork.DTOs;
@@ -22,9 +23,15 @@ namespace ChessClient.State
         string WhiteTimeDisplay { get; }
         string BlackTimeDisplay { get; }
         bool IsPvCGame { get; }
-        bool IsGameRunning { get; } 
+        bool IsGameRunning { get; }
 
-        void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes, string opponentTypeString); 
+        // NEU: Hinzugefügt für Extrazug-Logik
+        bool IsExtraTurnSequenceActive { get; }
+        int ExtraTurnMovesMade { get; }
+        void SetExtraTurnSequenceActive(bool isActive);
+        void IncrementExtraTurnMovesMade();
+
+        void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes, string opponentTypeString);
         void InitializeJoinedGame(JoinGameResultDto result, Guid gameId, Player assignedColor);
         void SetGameIdFromQuery(string? gameIdQuery, bool isValidAndExists);
         void UpdatePlayerNames(Dictionary<Player, string> names);
