@@ -11,6 +11,7 @@ namespace ChessClient.State
         bool IsConnecting { get; }
         bool IsCountdownVisible { get; }
         string CountdownMessage { get; }
+        bool IsCreatingGame { get; }
 
         bool InfoBoxShowActionButton { get; }
         string InfoBoxActionButtonText { get; }
@@ -22,5 +23,6 @@ namespace ChessClient.State
         void SetIsConnecting(bool isConnecting);
         void ShowCountdown(string message);
         void HideCountdown();
+        void SetIsCreatingGame(bool isCreating);
     }
 }

@@ -52,7 +52,8 @@ namespace ChessClient.Services
             _configuration = configuration;
         }
 
-        public async Task<(bool Success, Guid GameId)> CreateNewGameAsync(CreateGameParameters args)
+        // Die Logik wurde in zwei Methoden aufgeteilt. Diese ist jetzt privat.
+        private async Task<(bool Success, Guid GameId)> CreateNewGameAsync(CreateGameParameters args)
         {
             _gameCoreState.SetGameSpecificDataInitialized(false);
             if (string.IsNullOrWhiteSpace(args.Name))
@@ -87,6 +88,47 @@ namespace ChessClient.Services
                 _uiState.SetErrorMessage($"Fehler beim Erstellen des Spiels: {ex.Message}");
                 return (false, Guid.Empty);
             }
+        }
+
+        // Methode nur für die API-Erstellung
+        public async Task<CreateGameResultDto?> CreateGameOnServerAsync(CreateGameParameters args)
+        {
+            _gameCoreState.SetGameSpecificDataInitialized(false);
+            if (string.IsNullOrWhiteSpace(args.Name))
+            {
+                _uiState.SetErrorMessage("Bitte gib einen Spielernamen ein.");
+                return null;
+            }
+            _uiState.ClearErrorMessage();
+            _uiState.ClearCurrentInfoMessageForBox();
+            _highlightState.ClearAllActionHighlights();
+            try
+            {
+                var createGameDtoForServer = new CreateGameDto
+                {
+                    PlayerName = args.Name,
+                    Color = args.Color,
+                    InitialMinutes = args.TimeMinutes,
+                    OpponentType = args.OpponentType.ToString(),
+                    ComputerDifficulty = args.ComputerDifficulty.ToString()
+                };
+                var result = await _gameService.CreateGameAsync(createGameDtoForServer);
+                _gameCoreState.InitializeNewGame(result, args.Name, result.Color, args.TimeMinutes, args.OpponentType.ToString());
+                _modalState.UpdateCreateGameModalArgs(args.Name, args.Color, args.TimeMinutes);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _uiState.SetErrorMessage($"Fehler beim Erstellen des Spiels: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Methode nur für die Hub-Registrierung
+        public async Task ConnectAndRegisterPlayerToHubAsync(Guid gameId, Guid playerId)
+        {
+            await ConnectAndRegisterToHubAsync(gameId, playerId);
         }
 
         public async Task<(bool Success, Guid GameId)> JoinExistingGameAsync(string name, string gameIdToJoin)
@@ -126,6 +168,7 @@ namespace ChessClient.Services
                 return (false, Guid.Empty);
             }
         }
+
 
         private async Task ConnectAndRegisterToHubAsync(Guid gameId, Guid playerId)
         {

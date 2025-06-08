@@ -36,9 +36,7 @@ namespace ChessClient.Pages
 
         private bool _showMobilePlayedCardsHistory;
         private bool _isGameActiveForLeaveWarning;
-
         private string InviteLink => GameCoreState.GameId == Guid.Empty ? "" : $"{NavManager.BaseUri}chess?gameId={GameCoreState.GameId}";
-
         protected override async Task OnInitializedAsync()
         {
             if (HubSubscriptionService == null!) throw new InvalidOperationException($"Dienst {nameof(HubSubscriptionService)} nicht injiziert.");
@@ -83,15 +81,48 @@ namespace ChessClient.Pages
 
         private async Task SubmitCreateGame(CreateGameParameters args)
         {
-            var (success, gameId) = await GameOrchestrationService.CreateNewGameAsync(args);
-            if (success)
+            // Logik für robustere UI-Aktualisierung
+            ModalState.CloseCreateGameModal();
+            UiState.SetIsCreatingGame(true);
+
+            CreateGameResultDto? createResult = null;
+            try
             {
-                MyMainLayout.UpdateActiveGameId(gameId);
+                // Schritt 1: Spiel auf dem Server erstellen und auf das Ergebnis warten
+                createResult = await GameOrchestrationService.CreateGameOnServerAsync(args);
+
+                // Wenn die Erstellung fehlschlägt, wurde die Fehlermeldung bereits im Service gesetzt.
+                if (createResult is null)
+                {
+                    return; // Beendet die Methode frühzeitig
+                }
+
+                // Schritt 2: Spiel wurde erfolgreich erstellt. Lade-Overlay jetzt ausblenden.
+                UiState.SetIsCreatingGame(false);
+
+                // Schritt 3: Zum Hub verbinden. Dies kann den Countdown für PvC-Spiele auslösen.
+                await GameOrchestrationService.ConnectAndRegisterPlayerToHubAsync(createResult.GameId, createResult.PlayerId);
+
+                // Schritt 4: UI für das erstellte Spiel aktualisieren (z.B. Einladungslink anzeigen)
+                MyMainLayout.UpdateActiveGameId(createResult.GameId);
                 if (!GameCoreState.IsPvCGame)
                 {
                     ModalState.OpenInviteLinkModal(InviteLink);
                 }
                 await UpdateGameActiveStateForLeaveWarning(true);
+            }
+            catch (Exception ex)
+            {
+                // Allgemeine Fehlerbehandlung, falls etwas Unerwartetes passiert.
+                UiState.SetErrorMessage($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
+            }
+            finally
+            {
+                // Stellt sicher, dass der Ladebildschirm auf jeden Fall ausgeblendet wird.
+                if (UiState.IsCreatingGame)
+                {
+                    UiState.SetIsCreatingGame(false);
+                }
             }
         }
 
@@ -113,10 +144,8 @@ namespace ChessClient.Pages
         private async Task HandleSquareClickForCard(string algebraicCoord)
         {
             if (!CardState.IsCardActivationPending || CardState.ActiveCardForBoardSelection == null) return;
-
             string cardId = CardState.ActiveCardForBoardSelection.Id;
             var request = new ActivateCardRequestDto { CardInstanceId = CardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = cardId };
-
             // Logik für die zwei-Klick-Aktionen
             if (cardId is CardConstants.Teleport or CardConstants.Positionstausch)
             {
@@ -154,10 +183,8 @@ namespace ChessClient.Pages
             {
                 // 1. Modal schliessen
                 ModalState.ClosePieceSelectionModal();
-
                 // 2. Den ausgewählten Figurentyp für den weiteren Prozess im State speichern
                 CardState.SetAwaitingRebirthTargetSquareSelection(selectedType);
-
                 // 3. Gültige Zielfelder für die Wiederbelebung berechnen
                 List<string> originalSquares = PieceHelperClient.GetOriginalStartSquares(selectedType, GameCoreState.MyColor);
                 List<string> validTargetSquaresOnBoard = new();
@@ -176,6 +203,7 @@ namespace ChessClient.Pages
                 // 4. Je nach Anzahl der gültigen Felder unterschiedlich reagieren
                 if (validTargetSquaresOnBoard.Count == 0)
                 {
+
                     // Fall A: Keine gültigen Felder -> Aktion fehlschlagen lassen und Server informieren
                     await UiState.SetCurrentInfoMessageForBoxAsync($"Keine freien Ursprungsfelder für {selectedType} verfügbar. Karte verfällt.", true, 4000);
                     var request = new ActivateCardRequestDto { CardInstanceId = CardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType };
@@ -202,7 +230,7 @@ namespace ChessClient.Pages
                         autoClear: false,
                         showActionButton: true,
                         actionButtonText: "Abbrechen",
-                        onActionButtonClicked: new EventCallback(null, () => CardState.ResetCardActivationState(true, "Kartenaktion abgebrochen.")));
+                         onActionButtonClicked: new EventCallback(null, () => CardState.ResetCardActivationState(true, "Kartenaktion abgebrochen.")));
                 }
             }
         }
@@ -263,7 +291,9 @@ namespace ChessClient.Pages
         private string? GetFirstSelectedSquareForCardEffect() => CardState.FirstSquareSelectedForTeleportOrSwap;
         private void ToggleMobilePlayedCardsHistory() => _showMobilePlayedCardsHistory = !_showMobilePlayedCardsHistory;
         private void StartNewGameFromEndGame() => NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
-        private void StateHasChanged() => InvokeAsync(base.StateHasChanged);
+
+        // KORREKTUR: Das 'new'-Schlüsselwort wurde hinzugefügt, um die Warnung CS0108 zu beheben.
+        private new void StateHasChanged() => InvokeAsync(base.StateHasChanged);
 
         private void SubscribeToStateChanges()
         {

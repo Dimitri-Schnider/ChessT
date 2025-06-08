@@ -15,6 +15,7 @@ namespace ChessClient.State
 
         public bool IsCountdownVisible { get; private set; }
         public string CountdownMessage { get; private set; } = "";
+        public bool IsCreatingGame { get; private set; }
 
         public bool InfoBoxShowActionButton { get; private set; }
         public string InfoBoxActionButtonText { get; private set; } = "Abbrechen";
@@ -66,7 +67,6 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
-        // NEUE Methoden
         public void ShowCountdown(string message)
         {
             CountdownMessage = message;
@@ -85,6 +85,12 @@ namespace ChessClient.State
                 CountdownMessage = "";
                 OnStateChanged();
             }
+        }
+        public void SetIsCreatingGame(bool isCreating)
+        {
+            if (IsCreatingGame == isCreating) return;
+            IsCreatingGame = isCreating;
+            OnStateChanged();
         }
     }
 }

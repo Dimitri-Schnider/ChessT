@@ -17,16 +17,31 @@ namespace ChessClient.Pages.Components
         private int InitialTimeMinutes { get; set; } = 15; // Gebundener Wert für die ausgewählte Bedenkzeit.
         private string ModalErrorMessage { get; set; } = ""; // Fehlermeldung für das Modal.
 
+        private bool _isSubmitting;
+
         // NEUE Properties
         private OpponentType SelectedOpponentType { get; set; } = OpponentType.Human;
         private ComputerDifficulty SelectedComputerDifficulty { get; set; } = ComputerDifficulty.Medium;
 
+        // NEU: Methode zum Zurücksetzen des Zustands hinzugefügt
+        protected override void OnParametersSet()
+        {
+            // Wenn das Modal nicht sichtbar ist, stellen wir sicher, dass der "submitting"-Status zurückgesetzt wird.
+            if (!IsVisible)
+            {
+                _isSubmitting = false;
+            }
+        }
+
         // Behandelt den Klick auf den "Spiel erstellen"-Button.
         private async Task HandleCreateGame()
         {
+            _isSubmitting = true;
+
             if (string.IsNullOrWhiteSpace(PlayerName)) // Validierung des Spielernamens.
             {
                 ModalErrorMessage = "Bitte gib einen Spielernamen ein.";
+                _isSubmitting = false;
                 return;
             }
             ModalErrorMessage = ""; // Setzt Fehlermeldung zurück.
@@ -35,8 +50,8 @@ namespace ChessClient.Pages.Components
                 Name = PlayerName,
                 Color = SelectedColor,
                 TimeMinutes = InitialTimeMinutes,
-                OpponentType = SelectedOpponentType, // NEU
-                ComputerDifficulty = SelectedComputerDifficulty // NEU
+                OpponentType = SelectedOpponentType,
+                ComputerDifficulty = SelectedComputerDifficulty
             });
         }
 
@@ -47,16 +62,12 @@ namespace ChessClient.Pages.Components
             SelectedColor = Player.White;
             InitialTimeMinutes = 15;
             ModalErrorMessage = "";
-            SelectedOpponentType = OpponentType.Human; // Reset
-            SelectedComputerDifficulty = ComputerDifficulty.Easy; // Reset
+            SelectedOpponentType = OpponentType.Human;
+            SelectedComputerDifficulty = ComputerDifficulty.Easy;
+
+            _isSubmitting = false;
+
             await OnClose.InvokeAsync(); // Löst das OnClose Event aus.
         }
-
-        // Unverändert, falls noch für andere Zwecke benötigt
-        /*
-        public void FocusPlayerNameInput(IJSRuntime jsRuntime)
-        {
-        }
-        */
     }
 }
