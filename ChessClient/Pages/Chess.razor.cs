@@ -1,9 +1,9 @@
-﻿// File: [SolutionDir]\ChessClient\Pages\Chess.razor.cs
-using Chess.Logging;
+﻿using Chess.Logging;
 using ChessClient.Layout;
 using ChessClient.Models;
 using ChessClient.Services;
 using ChessClient.State;
+using ChessClient.Utils;
 using ChessLogic;
 using ChessNetwork;
 using ChessNetwork.Configuration;
@@ -152,7 +152,58 @@ namespace ChessClient.Pages
             }
             else if (CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection?.Id == CardConstants.Wiedergeburt)
             {
+                // 1. Modal schliessen
+                ModalState.ClosePieceSelectionModal();
+
+                // 2. Den ausgewählten Figurentyp für den weiteren Prozess im State speichern
                 CardState.SetAwaitingRebirthTargetSquareSelection(selectedType);
+
+                // 3. Gültige Zielfelder für die Wiederbelebung berechnen
+                List<string> originalSquares = PieceHelperClient.GetOriginalStartSquares(selectedType, GameCoreState.MyColor);
+                List<string> validTargetSquaresOnBoard = new();
+                if (GameCoreState.BoardDto?.Squares != null)
+                {
+                    foreach (string squareString in originalSquares)
+                    {
+                        (int row, int col) = PositionHelper.ToIndices(squareString);
+                        if (row >= 0 && row < 8 && col >= 0 && col < 8 && GameCoreState.BoardDto.Squares[row][col] == null)
+                        {
+                            validTargetSquaresOnBoard.Add(squareString);
+                        }
+                    }
+                }
+
+                // 4. Je nach Anzahl der gültigen Felder unterschiedlich reagieren
+                if (validTargetSquaresOnBoard.Count == 0)
+                {
+                    // Fall A: Keine gültigen Felder -> Aktion fehlschlagen lassen und Server informieren
+                    await UiState.SetCurrentInfoMessageForBoxAsync($"Keine freien Ursprungsfelder für {selectedType} verfügbar. Karte verfällt.", true, 4000);
+                    var request = new ActivateCardRequestDto { CardInstanceId = CardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType };
+                    if (CardState.ActiveCardForBoardSelection != null)
+                    {
+                        await GameOrchestrationService.FinalizeCardActivationOnServerAsync(request, CardState.ActiveCardForBoardSelection);
+                    }
+                }
+                else if (validTargetSquaresOnBoard.Count == 1)
+                {
+                    // Fall B: Nur ein gültiges Feld -> Aktion sofort ausführen
+                    await UiState.SetCurrentInfoMessageForBoxAsync($"Wiederbelebe {selectedType} auf {validTargetSquaresOnBoard[0]}...", false);
+                    var request = new ActivateCardRequestDto { CardInstanceId = CardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType, TargetRevivalSquare = validTargetSquaresOnBoard[0] };
+                    if (CardState.ActiveCardForBoardSelection != null)
+                    {
+                        await GameOrchestrationService.FinalizeCardActivationOnServerAsync(request, CardState.ActiveCardForBoardSelection);
+                    }
+                }
+                else
+                {
+                    // Fall C: Mehrere gültige Felder -> Benutzer zur Auswahl auffordern
+                    HighlightState.SetCardTargetSquaresForSelection(validTargetSquaresOnBoard);
+                    await UiState.SetCurrentInfoMessageForBoxAsync($"Wähle ein leeres Ursprungsfeld für {selectedType}.",
+                        autoClear: false,
+                        showActionButton: true,
+                        actionButtonText: "Abbrechen",
+                        onActionButtonClicked: new EventCallback(null, () => CardState.ResetCardActivationState(true, "Kartenaktion abgebrochen.")));
+                }
             }
         }
 

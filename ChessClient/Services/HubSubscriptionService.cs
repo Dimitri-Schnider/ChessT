@@ -250,6 +250,27 @@ namespace ChessClient.Services
                 _animationState.StartCardActivationAnimation(cardForAnimation, _gameCoreState.MyColor == playerColorActivating);
                 _ = _uiState.SetCurrentInfoMessageForBoxAsync($"Karte '{cardForAnimation.Name}' wird aktiviert...");
                 _logger.LogGenericCardAnimationStartedForCard(cardForAnimation.Name);
+
+                // NEUE LOGIK HINZUFÜGEN:
+                // Wenn die generische Animation für einen Kartentausch gestartet wurde,
+                // warten wir und starten dann die spezifische Animation.
+                if (cardForAnimation.Id == CardConstants.CardSwap)
+                {
+                    // Warten Sie, bis die generische Animation ungefähr abgeschlossen ist.
+                    // Die Dauer sollte den Animation-Timings in CardActivationAnimation.razor.cs entsprechen
+                    // (z.B. ShowBackDurationMs + FlipAnimDurationMs + GlowVisibleDurationMs)
+                    Task.Delay(2900).ContinueWith(_ =>
+                    {
+                        if (_pendingSwapAnimationDetails != null)
+                        {
+                            _animationState.StartCardSwapAnimation(
+                                _pendingSwapAnimationDetails.CardGiven,
+                                _pendingSwapAnimationDetails.CardReceived
+                            );
+                            _pendingSwapAnimationDetails = null; // Details nach Verwendung löschen
+                        }
+                    });
+                }
             }
         }
 
