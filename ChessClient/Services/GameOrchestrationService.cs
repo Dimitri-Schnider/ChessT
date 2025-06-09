@@ -358,8 +358,26 @@ namespace ChessClient.Services
             }
             else
             {
+                // *** BEGINN DER KORREKTUR ***
+                // Prüfen, ob der Zug bereits durch SignalR verarbeitet wurde.
+                // Dies ist der Fall, wenn die Karte den Zug beenden sollte, aber wir laut State schon wieder dran sind.
+                bool turnAlreadyProcessedBySignalR = result.Success && result.EndsPlayerTurn && _gameCoreState.CurrentTurnPlayer == _gameCoreState.MyColor;
+
+                // Den allgemeinen "Kartenaktivierung läuft"-Status zurücksetzen.
                 _cardState.ResetCardActivationState(!result.Success, result.Success ? $"Karte '{activatedCardDefinition.Name}' erfolgreich aktiviert!" : _uiState.ErrorMessage);
-                _cardState.SetAwaitingTurnConfirmation(result.Success && result.EndsPlayerTurn);
+
+                // JETZT das "Warten auf Zug"-Flag setzen, aber NUR, wenn der Zug nicht bereits verarbeitet wurde.
+                if (turnAlreadyProcessedBySignalR)
+                {
+                    // SignalR war schneller. Der Zug ist schon da. Nicht auf Bestätigung warten.
+                    _cardState.SetAwaitingTurnConfirmation(false);
+                }
+                else
+                {
+                    // Das Flag basierend auf dem HTTP-Ergebnis setzen. SignalR wird es später löschen.
+                    _cardState.SetAwaitingTurnConfirmation(result.Success && result.EndsPlayerTurn);
+                }
+                // *** ENDE DER KORREKTUR ***
             }
         }
 
