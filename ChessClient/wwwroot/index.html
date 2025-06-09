@@ -16,11 +16,13 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="unified-loader-container">
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:1;" alt="Loading card 1" />
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:2;" alt="Loading card 2" />
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:3;" alt="Loading card 3" />
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:4;" alt="Loading card 4" />
+            <div class="loader-text">Loading Game...</div>
+        </div>
     </div>
 
     <div id="blazor-error-ui">

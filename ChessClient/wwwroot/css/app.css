@@ -1,45 +1,52 @@
-/* Globale Schriftart. */
+ï»¿// File: [SolutionDir]\ChessClient\wwwroot\css\app.css
+/* Globale Schriftart.
+*/
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    height: 100%; /* Stellt sicher, dass html und body die volle Viewport-Höhe als Basis haben */
-    margin: 0; /* Entfernt Standard-Browser-Margins */
-    overflow-x: hidden; /* Verhindert horizontales Scrollen global, falls etwas übersteht */
+    height: 100%;
+    /* Stellt sicher, dass html und body die volle Viewport-Hï¿½he als Basis haben */
+    margin: 0;
+    /* Entfernt Standard-Browser-Margins */
+    overflow-x: hidden; /* Verhindert horizontales Scrollen global, falls etwas ï¿½bersteht */
 }
 
-/* Entfernt Fokus-Rahmen von H1. */
+/* Entfernt Fokus-Rahmen von H1.
+*/
 h1:focus {
     outline: none;
 }
 
-/* Standardfarbe für Links. */
+/* Standardfarbe fï¿½r Links. */
 a, .btn-link {
     color: #0071c1;
 }
 
-/* Styling für primäre Buttons. */
+/* Styling fï¿½r primï¿½re Buttons. */
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;
     border-color: #1861ac;
 }
 
-/* Touch-Optimierung für Buttons. */
+/* Touch-Optimierung fï¿½r Buttons.
+*/
 .btn {
     min-width: 44px;
     min-height: 44px;
 }
 
-    /* Fokus-Styling. */
+    /* Fokus-Styling.
+*/
     .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
         box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
     }
 
-/* Standard-Padding für Inhaltsbereiche. */
+/* Standard-Padding fï¿½r Inhaltsbereiche. */
 .content {
     padding-top: 1.1rem;
 }
 
-/* Modal-Hintergrundüberlagerung. */
+/* Modal-Hintergrundï¿½berlagerung. */
 .modal-backdrop {
     position: fixed;
     top: 0;
@@ -51,31 +58,36 @@ a, .btn-link {
 }
 
     .modal-backdrop.show {
-        opacity: 0.65 !important; /* Erhöhe die Deckkraft für stärkere Abdunklung, !important falls nötig */
-        /* background-color: rgba(0, 0, 0, 0.65); /* Du kannst hier auch die Farbe explizit setzen, aber opacity ist meist ausreichend */
+        opacity: 0.65 !important;
+        /* Erhï¿½he die Deckkraft fï¿½r stï¿½rkere Abdunklung, !important falls nï¿½tig */
+        /* background-color: rgba(0, 0, 0, 0.65);
+/* Du kannst hier auch die Farbe explizit setzen, aber opacity ist meist ausreichend */
     }
 
-/* Zeigt das Modal an. */
+/* Zeigt das Modal an.
+*/
 .modal.show {
     display: block;
 }
 
-/* Markierung für gültige, modifizierte Eingabefelder. */
+/* Markierung fï¿½r gï¿½ltige, modifizierte Eingabefelder.
+*/
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }
 
-/* Markierung für ungültige Eingabefelder. */
+/* Markierung fï¿½r ungï¿½ltige Eingabefelder.
+*/
 .invalid {
     outline: 1px solid red;
 }
 
-/* Farbe für Validierungsnachrichten. */
+/* Farbe fï¿½r Validierungsnachrichten. */
 .validation-message {
     color: red;
 }
 
-/* UI für Blazor-Fehleranzeige. */
+/* UI fï¿½r Blazor-Fehleranzeige. */
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;
@@ -90,7 +102,8 @@ a, .btn-link {
     z-index: 1000;
 }
 
-    /* Button zum Schliessen der Blazor-Fehleranzeige. */
+    /* Button zum Schliessen der Blazor-Fehleranzeige.
+*/
     #blazor-error-ui .dismiss {
         cursor: pointer;
         position: absolute;
@@ -98,19 +111,20 @@ a, .btn-link {
         top: 0.5rem;
     }
 
-/* Styling für die Blazor-Fehlergrenze. */
+/* Styling fï¿½r die Blazor-Fehlergrenze. */
 .blazor-error-boundary {
     background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC4xNTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
     padding: 1rem 1rem 1rem 3.7rem;
     color: white;
 }
 
-    /* Textinhalt für die Fehlergrenze. */
+    /* Textinhalt fï¿½r die Fehlergrenze.
+*/
     .blazor-error-boundary::after {
         content: "An error has occurred.";
     }
 
-/* Styling für den Ladefortschrittsbalken. */
+/* Styling fï¿½r den Ladefortschrittsbalken. */
 .loading-progress {
     position: relative;
     display: block;
@@ -119,7 +133,8 @@ a, .btn-link {
     margin: 20vh auto 1rem auto;
 }
 
-    /* Kreise für den Ladefortschritt. */
+    /* Kreise fï¿½r den Ladefortschritt.
+*/
     .loading-progress circle {
         fill: none;
         stroke: #e0e0e0;
@@ -128,14 +143,16 @@ a, .btn-link {
         transform: rotate(-90deg);
     }
 
-        /* Vordergrundkreis, der den Fortschritt anzeigt. */
+        /* Vordergrundkreis, der den Fortschritt anzeigt.
+*/
         .loading-progress circle:last-child {
             stroke: #1b6ec2;
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
 
-/* Text unter dem Ladefortschrittsbalken. */
+/* Text unter dem Ladefortschrittsbalken.
+*/
 .loading-progress-text {
     position: absolute;
     text-align: center;
@@ -148,12 +165,13 @@ a, .btn-link {
         content: var(--blazor-load-percentage-text, "Loading");
     }
 
-/* Farbe für Code-Blöcke. */
+/* Farbe fï¿½r Code-Blï¿½cke. */
 code {
     color: #c02d76;
 }
 
-/* Platzhalter-Styling für schwebende Formular-Labels. */
+/* Platzhalter-Styling fï¿½r schwebende Formular-Labels.
+*/
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
     color: var(--bs-secondary-color);
     text-align: end;
@@ -163,12 +181,13 @@ code {
     text-align: start;
 }
 
-/* Hilfsklasse für Schachbrett-Layout. */
+/* Hilfsklasse fï¿½r Schachbrett-Layout.
+*/
 .rank-row {
     display: contents;
 }
 
-/* Styling für die Sidebar. */
+/* Styling fï¿½r die Sidebar. */
 .sidebar {
     width: 200px;
     border-right: 1px solid #ccc;
@@ -177,9 +196,10 @@ code {
 
 
 
-/* Container für die Timer-Anzeigen. */
+/* Container fï¿½r die Timer-Anzeigen.
+*/
 .timers-container {
-    /*  margin-bottom: 0.75rem;
+    /* margin-bottom: 0.75rem;
     max-width: min(65vh, 600px);*/
     margin-left: 0;
     margin-right: 0;
@@ -187,22 +207,24 @@ code {
     padding-right: 0;
 }
 
-/* Box für einzelne Timer. */
+/* Box fï¿½r einzelne Timer. */
 .timer-box {
-    /*   padding: 0.3rem 0.5rem; */
+    /* padding: 0.3rem 0.5rem;
+*/
     border: 1px solid #ccc;
     border-radius: 4px;
     background-color: #f8f9fa;
 }
 
-/* Anzeige der verbleibenden Zeit. */
-    .time-display {
+/* Anzeige der verbleibenden Zeit.
+*/
+.time-display {
     font-size: 1.2rem;
     font-weight: bold;
     line-height: 1.4;
 }
 
-/* Styling für den aktiven Timer. */
+/* Styling fï¿½r den aktiven Timer. */
 .timer-box.timer-active .time-display {
     color: green;
 }
@@ -212,7 +234,8 @@ code {
     box-shadow: 0 0 5px green;
 }
 
-/* Anpassungen für grössere Bildschirme (Sidebar). */
+/* Anpassungen fï¿½r grï¿½ssere Bildschirme (Sidebar).
+*/
 @media (min-width: 641px) {
     .sidebar {
         width: 250px;
@@ -232,9 +255,11 @@ code {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999; /* Sehr hoch, um über allem zu liegen */
+    z-index: 9999;
+    /* Sehr hoch, um ï¿½ber allem zu liegen */
     color: white;
-    font-size: 15vw; /* Skaliert mit der Fensterbreite */
+    font-size: 15vw;
+    /* Skaliert mit der Fensterbreite */
     font-weight: bold;
     text-shadow: 0 0 20px black;
     animation: fadeIn 0.5s ease-in-out;
@@ -268,7 +293,54 @@ code {
     }
 }
 
-/* Anpassung für Kartenrückseite in der Hand */
+/* Anpassung fï¿½r Kartenrï¿½ckseite in der Hand */
 .card-back-in-hand {
     background-color: transparent;
+}
+
+/* ------ NEU: Einheitliche Ladeanimation ------ */
+.unified-loader-container {
+    width: 120px;
+    height: 120px;
+    position: relative;
+    margin: 20vh auto 1rem auto; /* FÃ¼r index.html */
+}
+
+.loader-card {
+    position: absolute;
+    width: 35px; /* Breite der KartenrÃ¼cken anpassen */
+    height: auto;
+    left: 50%;
+    bottom: 0;
+    transform-origin: bottom center;
+    /* --- GEÃ„NDERT: Animationsdauer angepasst --- */
+    animation: swing-and-fan 1.25s ease-in-out infinite;
+    animation-delay: calc(0.15s * var(--i));
+}
+
+.loader-text {
+    position: absolute;
+    /* --- GEÃ„NDERT: Abstand vergrÃ¶ÃŸert --- */
+    bottom: -45px; /* Text unter der Animation positionieren */
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+    color: #808080; /* Farbe fÃ¼r den Lade-Text, falls im Light-Mode */
+}
+
+/* In einem dunklen Overlay (wie bei "Spiel erstellen") sollte der Text weiss sein. */
+.loading-overlay .loader-text {
+    color: #f0f0f0;
+}
+
+
+@keyframes swing-and-fan {
+    0%, 100% {
+        transform: translateX(-50%) translateY(0) rotate(0deg);
+    }
+
+    50% {
+        /* Bewegt die Karte in einem Bogen nach oben */
+        transform: translateX(calc(-50% + (25px * (var(--i) - 2.5)))) translateY(-60px) rotate(calc(15deg * (var(--i) - 2.5)));
+    }
 }

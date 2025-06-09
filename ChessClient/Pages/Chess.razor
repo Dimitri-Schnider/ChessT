@@ -13,12 +13,16 @@
 @using ChessNetwork.Configuration
 @using ChessClient.State
 
-@* NEU: Lade-Overlay für Spielerstellung *@
 @if (UiState != null && UiState.IsCreatingGame)
 {
     <div class="loading-overlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Erstelle Spiel...</div>
+        <div class="unified-loader-container" style="margin: 0;">
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:1;" alt="Loading card 1" />
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:2;" alt="Loading card 2" />
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:3;" alt="Loading card 3" />
+            <img src="img/card-back-loader.png" class="loader-card" style="--i:4;" alt="Loading card 4" />
+            <div class="loader-text">Erstelle Spiel...</div>
+        </div>
     </div>
 }
 
@@ -27,7 +31,8 @@
     <div class="game-start-countdown-overlay">
         <div class="countdown-content">
             @UiState.CountdownMessage
-        </div>
+      
+  </div>
     </div>
 }
 
@@ -37,7 +42,8 @@
         <TimersDisplay WhiteTimeDisplay="@GameCoreState.WhiteTimeDisplay"
                        BlackTimeDisplay="@GameCoreState.BlackTimeDisplay"
                        CurrentTurnPlayer="@GameCoreState.CurrentTurnPlayer"
-                       PlayerNames="@GameCoreState.PlayerNames"
+                      
+ PlayerNames="@GameCoreState.PlayerNames"
                        EndGameMessage="@GameCoreState.EndGameMessage" />
     </div>
 }
@@ -48,11 +54,13 @@
         <div class="chessboard-column">
                @if (UiState != null)
             {
-                <InfoBox Message="@(UiState.CurrentInfoMessageForBox ?? string.Empty)" 
+                <InfoBox Message="@(UiState.CurrentInfoMessageForBox ??
+string.Empty)" 
                          AutoHide="@(!UiState.InfoBoxShowActionButton)" 
                          ShowActionButton="@UiState.InfoBoxShowActionButton"
                          ActionButtonText="@UiState.InfoBoxActionButtonText"
-                         OnActionButtonClicked="@UiState.InfoBoxOnActionButtonClicked" />
+                       
+  OnActionButtonClicked="@UiState.InfoBoxOnActionButtonClicked" />
 
                 <InfoBox Message="@(UiState.IsConnecting ? "Verbinde mit SignalR Hub..." : string.Empty)" AutoHide="false" />
             }
@@ -63,68 +71,82 @@
             }
 
  
+
              @if (UiState != null && !string.IsNullOrEmpty(UiState.ErrorMessage))
             {
                 <div class="alert alert-danger mt-2 mx-auto" role="alert" style="max-width: 600px;">@UiState.ErrorMessage</div>
             }
 
-            @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo == null && string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) && ModalState != null && !ModalState.ShowCreateGameModal && !ModalState.ShowJoinGameModal && UiState != null && !UiState.IsCreatingGame)
+            @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo == null && string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) && ModalState != null && !ModalState.ShowCreateGameModal && !ModalState.ShowJoinGameModal && UiState != null && 
+!UiState.IsCreatingGame)
              {
                 <div class="alert alert-info mt-2 mx-auto" style="max-width: 600px;">
                     Bitte erstelle ein neues Spiel oder tritt einem Spiel über das Menü (links) bei.
-                </div>
+</div>
             }
             else if (GameCoreState != null && GameCoreState.CurrentPlayerInfo == null && !string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) && GameCoreState.IsGameIdFromQueryValidAndExists && ModalState != null && !ModalState.ShowJoinGameModal)
             {
                 <div class="alert alert-success mt-2 mx-auto" style="max-width: 600px;">
-                    Spiel-ID <strong>@(ModalState.GameIdInputForJoinModal)</strong> aus Link geladen.
+                    Spiel-ID <strong>@(ModalState.GameIdInputForJoinModal)</strong> aus Link 
+geladen.
                     Bitte gib deinen Namen ein und klicke auf "Beitreten" im Join-Game Modal.
-                </div>
+</div>
             }
             <div class="chessboard-container">
                 @if (GameCoreState != null && GameCoreState.BoardDto != null && GameCoreState.CurrentPlayerInfo != null && CardState != null && HighlightState != null)
                 {
                     <ChessBoard GameId="@GameCoreState.GameId"
-                                Board="@GameCoreState.BoardDto"
+   
+                             Board="@GameCoreState.BoardDto"
                                 OnMove="@HandlePlayerMove"
                                 OnSquareClickForCard="@HandleSquareClickForCard"
-                                IsSquareSelectionModeActiveForCard="@IsBoardInCardSelectionMode()"
+       
+                         IsSquareSelectionModeActiveForCard="@IsBoardInCardSelectionMode()"
                                 PlayerColorForCardPieceSelection="@GetPlayerColorForCardPieceSelection()"
                                 FirstSelectedSquareForCard="@GetFirstSelectedSquareForCardEffect()"
-                                FlipBoard="@(GameCoreState.MyColor == Player.Black)"
+           
+                     FlipBoard="@(GameCoreState.MyColor == Player.Black)"
                                 PlayerId="@GameCoreState.CurrentPlayerInfo.Id"
                                 MyPlayerColor="@GameCoreState.MyColor"
-                                IsEnabled="@(IsChessboardEnabled())"
+             
+                   IsEnabled="@(IsChessboardEnabled())"
                                 HighlightedCardTargetSquaresForSelection="@HighlightState.CardTargetSquaresForSelection" />
                 }
             </div>
         </div>
 
-        @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && GameCoreState.BoardDto != null && CardState != null && ModalState != null)
+        @if (GameCoreState != null 
+&& GameCoreState.CurrentPlayerInfo != null && GameCoreState.BoardDto != null && CardState != null && ModalState != null)
         {
             <div class="game-side-panel">
                 <div class="timers-desktop-only">
                     <TimersDisplay WhiteTimeDisplay="@GameCoreState.WhiteTimeDisplay"
-                                   BlackTimeDisplay="@GameCoreState.BlackTimeDisplay"
+                          
+         BlackTimeDisplay="@GameCoreState.BlackTimeDisplay"
                                    CurrentTurnPlayer="@GameCoreState.CurrentTurnPlayer"
                                    PlayerNames="@GameCoreState.PlayerNames"
-                                   EndGameMessage="@GameCoreState.EndGameMessage" />
+                     
+              EndGameMessage="@GameCoreState.EndGameMessage" />
                 </div>
 
-                <div class="played-cards-history-display-wrapper @(!_showMobilePlayedCardsHistory ? "hidden-on-mobile" : "")">
+                <div class="played-cards-history-display-wrapper @(!_showMobilePlayedCardsHistory ?
+"hidden-on-mobile" : "")">
                     <PlayedCardsHistoryDisplay MyPlayedCards="@CardState.MyPlayedCardsForHistory"
                                                OpponentPlayedCards="@CardState.OpponentPlayedCardsForHistory"
-                                               OnPlayedCardSelected="@HandlePlayedCardSelected" />
+                              
+                 OnPlayedCardSelected="@HandlePlayedCardSelected" />
                 </div>
 
                 <div class="bottom-game-elements">
                     <HandCardsDisplay PlayerHand="@CardState.PlayerHandCards"
-                                      IsSelectionDisabled="@(CardState.IsCardActivationPending || ModalState.ShowCardInfoPanelModal || ModalState.ShowPieceSelectionModal)" />
+                            
+          IsSelectionDisabled="@(CardState.IsCardActivationPending || ModalState.ShowCardInfoPanelModal || ModalState.ShowPieceSelectionModal)" />
                     <div @onclick="ToggleMobilePlayedCardsHistory" class="draw-pile-toggle-history-mobile">
                         <DrawPilesDisplay MyDrawPileCount="@CardState.MyDrawPileCount" />
                     </div>
                 </div>
-            </div>
+ 
+           </div>
         }
     </CascadingValue>
 </div>
@@ -134,12 +156,14 @@
     <CardActivationAnimation IsVisible="AnimationState.IsCardActivationAnimating"
                              CardToDisplay="AnimationState.CardForAnimation"
                              IsOwnCardAnimation="AnimationState.IsOwnCardForAnimation"
-                             OnAnimationFinished="HandleGenericAnimationFinished" />
+           
+                  OnAnimationFinished="HandleGenericAnimationFinished" />
 
     <CardSwapSpecificAnimation IsVisible="AnimationState.IsCardSwapAnimating"
                                CardGiven="AnimationState.CardGivenForSwap"
                                CardReceived="AnimationState.CardReceivedForSwap"
-                               OnSwapAnimationFinished="HandleSwapAnimationFinished" />
+              
+                 OnSwapAnimationFinished="HandleSwapAnimationFinished" />
 }
 
 @if (ModalState != null)
@@ -149,14 +173,16 @@
         <CardInfoPanel IsVisible="ModalState.ShowCardInfoPanelModal"
                        CardToDisplay="ModalState.CardForInfoPanelModal"
                        IsActivatable="ModalState.IsCardInInfoPanelModalActivatable"
-                       IsPreviewOnly="ModalState.IsCardInInfoPanelModalPreviewOnly"
+             
+          IsPreviewOnly="ModalState.IsCardInInfoPanelModalPreviewOnly"
                        OnActivateCard="HandleActivateCardFromModal"
                        OnCancelCardSelectionOrCloseModal="HandleCloseCardInfoModal" />
     }
 
     <CreateGameModal IsVisible="ModalState.ShowCreateGameModal"
                      OnClose="CloseCreateGameModal"
-                     OnCreateGame="@SubmitCreateGame" />
+             
+        OnCreateGame="@SubmitCreateGame" />
 
     <JoinGameModal IsVisible="ModalState.ShowJoinGameModal"
                    OnClose="CloseJoinGameModal"
@@ -165,14 +191,17 @@
 
     <InviteLinkModal IsVisible="ModalState.ShowInviteLinkModal"
                      InviteLink="@InviteLink"
-                     OnClose="@ModalState.CloseInviteLinkModal" />
+  
+                   OnClose="@ModalState.CloseInviteLinkModal" />
 
     <PieceSelectionModal IsVisible="@ModalState.ShowPieceSelectionModal"
                          Title="@ModalState.PieceSelectionModalTitle"
                          PromptMessage="@ModalState.PieceSelectionModalPrompt"
-                         Choices="@(ModalState.PieceSelectionModalChoices ?? new List<PieceSelectionChoiceInfo>())"
+                         
+Choices="@(ModalState.PieceSelectionModalChoices ?? new List<PieceSelectionChoiceInfo>())"
                          PlayerColor="@ModalState.PieceSelectionModalPlayerColor"
                          ShowCancelButton="@ModalState.PieceSelectionModalShowCancelButton"
                          OnPieceSelected="@HandlePieceTypeSelectedFromModal"
-                         OnCancelled="@HandlePieceSelectionModalCancelled" />
+                      
+   OnCancelled="@HandlePieceSelectionModalCancelled" />
 }
