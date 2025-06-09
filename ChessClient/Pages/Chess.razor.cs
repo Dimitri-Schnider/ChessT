@@ -283,16 +283,19 @@ namespace ChessClient.Pages
                 return cardId is CardConstants.Teleport or CardConstants.Positionstausch or CardConstants.Wiedergeburt or CardConstants.SacrificeEffect;
             }
 
-            return GameCoreState.OpponentJoined && GameCoreState.MyColor == GameCoreState.CurrentTurnPlayer && string.IsNullOrEmpty(GameCoreState.EndGameMessage);
+            // !CardState.IsCardActivationPending ist wichtig um Race Conditions zu verhindern.
+            return GameCoreState.OpponentJoined &&
+                   GameCoreState.MyColor == GameCoreState.CurrentTurnPlayer &&
+                   string.IsNullOrEmpty(GameCoreState.EndGameMessage) &&
+                   !CardState.IsCardActivationPending;
         }
+
 
         private bool IsBoardInCardSelectionMode() => CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection != null && CardState.ActiveCardForBoardSelection.Id is CardConstants.Teleport or CardConstants.Positionstausch or CardConstants.Wiedergeburt or CardConstants.SacrificeEffect;
         private Player? GetPlayerColorForCardPieceSelection() => (CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection?.Id is CardConstants.Teleport or CardConstants.Positionstausch && string.IsNullOrEmpty(CardState.FirstSquareSelectedForTeleportOrSwap)) ? GameCoreState.MyColor : null;
         private string? GetFirstSelectedSquareForCardEffect() => CardState.FirstSquareSelectedForTeleportOrSwap;
         private void ToggleMobilePlayedCardsHistory() => _showMobilePlayedCardsHistory = !_showMobilePlayedCardsHistory;
         private void StartNewGameFromEndGame() => NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
-
-        // KORREKTUR: Das 'new'-Schlüsselwort wurde hinzugefügt, um die Warnung CS0108 zu beheben.
         private new void StateHasChanged() => InvokeAsync(base.StateHasChanged);
 
         private void SubscribeToStateChanges()
