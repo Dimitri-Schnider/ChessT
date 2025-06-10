@@ -8,7 +8,7 @@ html, body {
     color: #E0E0E0;
 }
 
-/* --- NEU: Custom Scrollbar Styles --- */
+/* --- Custom Scrollbar Styles --- */
 /* Für Firefox */
 * {
     scrollbar-width: thin;
@@ -46,12 +46,39 @@ a, .btn-link {
     color: #677D6A;
 }
 
-/* Styling f�r prim�re Buttons. */
+/* Styling für primäre Buttons. */
 .btn-primary {
     color: #fff;
     background-color: #A55B4B;
     border-color: #A55B4B;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
+
+    /* Hover-Effekt für primäre Buttons */
+    .btn-primary:hover {
+        color: #fff;
+        background-color: #8E4C3E; /* Dunklerer Rotbraun-Ton */
+        border-color: #844738;
+    }
+
+    /* NEU: Active-Zustand für den Klick-Effekt */
+    .btn-primary:active {
+        color: #fff;
+        background-color: #703A2F !important; /* Noch dunklerer Ton für den Klick */
+        border-color: #703A2F !important;
+    }
+
+        /* Fokus-Effekt für primäre Buttons */
+        .btn-primary:focus, .btn-primary:active:focus {
+            box-shadow: 0 0 0 0.25rem rgba(165, 91, 75, 0.5) !important; /* Überschreibt die allgemeine Regel */
+        }
+
+    /* Stil für deaktivierte primäre Buttons */
+    .btn-primary:disabled, .btn-primary.disabled {
+        color: #888;
+        background-color: #2C2C2C;
+        border-color: #444444;
+    }
 
 /* Touch-Optimierung f�r Buttons. */
 .btn {
@@ -59,7 +86,7 @@ a, .btn-link {
     min-height: 44px;
 }
 
-    /* Fokus-Styling. */
+    /* Fokus-Styling für allgemeine Elemente. */
     .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
         box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #677D6A;
     }
@@ -68,6 +95,28 @@ a, .btn-link {
 .content {
     padding-top: 1.1rem;
 }
+
+/* Dark-Theme für Radio-Buttons */
+.form-check-input {
+    background-color: #1A1A1D;
+    border: 1px solid #444444;
+}
+
+    .form-check-input:checked {
+        background-color: #A55B4B;
+        border-color: #A55B4B;
+    }
+
+    .form-check-input:focus {
+        border-color: #A55B4B;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(165, 91, 75, 0.25);
+    }
+
+    /* Ersetzt den Punkt im Radio-Button durch eine weisse Version */
+    .form-check-input[type=radio]:checked {
+        --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
+    }
 
 /* Modal-Hintergrund�berlagerung. */
 .modal-backdrop {
@@ -332,12 +381,13 @@ code {
     background-color: transparent;
 }
 
-/* ------ NEU: Einheitliche Ladeanimation ------ */
+/* ------ Einheitliche Ladeanimation mit Karten-Flip ------ */
 .unified-loader-container {
     width: 120px;
     height: 120px;
     position: relative;
     margin: 20vh auto 1rem auto; /* Für index.html */
+    perspective: 800px; /* NEU: 3D-Perspektive für den Flip-Effekt */
 }
 
 .loader-card {
@@ -347,32 +397,35 @@ code {
     left: 50%;
     bottom: 0;
     transform-origin: bottom center;
-    animation: swing-and-fan 1.25s ease-in-out infinite;
-    animation-delay: calc(0.15s * var(--i));
+    animation: swing-and-fan-and-flip 1.8s ease-in-out infinite; /* GEÄNDERT: längere Dauer, neuer Name */
+    animation-delay: calc(0.2s * var(--i)); /* GEÄNDERT: etwas mehr Verzögerung */
+    transform-style: preserve-3d; /* NEU: Erlaubt 3D-Transformationen */
 }
 
 .loader-text {
     position: absolute;
-    bottom: -45px; /* Text unter der Animation positionieren */
+    bottom: -45px;
     width: 100%;
     text-align: center;
     font-weight: bold;
     color: #B0B0B0;
 }
 
-/* In einem dunklen Overlay (wie bei "Spiel erstellen") sollte der Text weiss sein. */
 .loading-overlay .loader-text {
     color: #E0E0E0;
 }
 
 
-@keyframes swing-and-fan {
+/* Keyframes für die Lade-Animation mit Glow-Effekt */
+@keyframes swing-and-fan-and-flip {
     0%, 100% {
-        transform: translateX(-50%) translateY(0) rotate(0deg);
+        transform: translateX(-50%) translateY(0) rotateZ(0deg) rotateY(0deg);
+        box-shadow: none; /* Kein Leuchten am Start/Ende */
     }
 
     50% {
-        /* Bewegt die Karte in einem Bogen nach oben */
-        transform: translateX(calc(-50% + (25px * (var(--i) - 2.5)))) translateY(-60px) rotate(calc(15deg * (var(--i) - 2.5)));
+        transform: translateX(calc(-50% + (25px * (var(--i) - 2.5)))) translateY(-60px) rotateZ(calc(15deg * (var(--i) - 2.5))) rotateY(360deg);
+        /* NEU: Leuchteffekt am höchsten Punkt der Animation */
+        box-shadow: 0 0 15px rgba(224, 224, 224, 0.5), 0 0 25px rgba(165, 91, 75, 0.3);
     }
 }

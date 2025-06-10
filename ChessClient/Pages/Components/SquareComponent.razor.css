@@ -48,14 +48,74 @@
         cursor: default !important;
     }
 
-    /* --- KORREKTUR: Umstellung von outline auf box-shadow für präzises Highlighting --- */
-    .square.highlight {
-        box-shadow: inset 0 0 0 3px rgba(165, 91, 75, 0.8);
+    /* --- FINALE KORREKTUR: Umstellung auf Pseudo-Elemente für pixelgenaues Highlighting --- */
+
+    /* Basis-Stil für alle Highlight-Pseudo-Elemente */
+    .square.highlight::before,
+    .square.highlight-card-first-selection::before,
+    .square.highlight-card-piece-selection::before,
+    .square.highlight-card-actionable-target::before,
+    .square.highlight-card-rebirth::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none; /* Macht das Element nicht klickbar */
+        z-index: 5; /* Positioniert das Highlight unter der Figur (z-index: 10) */
+        box-sizing: border-box; /* Stellt sicher, dass der Rahmen innerhalb der Dimensionen bleibt */
     }
 
-    .square.drag-over-target-js {
-        background-color: rgba(103, 125, 106, 0.5);
+    /* Individuelle Rahmen für jeden Highlight-Typ */
+    .square.highlight::before {
+        border: 3px solid rgba(165, 91, 75, 0.8);
     }
+
+    .square.highlight-card-first-selection::before {
+        /* HINWEIS: Dies ist die Farbe, die in deinem Snippet grün war. Wir behalten sie vorerst bei,
+       da deine Hauptkritik die "letzten Züge" betraf. Falls dies auch geändert werden soll, sag Bescheid! */
+        border: 3px solid rgba(103, 125, 106, 0.8);
+    }
+
+    .square.highlight-card-piece-selection::before {
+        border: 2px dashed rgba(165, 91, 75, 0.7);
+    }
+
+    .square.highlight-card-actionable-target::before {
+        /* HINWEIS: Dies war auch grün. */
+        border: 2px solid rgba(103, 125, 106, 0.6);
+    }
+
+    .square.highlight-card-rebirth::before {
+        border: 2px dashed rgba(60, 179, 113, 0.7);
+    }
+
+
+    /* Hintergrundfarben für Highlights */
+    .square.drag-over-target-js {
+        background-color: rgba(165, 91, 75, 0.4); /* Geändert zu Braunton */
+    }
+
+    .square.highlight-card-first-selection {
+        background-color: rgba(103, 125, 106, 0.1);
+    }
+
+        .square.highlight-card-first-selection img {
+            box-shadow: 0 0 8px 3px rgba(103, 125, 106, 0.7);
+        }
+
+    .square.highlight-card-piece-selection {
+        background-color: rgba(165, 91, 75, 0.3);
+        cursor: pointer !important;
+    }
+
+    .square.highlight-card-actionable-target {
+        background-color: rgba(103, 125, 106, 0.25);
+        cursor: pointer !important;
+    }
+
+    /* --- Restliche Stile bleiben unverändert --- */
 
     .square img.piece-being-dragged-original {
         opacity: 0.3;
@@ -68,49 +128,26 @@
         transition: none;
     }
 
-    .square.highlight-card-first-selection {
-        box-shadow: inset 0 0 0 3px rgba(103, 125, 106, 0.8);
-        background-color: rgba(103, 125, 106, 0.1);
-    }
-
-        .square.highlight-card-first-selection img {
-            box-shadow: 0 0 8px 3px rgba(103, 125, 106, 0.7);
-        }
-
-    .square.highlight-card-piece-selection {
-        background-color: rgba(165, 91, 75, 0.3);
-        box-shadow: inset 0 0 0 2px rgba(165, 91, 75, 0.7);
+    .square.highlight-card-piece-selection img,
+    .square.highlight-card-actionable-target img {
         cursor: pointer !important;
     }
 
-        .square.highlight-card-piece-selection img {
-            cursor: pointer !important;
-        }
-
-    .square.highlight-card-actionable-target {
-        background-color: rgba(103, 125, 106, 0.25);
-        box-shadow: inset 0 0 0 2px rgba(103, 125, 106, 0.6);
-        cursor: pointer !important;
-    }
-
-        .square.highlight-card-actionable-target img {
-            cursor: pointer !important;
-        }
-
+    /* === FARBEN FÜR LETZTEN ZUG ANGEPASST === */
     .square.highlight-last-move-to-strong {
-        background-color: rgba(103, 125, 106, 0.5);
+        background-color: rgba(165, 91, 75, 0.5); /* von grün zu braun */
     }
 
     .square.highlight-last-move-from-strong {
-        background-color: rgba(103, 125, 106, 0.4);
+        background-color: rgba(165, 91, 75, 0.4); /* von grün zu braun */
     }
 
     .square.highlight-last-move-to-weaker {
-        background-color: rgba(103, 125, 106, 0.35);
+        background-color: rgba(165, 91, 75, 0.35); /* von grün zu braun */
     }
 
     .square.highlight-last-move-from-weaker {
-        background-color: rgba(103, 125, 106, 0.25);
+        background-color: rgba(165, 91, 75, 0.25); /* von grün zu braun */
     }
 
     .square.highlight-card-teleport-from {
@@ -128,7 +165,6 @@
 
     .square.highlight-card-rebirth {
         background-color: rgba(152, 251, 152, 0.5);
-        box-shadow: inset 0 0 0 2px rgba(60, 179, 113, 0.7);
     }
 
     .square .rank-label,
