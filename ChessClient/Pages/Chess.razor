@@ -72,20 +72,27 @@
 
  
 
-            @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo == null && string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) && ModalState != null && !ModalState.ShowCreateGameModal && !ModalState.ShowJoinGameModal && UiState != null && 
-!UiState.IsCreatingGame)
+            @if (GameCoreState != null 
+                    && GameCoreState.CurrentPlayerInfo == null 
+                    && string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) 
+                    && ModalState != null && !ModalState.ShowCreateGameModal 
+                    && !ModalState.ShowJoinGameModal && UiState != null 
+                    && !UiState.IsCreatingGame)
              {
-                <div class="alert alert-info mt-2 mx-auto" style="max-width: 600px;">
-                    Bitte erstelle ein neues Spiel oder tritt einem Spiel über das Menü (links) bei.
-</div>
+               <button class="btn btn-outline-info mt-2" @onclick="StartTutorialAsync">
+                    <i class="bi bi-magic me-2"></i> Wie funktioniert es? (Tour)
+                </button>
             }
-            else if (GameCoreState != null && GameCoreState.CurrentPlayerInfo == null && !string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) && GameCoreState.IsGameIdFromQueryValidAndExists && ModalState != null && !ModalState.ShowJoinGameModal)
+            else if (GameCoreState != null 
+                    && GameCoreState.CurrentPlayerInfo == null 
+                    && !string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) 
+                    && GameCoreState.IsGameIdFromQueryValidAndExists && ModalState != null 
+                    && !ModalState.ShowJoinGameModal)
             {
                 <div class="alert alert-success mt-2 mx-auto" style="max-width: 600px;">
-                    Spiel-ID <strong>@(ModalState.GameIdInputForJoinModal)</strong> aus Link 
-geladen.
+                    Spiel-ID <strong>@(ModalState.GameIdInputForJoinModal)</strong> aus Link geladen.
                     Bitte gib deinen Namen ein und klicke auf "Beitreten" im Join-Game Modal.
-</div>
+                </div>
             }
             <div class="chessboard-container">
                 @if (GameCoreState != null && GameCoreState.BoardDto != null && GameCoreState.CurrentPlayerInfo != null && CardState != null && HighlightState != null)
@@ -111,7 +118,9 @@ geladen.
         </div>
 
         @if (GameCoreState != null 
-&& GameCoreState.CurrentPlayerInfo != null && GameCoreState.BoardDto != null && CardState != null && ModalState != null)
+                    && GameCoreState.CurrentPlayerInfo != null 
+                    && GameCoreState.BoardDto != null 
+                    && CardState != null && ModalState != null)
         {
             <div class="game-side-panel">
                 <div class="timers-desktop-only">
@@ -124,8 +133,7 @@ geladen.
               EndGameMessage="@GameCoreState.EndGameMessage" />
                 </div>
 
-                <div class="played-cards-history-display-wrapper @(!_showMobilePlayedCardsHistory ?
-"hidden-on-mobile" : "")">
+                <div class="played-cards-history-display-wrapper @(!_showMobilePlayedCardsHistory ? "hidden-on-mobile" : "")">
                     <PlayedCardsHistoryDisplay MyPlayedCards="@CardState.MyPlayedCardsForHistory"
                                                OpponentPlayedCards="@CardState.OpponentPlayedCardsForHistory"
                               
