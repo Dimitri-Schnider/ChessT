@@ -13,6 +13,7 @@ namespace ChessClient.State
         CardDto? LastAnimatedCard { get; }
         CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; }
         void SetPendingSwapAnimationDetails(CardSwapAnimationDetailsDto? details);
+        bool IsGenericAnimationFinishedForSwap { get; }
 
         void SetLastAnimatedCard(CardDto card);
         void StartCardActivationAnimation(CardDto card, bool isOwnCard);
@@ -21,6 +22,7 @@ namespace ChessClient.State
         CardDto? CardGivenForSwap { get; }
         CardDto? CardReceivedForSwap { get; }
         void StartCardSwapAnimation(CardDto cardGiven, CardDto cardReceived);
+        void SetGenericAnimationFinishedForSwap(bool isFinished);
         void FinishCardSwapAnimation();
     }
 }

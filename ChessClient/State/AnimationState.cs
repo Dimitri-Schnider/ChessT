@@ -17,16 +17,22 @@ namespace ChessClient.State
         public CardDto? CardReceivedForSwap { get; private set; }
         public CardDto? LastAnimatedCard { get; private set; }
         public CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; private set; }
+        public bool IsGenericAnimationFinishedForSwap { get; private set; }
 
         public AnimationState()
         {
         }
+        public void SetGenericAnimationFinishedForSwap(bool isFinished) 
+        {
+            IsGenericAnimationFinishedForSwap = isFinished;
+            // OnStateChanged() ist hier nicht nötig, da dies nur ein Flag für die Logik ist.
+        }
+
         public void SetPendingSwapAnimationDetails(CardSwapAnimationDetailsDto? details)
         {
             PendingSwapAnimationDetails = details;
             OnStateChanged();
         }
-
         public void SetLastAnimatedCard(CardDto card)
         {
             LastAnimatedCard = card;

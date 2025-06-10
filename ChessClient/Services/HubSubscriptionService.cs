@@ -234,7 +234,18 @@ namespace ChessClient.Services
         {
             if (_gameCoreState.CurrentPlayerInfo != null && details.PlayerId == _gameCoreState.CurrentPlayerInfo.Id)
             {
-                _animationState.SetPendingSwapAnimationDetails(details);
+                // NEU: Prüfen, ob die generische Animation bereits fertig ist und auf diese Details wartet.
+                if (_animationState.IsGenericAnimationFinishedForSwap)
+                {
+                    // Ja, sie hat gewartet. Starte die Tausch-Animation direkt.
+                    _animationState.StartCardSwapAnimation(details.CardGiven, details.CardReceived);
+                    _animationState.SetGenericAnimationFinishedForSwap(false); // Flag zurücksetzen
+                }
+                else
+                {
+                    // Nein, die generische Animation läuft noch. Speichere die Details für später.
+                    _animationState.SetPendingSwapAnimationDetails(details);
+                }
                 _logger.LogHandleReceiveCardSwapDetails(details.CardGiven.Name, details.CardReceived.Name, _animationState.IsCardActivationAnimating);
             }
         }

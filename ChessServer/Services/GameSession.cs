@@ -118,15 +118,15 @@ namespace ChessServer.Services
             // Definiert alle im Spiel verfügbaren Karten.
             _allCardDefinitions = new List<CardDto>
             {
-                new() { InstanceId = Guid.Empty, Id = CardConstants.ExtraZug, Name = "Extrazug", Description = "Du darfst sofort einen weiteren Schachzug ausführen. (Einmal pro Spiel)", ImageUrl = "img/cards/art/1-Extrazug_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.Teleport, Name = "Teleportation", Description = "Eine eigene Figur darf auf ein beliebiges leeres Feld auf dem Schachbrett gestellt werden.", ImageUrl = "img/cards/art/2-Teleportation_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.Positionstausch, Name = "Positionstausch", Description = "Zwei eigene Figuren tauschen ihre Plätze.", ImageUrl = "img/cards/art/3-Positionstausch_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.AddTime, Name = "Zeitgutschrift", Description = "Fügt deiner Bedenkzeit 2 Minuten hinzu.", ImageUrl = "img/cards/art/11-AddTime_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (minimal 1 Minute Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.TimeSwap, Name = "Zeittausch", Description = "Tauscht die aktuellen Restbedenkzeiten mit deinem Gegner (minimal 1 Minute Restzeit für jeden).", ImageUrl = "img/cards/art/13-Zeittausch_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.Wiedergeburt, Name = "Wiedergeburt", Description = "Eine eigene, geschlagene Nicht-Bauern-Figur wird auf einem ihrer ursprünglichen Startfelder wiederbelebt. Ist das gewählte Feld besetzt, schlägt der Effekt fehl und die Karte ist verbraucht.", ImageUrl = "img/cards/art/5-Wiedergeburt_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.CardSwap, Name = "Kartentausch", Description = "Wähle eine deiner Handkarten. Diese wird mit einer zufälligen Handkarte deines Gegners getauscht. Hat der Gegner keine Karten, verfällt deine Karte ohne Effekt.", ImageUrl = "img/cards/art/14-Kartentausch_Art.png" },
-                new() { InstanceId = Guid.Empty, Id = CardConstants.SacrificeEffect, Name = "Opfergabe", Description = "Wähle einen eigenen Bauern. Entferne ihn vom Spiel. Du darfst sofort eine neue Karte ziehen.", ImageUrl = "img/cards/art/15-Opergabe_Art.png" }
+    new() { InstanceId = Guid.Empty, Id = CardConstants.ExtraZug, Name = "Extrazug", Description = "Du darfst sofort einen weiteren Schachzug ausführen. (Einmal pro Spiel)", ImageUrl = "img/cards/art/1-Extrazug_Art.png", AnimationDelayMs = 0 }, // Kein Delay, da der Spieler sofort wieder dran ist
+    new() { InstanceId = Guid.Empty, Id = CardConstants.Teleport, Name = "Teleportation", Description = "Eine eigene Figur darf auf ein beliebiges leeres Feld auf dem Schachbrett gestellt werden.", ImageUrl = "img/cards/art/2-Teleportation_Art.png", AnimationDelayMs = 3000 },
+    new() { InstanceId = Guid.Empty, Id = CardConstants.Positionstausch, Name = "Positionstausch", Description = "Zwei eigene Figuren tauschen ihre Plätze.", ImageUrl = "img/cards/art/3-Positionstausch_Art.png", AnimationDelayMs = 3000 },
+    new() { InstanceId = Guid.Empty, Id = CardConstants.AddTime, Name = "Zeitgutschrift", Description = "Fügt deiner Bedenkzeit 2 Minuten hinzu.", ImageUrl = "img/cards/art/11-AddTime_Art.png", AnimationDelayMs = 3000 },
+    new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (minimal 1 Minute Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png", AnimationDelayMs = 3000 },
+    new() { InstanceId = Guid.Empty, Id = CardConstants.TimeSwap, Name = "Zeittausch", Description = "Tauscht die aktuellen Restbedenkzeiten mit deinem Gegner (minimal 1 Minute Restzeit für jeden).", ImageUrl = "img/cards/art/13-Zeittausch_Art.png", AnimationDelayMs = 3000 },
+    new() { InstanceId = Guid.Empty, Id = CardConstants.Wiedergeburt, Name = "Wiedergeburt", Description = "Eine eigene, geschlagene Nicht-Bauern-Figur wird auf einem ihrer ursprünglichen Startfelder wiederbelebt. Ist das gewählte Feld besetzt, schlägt der Effekt fehl und die Karte ist verbraucht.", ImageUrl = "img/cards/art/5-Wiedergeburt_Art.png", AnimationDelayMs = 3000 },
+    new() { InstanceId = Guid.Empty, Id = CardConstants.CardSwap, Name = "Kartentausch", Description = "Wähle eine deiner Handkarten. Diese wird mit einer zufälligen Handkarte deines Gegners getauscht. Hat der Gegner keine Karten, verfällt deine Karte ohne Effekt.", ImageUrl = "img/cards/art/14-Kartentausch_Art.png", AnimationDelayMs = 5000 }, // Längere Verzögerung für Kartentausch
+    new() { InstanceId = Guid.Empty, Id = CardConstants.SacrificeEffect, Name = "Opfergabe", Description = "Wähle einen eigenen Bauern. Entferne ihn vom Spiel. Du darfst sofort eine neue Karte ziehen.", ImageUrl = "img/cards/art/15-Opergabe_Art.png", AnimationDelayMs = 3000 }
             };
 
             // Ordnet jeder Karten-ID eine Implementierung des Karteneffekts zu.
@@ -855,76 +855,32 @@ namespace ChessServer.Services
                     }
                 }
 
-                // Prüft, ob nach der Kartenaktion der Computergegner am Zug ist.
-                bool humanTurnEndedEffectively = serverResultDtoToReturn.Success && turnActuallyEnds;
-                bool computerIsNextAndGameIsPvC;
-                Player computerColorForTurnCheck = Player.None;
-
-                lock (_sessionLock)
+                // Prüft, ob der Computergegner nach der erfolgreichen Kartenaktion am Zug ist, und löst dessen Zug aus.
+                if (serverResultDtoToReturn.Success && turnActuallyEnds)
                 {
-                    Player currentPlayerAfterCardLogic = _state.CurrentPlayer;
-                    Guid? currentComputerId = _computerPlayerId;
-                    Player? actualComputerColor = null;
-                    if (currentComputerId.HasValue && _players.TryGetValue(currentComputerId.Value, out var compData))
-                    {
-                        actualComputerColor = compData.Color;
-                        if (actualComputerColor.HasValue)
-                        {
-                            computerColorForTurnCheck = actualComputerColor.Value;
-                        }
-                    }
-
-                    computerIsNextAndGameIsPvC = _opponentType == "Computer" &&
-                                             currentComputerId.HasValue &&
-                                             actualComputerColor.HasValue &&
-                                             currentPlayerAfterCardLogic == actualComputerColor.Value &&
-                                             !_state.IsGameOver();
-                }
-
-                if (humanTurnEndedEffectively && computerIsNextAndGameIsPvC)
-                {
-                    if (computerColorForTurnCheck != Player.None)
-                    {
-                        _timerServiceInternal.PauseTimer();
-                        _logger.LogComputerTimerPausedForAnimation(_gameIdInternal, computerColorForTurnCheck);
-                    }
-
-
-                    TimeSpan animationDelay;
-                    string cardIdForDelay = cardTypeId;
-
-                    if (cardIdForDelay == CardConstants.CardSwap)
-                    {
-                        animationDelay = TimeSpan.FromSeconds(6.0);
-                        _logger.LogComputerTurnDelayCardSwap(_gameIdInternal, animationDelay.TotalSeconds);
-                    }
-                    else
-                    {
-                        animationDelay = TimeSpan.FromSeconds(3.5);
-                        _logger.LogComputerTurnDelayAfterCard(_gameIdInternal, cardIdForDelay, animationDelay.TotalSeconds);
-                    }
-                    await Task.Delay(animationDelay);
-
-                    bool stillComputersTurnAndNotGameOverAndCorrectColor;
+                    bool computerIsNextAndGameIsPvC;
                     lock (_sessionLock)
                     {
-                        stillComputersTurnAndNotGameOverAndCorrectColor = !_state.IsGameOver() &&
-                                                                           _state.CurrentPlayer == computerColorForTurnCheck &&
-                                                                          computerColorForTurnCheck != Player.None;
+                        Player currentPlayerAfterCardLogic = _state.CurrentPlayer;
+                        Guid? currentComputerId = _computerPlayerId;
+                        Player? actualComputerColor = null;
+                        if (currentComputerId.HasValue && _players.TryGetValue(currentComputerId.Value, out var compData))
+                        {
+                            actualComputerColor = compData.Color;
+                        }
+
+                        computerIsNextAndGameIsPvC = _opponentType == "Computer" &&
+                                                     currentComputerId.HasValue &&
+                                                     actualComputerColor.HasValue &&
+                                                     currentPlayerAfterCardLogic == actualComputerColor.Value &&
+                                                     !_state.IsGameOver();
                     }
 
-                    if (stillComputersTurnAndNotGameOverAndCorrectColor)
+                    if (computerIsNextAndGameIsPvC)
                     {
-                        if (computerColorForTurnCheck != Player.None)
-                        {
-                            _timerServiceInternal.ResumeTimer();
-                            _logger.LogComputerTimerResumedAfterAnimation(_gameIdInternal, computerColorForTurnCheck);
-                        }
-                        await ProcessComputerTurnIfNeeded();
-                    }
-                    else
-                    {
-                        _logger.LogComputerSkippingTurnAfterAnimationDelay(_gameIdInternal, cardIdForDelay);
+                        // Startet den Computerzug in einem Hintergrundthread, um die API-Antwort nicht zu blockieren.
+                        // Die Logik in ProcessComputerTurnIfNeeded enthält bereits eine kleine, natürliche Verzögerung.
+                        Task.Run(async () => await ProcessComputerTurnIfNeeded(cardTypeId));
                     }
                 }
                 return serverResultDtoToReturn;
@@ -1211,8 +1167,63 @@ namespace ChessServer.Services
         }
 
         // Startet den Prozess für den Zug des Computers, falls dieser am Zug ist.
-        public async Task ProcessComputerTurnIfNeeded()
+        // File: [SolutionDir]\ChessServer\Services\GameSession.cs
+
+
+        public async Task ProcessComputerTurnIfNeeded(string? triggerCardTypeId = null)
         {
+            // Verzögerungslogik basierend auf der auslösenden Karte
+            if (triggerCardTypeId != null)
+            {
+                Player computerColorForDelayCheck = Player.None;
+                int delayMs = 0;
+
+                // Finde die Definition der auslösenden Karte, um die korrekte Verzögerung zu erhalten
+                var cardDefinition = _allCardDefinitions.FirstOrDefault(c => c.Id == triggerCardTypeId);
+                if (cardDefinition != null)
+                {
+                    delayMs = cardDefinition.AnimationDelayMs;
+                }
+
+                if (delayMs > 0)
+                {
+                    lock (_sessionLock)
+                    {
+                        if (_computerPlayerId.HasValue && _players.TryGetValue(_computerPlayerId.Value, out var compData))
+                        {
+                            computerColorForDelayCheck = compData.Color;
+                        }
+                    }
+
+                    if (computerColorForDelayCheck != Player.None)
+                    {
+                        _timerServiceInternal.PauseTimer();
+                        _logger.LogComputerTimerPausedForAnimation(_gameIdInternal, computerColorForDelayCheck);
+
+                        _logger.LogComputerTurnDelayAfterCard(_gameIdInternal, triggerCardTypeId, TimeSpan.FromMilliseconds(delayMs).TotalSeconds);
+                        await Task.Delay(delayMs);
+
+                        // Nach der Verzögerung erneut prüfen, ob der Computer noch am Zug ist
+                        bool stillComputersTurnAndNotGameOver;
+                        lock (_sessionLock)
+                        {
+                            stillComputersTurnAndNotGameOver = !_state.IsGameOver() && _state.CurrentPlayer == computerColorForDelayCheck;
+                        }
+
+                        if (stillComputersTurnAndNotGameOver)
+                        {
+                            _timerServiceInternal.ResumeTimer();
+                            _logger.LogComputerTimerResumedAfterAnimation(_gameIdInternal, computerColorForDelayCheck);
+                        }
+                        else
+                        {
+                            _logger.LogComputerSkippingTurnAfterAnimationDelay(_gameIdInternal, triggerCardTypeId);
+                            return; // Abbrechen, wenn sich der Zustand während der Verzögerung geändert hat
+                        }
+                    }
+                }
+            }
+
             bool isComputerTurn;
             Guid currentComputerPlayerId = Guid.Empty;
             Player humanPlayerColorOpponent = Player.None;
@@ -1235,7 +1246,14 @@ namespace ChessServer.Services
 
             if (isComputerTurn)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1)); // Kleine Verzögerung, um realistischer zu wirken
+                // NEU: Verzögerung für normale Züge des Computers, um ihn menschlicher wirken zu lassen.
+                // Diese greift nur, wenn der Zug NICHT durch eine Karte ausgelöst wurde.
+                if (triggerCardTypeId == null)
+                {
+                    int randomDelayMs = _random.Next(1000, 2001); // Zufällige Verzögerung zwischen 1 und 2 Sekunden
+                    await Task.Delay(randomDelayMs);
+                }
+
                 string? apiMoveString = await GetComputerApiMoveAsync();
 
                 BoardDto boardAfterComputerMoveForSignalR;

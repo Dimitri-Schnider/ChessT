@@ -174,22 +174,25 @@ namespace ChessClient.Pages
 
         private void HandleGenericAnimationFinished()
         {
-            // Prüfen, ob die beendete Animation ein Kartentausch war
-            if (AnimationState.LastAnimatedCard?.Id == CardConstants.CardSwap)
+            var lastAnimatedCard = AnimationState.LastAnimatedCard;
+            var pendingSwapDetails = AnimationState.PendingSwapAnimationDetails;
+
+            AnimationState.FinishCardActivationAnimation();
+
+            if (lastAnimatedCard?.Id == CardConstants.CardSwap)
             {
-                // Prüfen, ob Tausch-Details vom Server angekommen sind
-                if (AnimationState.PendingSwapAnimationDetails != null)
+                if (pendingSwapDetails != null)
                 {
-                    // Spezifische Tausch-Animation starten
-                    AnimationState.StartCardSwapAnimation(
-                        AnimationState.PendingSwapAnimationDetails.CardGiven,
-                        AnimationState.PendingSwapAnimationDetails.CardReceived
-                    );
-                    // Gespeicherte Details löschen
+                    // Fall 1: Details sind schon da. Animation sofort starten.
+                    AnimationState.StartCardSwapAnimation(pendingSwapDetails.CardGiven, pendingSwapDetails.CardReceived);
                     AnimationState.SetPendingSwapAnimationDetails(null);
                 }
+                else
+                {
+                    // Fall 2: Details sind noch nicht da. Flag setzen und warten.
+                    AnimationState.SetGenericAnimationFinishedForSwap(true);
+                }
             }
-            AnimationState.FinishCardActivationAnimation();
         }
 
         private void HandleSwapAnimationFinished()
@@ -208,25 +211,18 @@ namespace ChessClient.Pages
                 // Prüfe Zustände mit höchster Priorität zuerst
                 if (GameCoreState is null || UiState is null || CardState is null || ModalState is null || AnimationState is null)
                     return BoardInteractivityState.GameNotRunning;
-
                 if (!GameCoreState.IsGameRunning || !string.IsNullOrEmpty(GameCoreState.EndGameMessage))
                     return BoardInteractivityState.GameNotRunning;
-
                 if (UiState.IsCountdownVisible || AnimationState.IsCardActivationAnimating || AnimationState.IsCardSwapAnimating)
                     return BoardInteractivityState.Animating;
-
                 if (ModalState.ShowCreateGameModal || ModalState.ShowJoinGameModal || ModalState.ShowPieceSelectionModal || ModalState.ShowCardInfoPanelModal)
                     return BoardInteractivityState.ModalOpen;
-
                 if (CardState.IsCardActivationPending)
                     return BoardInteractivityState.AwaitingCardSelection;
-
                 if (CardState.IsAwaitingTurnConfirmation)
                     return BoardInteractivityState.OpponentTurn;
-
                 if (GameCoreState.MyColor != GameCoreState.CurrentTurnPlayer)
                     return BoardInteractivityState.OpponentTurn;
-
                 // Wenn keine der obigen Bedingungen zutrifft, ist der Spieler am Zug
                 return BoardInteractivityState.MyTurn;
             }
