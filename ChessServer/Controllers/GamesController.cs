@@ -49,22 +49,19 @@ namespace ChessServer.Controllers
 
             try
             {
-                Player playerDataColor;
-                try
+                // Zuerst die Karten-Aktivierung vollständig auf dem Server validieren und ausführen.
+                ServerCardActivationResultDto activationResultFull = await _mgr.ActivateCardEffect(gameId, playerId, dto);
+
+                // Wenn die Aktivierung nicht erfolgreich war, sofort eine Fehlermeldung zurückgeben.
+                // Es wird keine Animation gesendet.
+                if (!activationResultFull.Success)
                 {
-                    playerDataColor = _mgr.GetPlayerColor(gameId, playerId);
-                }
-                catch (KeyNotFoundException)
-                {
-                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spieler oder Spiel nicht gefunden, um Farbe für Animation zu bestimmen.");
-                    return NotFound(new ServerCardActivationResultDto { Success = false, ErrorMessage = $"Spiel oder Spieler für Kartenaktivierung nicht gefunden.", CardId = dto.CardTypeId });
-                }
-                catch (InvalidOperationException)
-                {
-                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, "Spielerfarbe konnte nicht ermittelt werden.");
-                    return StatusCode(StatusCodes.Status500InternalServerError, new ServerCardActivationResultDto { Success = false, ErrorMessage = "Interner Fehler: Spielerfarbe konnte nicht ermittelt werden.", CardId = dto.CardTypeId });
+                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, activationResultFull.ErrorMessage ?? "Unbekannter Kartenaktivierungsfehler");
+                    return BadRequest(activationResultFull);
                 }
 
+                // ERST JETZT: Da die Aktivierung erfolgreich war, senden wir das Signal für die Animation.
+                Player playerDataColor = _mgr.GetPlayerColor(gameId, playerId);
                 CardDto? cardForAnimation = null;
                 if (_mgr is InMemoryGameManager concreteMgr)
                 {
@@ -77,18 +74,13 @@ namespace ChessServer.Controllers
 
                 if (cardForAnimation == null)
                 {
+                    // Fallback, sollte nicht passieren bei erfolgreicher Aktivierung.
                     _logger.LogGameNotFoundOnMove(gameId, playerId);
                 }
 
                 await _hubContext.Clients.Group(gameId.ToString()).SendAsync("PlayCardActivationAnimation", cardForAnimation ?? new CardDto { Id = dto.CardTypeId, Name = dto.CardTypeId, Description = "Lade...", ImageUrl = CardConstants.DefaultCardBackImageUrl, InstanceId = Guid.Empty }, playerId, playerDataColor);
 
-                ServerCardActivationResultDto activationResultFull = await _mgr.ActivateCardEffect(gameId, playerId, dto);
-                if (!activationResultFull.Success)
-                {
-                    _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, activationResultFull.ErrorMessage ?? "Unbekannter Kartenaktivierungsfehler");
-                    return BadRequest(activationResultFull);
-                }
-
+                // Restliche Logik nach erfolgreicher Aktivierung (war bereits vorhanden)
                 _logger.LogCardActivationSuccessController(gameId, playerId, dto.CardTypeId);
                 if (dto.CardTypeId == CardConstants.CardSwap && activationResultFull.CardGivenByPlayerForSwap != null && activationResultFull.CardReceivedByPlayerForSwap != null)
                 {

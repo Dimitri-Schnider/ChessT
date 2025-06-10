@@ -432,11 +432,9 @@ namespace ChessClient.Services
         public async Task FinalizeCardActivationOnServerAsync(ActivateCardRequestDto requestDto, CardDto activatedCardDefinition)
         {
             if (_gameCoreState.CurrentPlayerInfo == null) return;
-
             try
             {
                 var result = await _gameService.ActivateCardAsync(_gameCoreState.GameId, _gameCoreState.CurrentPlayerInfo.Id, requestDto);
-
                 if (result.PawnPromotionPendingAt != null && result.Success)
                 {
                     _cardState.SetAwaitingTurnConfirmation(false);
@@ -449,11 +447,8 @@ namespace ChessClient.Services
                 else
                 {
                     bool turnAlreadyProcessedBySignalR = result.Success && result.EndsPlayerTurn && _gameCoreState.CurrentTurnPlayer == _gameCoreState.MyColor;
-
-                    // KORREKTUR: Der Fehlertext kommt jetzt direkt vom `result`, wenn die Aktivierung serverseitig fehlschlägt.
                     string message = result.Success ? $"Karte '{activatedCardDefinition.Name}' erfolgreich aktiviert!" : result.ErrorMessage ?? "Kartenaktivierung fehlgeschlagen.";
                     _cardState.ResetCardActivationState(!result.Success, message);
-
                     if (turnAlreadyProcessedBySignalR)
                     {
                         _cardState.SetAwaitingTurnConfirmation(false);
@@ -468,14 +463,14 @@ namespace ChessClient.Services
             {
                 string friendlyMessage = ParseErrorMessageFromJson(ex.Message);
                 _logger.LogClientSignalRConnectionWarning($"Fehler bei Kartenaktivierung vom Server: {friendlyMessage}");
-                _modalState.OpenErrorModal(friendlyMessage);
+                _modalState.OpenErrorModal(friendlyMessage, closeOtherModals: false);
                 _cardState.ResetCardActivationState(true, friendlyMessage);
             }
             catch (Exception ex)
             {
                 _logger.LogClientSignalRConnectionWarning($"Unerwarteter Fehler bei Kartenaktivierung: {ex.Message}");
                 var errorMsg = "Ein unerwarteter Fehler ist aufgetreten.";
-                _modalState.OpenErrorModal(errorMsg);
+                _modalState.OpenErrorModal(errorMsg, closeOtherModals: false);
                 _cardState.ResetCardActivationState(true, errorMsg);
             }
         }

@@ -173,9 +173,12 @@ namespace ChessClient.State
         }
 
         // NEU: Methoden zur Steuerung des Fehler-Modals
-        public void OpenErrorModal(string message)
+        public void OpenErrorModal(string message, bool closeOtherModals = true)
         {
-            CloseAllModals(); // Stellt sicher, dass kein anderes Modal offen ist
+            if (closeOtherModals)
+            {
+                CloseAllModals(); // Stellt sicher, dass kein anderes Modal offen ist
+            }
             ErrorModalMessage = message;
             ShowErrorModal = true;
             OnStateChanged();

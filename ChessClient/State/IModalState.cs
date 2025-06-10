@@ -37,7 +37,7 @@ namespace ChessClient.State
         bool IsCardInInfoPanelModalPreviewOnly { get; }
         bool ShowErrorModal { get; }
         string ErrorModalMessage { get; }
-        void OpenErrorModal(string message);
+        void OpenErrorModal(string message, bool closeOtherModals = true);
         void CloseErrorModal();
 
         void OpenCreateGameModal();
