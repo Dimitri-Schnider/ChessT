@@ -63,6 +63,17 @@ namespace ChessClient.Pages
             await InitializePageBasedOnUrlAsync();
         }
 
+        protected override void OnAfterRender(bool firstRender)
+        {
+            // Diese Methode wird nach jeder UI-Aktualisierung aufgerufen.
+            // Wir prüfen hier, ob das Spiel beendet ist.
+            if (!string.IsNullOrEmpty(GameCoreState?.EndGameMessage))
+            {
+                // Wenn ja, sagen wir dem MainLayout, es soll den Download-Button aktivieren.
+                MyMainLayout?.SetCanDownloadGameHistory(true);
+            }
+        }
+
         private async Task InitializePageBasedOnUrlAsync()
         {
             GameCoreState.SetGameSpecificDataInitialized(false);
@@ -122,6 +133,7 @@ namespace ChessClient.Pages
 
         private async Task SubmitJoinGame(JoinGameParameters args)
         {
+
             var (success, gameId) = await GameOrchestrationService.JoinExistingGameAsync(args.Name, args.GameId);
             if (success)
             {

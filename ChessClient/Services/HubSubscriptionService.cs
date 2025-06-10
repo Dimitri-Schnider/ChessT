@@ -118,7 +118,7 @@ namespace ChessClient.Services
 
             if (!highlightLogicWasHandledByExtraTurn)
             {
-                if (cardEffectSquaresFromServer != null && cardEffectSquaresFromServer.Count > 0)
+                if (cardEffectSquaresFromServer != null && cardEffectSquaresFromServer.Count != 0)
                 {
                     _highlightState.SetHighlightForCardEffect(
                         cardEffectSquaresFromServer.Select(eff => (eff.Square, eff.Type)).ToList()
@@ -140,12 +140,13 @@ namespace ChessClient.Services
             _cardState.DeselectActiveHandCard();
             _gameCoreState.SetOpponentJoined(true);
 
+            // *** START DER KORREKTUR ***
+            // Diese Methode wird nun immer aufgerufen, um den Spielendestatus zu prüfen.
             ProcessEndGameStatus(nextPlayer, statusForNextPlayer);
 
-            if (string.IsNullOrEmpty(_gameCoreState.EndGameMessage))
-            {
-                await ProcessGameStatusAsync(statusForNextPlayer, _gameCoreState.MyColor == nextPlayer);
-            }
+            // Die `if`-Bedingung, die vorher hier war, wird entfernt. Der Status wird immer geprüft.
+            await ProcessGameStatusAsync(statusForNextPlayer, _gameCoreState.MyColor == nextPlayer);
+            // *** ENDE DER KORREKTUR ***
         }
 
         private void HandleCardPlayedNotificationClient(Guid playingPlayerId, CardDto playedCardFullDefinition)

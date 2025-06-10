@@ -139,7 +139,10 @@ namespace ChessClient.State
         public void SetEndGameMessage(string message)
         {
             if (EndGameMessage == message) return;
+
+            bool wasGameRunning = string.IsNullOrEmpty(EndGameMessage);
             EndGameMessage = message;
+
             OnStateChanged();
         }
 
