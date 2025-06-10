@@ -14,27 +14,24 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #444444;
     border-radius: 6px;
-    padding: 0; /* Padding wird durch innere Elemente gehandhabt */
-    background-color: #f8f9fa;
+    padding: 0;
+    background-color: #1A1A1D;
     width: 100%;
     box-sizing: border-box;
-    /* Die Höhe dieser Sektionen wird jetzt durch den Wrapper in Chess.razor.css gesteuert,
-       aber wenn sie individuell scrollen sollen, kann hier eine max-height gesetzt werden.
-       Für den Fall, dass der Wrapper scrollt, setzen wir hier overflow-y auf visible. */
-    overflow-y: visible; /* Damit der Parent scrollt, wenn .played-cards-history-display-wrapper scrollt */
+    overflow-y: visible;
 }
 
     .history-section h6 {
-        margin: 0; /* Entfernt default margin */
+        margin: 0;
         font-weight: bold;
-        color: #333;
+        color: #E0E0E0;
         text-align: center;
-        border-bottom: 1px solid #ddd;
-        padding: 8px; /* Padding für die Überschrift selbst */
-        background-color: #e9ecef;
-        border-top-left-radius: 5px; /* Rundet Ecken des Headers mit dem Container */
+        border-bottom: 1px solid #444444;
+        padding: 8px;
+        background-color: #2C2C2C;
+        border-top-left-radius: 5px;
         border-top-right-radius: 5px;
     }
 
@@ -43,15 +40,15 @@
     flex-direction: column;
     gap: 8px;
     align-items: stretch;
-    padding: 8px; /* Padding für die Liste, nicht für die Sektion */
+    padding: 8px;
 }
 
 .played-card-entry {
     display: flex;
     align-items: center;
     padding: 6px 8px;
-    background-color: #fff;
-    border: 1px solid #ccc;
+    background-color: #2C2C2C;
+    border: 1px solid #444444;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.2s ease;
@@ -60,11 +57,11 @@
 }
 
     .played-card-entry:hover {
-        background-color: #e9ecef;
+        background-color: #677D6A;
     }
 
 .played-card-history-image {
-    width: 30px; /* Etwas kleiner für Mobile */
+    width: 30px;
     height: auto;
     aspect-ratio: 75 / 105;
     object-fit: cover;
@@ -75,7 +72,7 @@
 
 .played-card-history-name {
     font-size: 0.85em;
-    color: #2c3e50;
+    color: #E0E0E0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -84,10 +81,7 @@
 
 .no-cards-played-text {
     font-size: 0.9em;
-    color: #6c757d; /* Etwas dunkler */
+    color: #B0B0B0;
     text-align: center;
-    padding: 15px 10px; /* Mehr Padding */
+    padding: 15px 10px;
 }
-
-/* Keine spezifische Media Query hier nötig, da die Änderungen für Mobile
-   primär durch den Wrapper in Chess.razor.css gesteuert werden sollen. */

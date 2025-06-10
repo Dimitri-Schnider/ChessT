@@ -8,162 +8,156 @@
     box-sizing: border-box;
 }
 
-.square img {
-    display: block; /* WICHTIG: Verhindert Probleme mit Leerraum unter dem Bild / vertical-align */
-    max-width: 80%;
-    max-height: 80%;
-    object-fit: contain; /* Behält Seitenverhältnis des Bildes bei */
-    touch-action: none;
-    position: relative; /* Bleibt relativ, damit z-index greift falls nötig */
-    z-index: 10; /* Leicht erhöht, um über Feld-Highlights zu sein, falls diese als ::before etc. realisiert wären */
-    transition: transform 0.15s ease-out, opacity 0.15s ease-out;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
+    .square img {
+        display: block;
+        max-width: 80%;
+        max-height: 80%;
+        object-fit: contain;
+        touch-action: none;
+        position: relative;
+        z-index: 10;
+        transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
 
-/* Restliche Stile für .square.highlight etc. bleiben wie sie waren und funktionierten */
-/* ... (vorhandene Stile für Highlights, Cursor, Labels etc. hier einfügen) ... */
-.square:not(.board-disabled) {
-    cursor: default;
-}
+    .square:not(.board-disabled) {
+        cursor: default;
+    }
 
-.square.board-disabled {
-    cursor: not-allowed !important;
-}
-
-    .square.board-disabled img {
+    .square.board-disabled {
         cursor: not-allowed !important;
     }
 
-.square:not(.board-disabled) img:not(.piece-not-interactive) {
-    cursor: grab !important;
-}
+        .square.board-disabled img {
+            cursor: not-allowed !important;
+        }
 
-    .square:not(.board-disabled) img:not(.piece-not-interactive):active {
-        cursor: grabbing !important;
+    .square:not(.board-disabled) img:not(.piece-not-interactive) {
+        cursor: grab !important;
     }
 
-.square:not(.board-disabled) img.piece-not-interactive {
-    cursor: default !important;
-}
+        .square:not(.board-disabled) img:not(.piece-not-interactive):active {
+            cursor: grabbing !important;
+        }
 
-.square.highlight {
-    outline: 3px solid rgba(255, 215, 0, 0.7);
-    outline-offset: -3px;
-}
-
-.square.drag-over-target-js {
-    background-color: rgba(144, 238, 144, 0.5);
-}
-
-.square img.piece-being-dragged-original {
-    opacity: 0.3;
-}
-
-.square img.dragging-active-piece {
-    z-index: 1000;
-    box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
-    opacity: 0.9;
-    transition: none;
-}
-
-.square.highlight-card-first-selection {
-    outline: 3px solid rgba(0, 128, 255, 0.8);
-    outline-offset: -3px;
-    background-color: rgba(0, 128, 255, 0.1);
-}
-
-    .square.highlight-card-first-selection img {
-        box-shadow: 0 0 8px 3px rgba(0, 128, 255, 0.7);
+    .square:not(.board-disabled) img.piece-not-interactive {
+        cursor: default !important;
     }
 
-.square.highlight-card-piece-selection {
-    background-color: rgba(255, 165, 0, 0.3);
-    outline: 2px dashed rgba(255, 165, 0, 0.7);
-    outline-offset: -2px;
-    cursor: pointer !important;
-}
+    /* --- KORREKTUR: Umstellung von outline auf box-shadow für präzises Highlighting --- */
+    .square.highlight {
+        box-shadow: inset 0 0 0 3px rgba(165, 91, 75, 0.8);
+    }
 
-    .square.highlight-card-piece-selection img {
+    .square.drag-over-target-js {
+        background-color: rgba(103, 125, 106, 0.5);
+    }
+
+    .square img.piece-being-dragged-original {
+        opacity: 0.3;
+    }
+
+    .square img.dragging-active-piece {
+        z-index: 1000;
+        box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
+        opacity: 0.9;
+        transition: none;
+    }
+
+    .square.highlight-card-first-selection {
+        box-shadow: inset 0 0 0 3px rgba(103, 125, 106, 0.8);
+        background-color: rgba(103, 125, 106, 0.1);
+    }
+
+        .square.highlight-card-first-selection img {
+            box-shadow: 0 0 8px 3px rgba(103, 125, 106, 0.7);
+        }
+
+    .square.highlight-card-piece-selection {
+        background-color: rgba(165, 91, 75, 0.3);
+        box-shadow: inset 0 0 0 2px rgba(165, 91, 75, 0.7);
         cursor: pointer !important;
     }
 
-.square.highlight-card-actionable-target {
-    background-color: rgba(30, 144, 255, 0.25);
-    outline: 2px solid rgba(30, 144, 255, 0.6);
-    outline-offset: -2px;
-    cursor: pointer !important;
-}
+        .square.highlight-card-piece-selection img {
+            cursor: pointer !important;
+        }
 
-    .square.highlight-card-actionable-target img {
+    .square.highlight-card-actionable-target {
+        background-color: rgba(103, 125, 106, 0.25);
+        box-shadow: inset 0 0 0 2px rgba(103, 125, 106, 0.6);
         cursor: pointer !important;
     }
 
-.square.highlight-last-move-to-strong {
-    background-color: rgba(255, 255, 0, 0.6);
-}
+        .square.highlight-card-actionable-target img {
+            cursor: pointer !important;
+        }
 
-.square.highlight-last-move-from-strong {
-    background-color: rgba(255, 255, 0, 0.5);
-}
+    .square.highlight-last-move-to-strong {
+        background-color: rgba(103, 125, 106, 0.5);
+    }
 
-.square.highlight-last-move-to-weaker {
-    background-color: rgba(255, 255, 0, 0.4);
-}
+    .square.highlight-last-move-from-strong {
+        background-color: rgba(103, 125, 106, 0.4);
+    }
 
-.square.highlight-last-move-from-weaker {
-    background-color: rgba(255, 255, 0, 0.3);
-}
+    .square.highlight-last-move-to-weaker {
+        background-color: rgba(103, 125, 106, 0.35);
+    }
 
-.square.highlight-card-teleport-from {
-    background-color: rgba(0, 191, 255, 0.3);
-}
+    .square.highlight-last-move-from-weaker {
+        background-color: rgba(103, 125, 106, 0.25);
+    }
 
-.square.highlight-card-teleport-to {
-    background-color: rgba(0, 191, 255, 0.6);
-}
+    .square.highlight-card-teleport-from {
+        background-color: rgba(0, 191, 255, 0.3);
+    }
 
-.square.highlight-card-swap-1,
-.square.highlight-card-swap-2 {
-    background-color: rgba(173, 216, 230, 0.5);
-}
+    .square.highlight-card-teleport-to {
+        background-color: rgba(0, 191, 255, 0.6);
+    }
 
-.square.highlight-card-rebirth {
-    background-color: rgba(152, 251, 152, 0.5);
-    outline: 2px dashed rgba(60, 179, 113, 0.7);
-    outline-offset: -2px;
-}
+    .square.highlight-card-swap-1,
+    .square.highlight-card-swap-2 {
+        background-color: rgba(173, 216, 230, 0.5);
+    }
 
-.square .rank-label,
-.square .file-label {
-    position: absolute;
-    font-size: clamp(8px, 1.5vmin, 10px);
-    font-weight: bold;
-    color: #808080;
-    pointer-events: none;
-    z-index: 1;
-    padding: 1px;
-    line-height: 1;
-}
+    .square.highlight-card-rebirth {
+        background-color: rgba(152, 251, 152, 0.5);
+        box-shadow: inset 0 0 0 2px rgba(60, 179, 113, 0.7);
+    }
 
-.square .rank-label {
-    top: 0;
-    left: 0;
-    margin-top: 3px;
-    margin-left: 3px;
-}
+    .square .rank-label,
+    .square .file-label {
+        position: absolute;
+        font-size: clamp(8px, 1.5vmin, 10px);
+        font-weight: bold;
+        color: #B0B0B0;
+        pointer-events: none;
+        z-index: 1;
+        padding: 1px;
+        line-height: 1;
+    }
 
-.square .file-label {
-    bottom: 0;
-    right: 0;
-    margin-bottom: 3px;
-    margin-right: 3px;
-}
+    .square .rank-label {
+        top: 0;
+        left: 0;
+        margin-top: 3px;
+        margin-left: 3px;
+    }
 
-.square.dark .rank-label,
-.square.dark .file-label {
-    color: rgba(255, 255, 255, 0.5);
-}
+    .square .file-label {
+        bottom: 0;
+        right: 0;
+        margin-bottom: 3px;
+        margin-right: 3px;
+    }
+
+    .square.dark .rank-label,
+    .square.dark .file-label {
+        color: rgba(224, 224, 224, 0.7);
+    }

@@ -1,4 +1,4 @@
-.page {
+ï»¿.page {
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -20,7 +20,7 @@
 }
 
 .content { /* Dieser Container beinhaltet @Body, also die Chess.razor Seite */
-    padding-top: calc(1.1rem + 45px); /* Für globalen Burger-Button etc. */
+    padding-top: calc(1.1rem + 45px); /* Fï¿½r globalen Burger-Button etc. */
     padding-left: 1rem !important;
     padding-right: 1rem !important;
     overflow-y: hidden; /* WICHTIG: Verhindert Scrollen im Hauptinhaltsbereich */
@@ -29,7 +29,7 @@
     flex-direction: column; /* Ordnet Kinder (global-timers-mobile, chess-page-container) untereinander an */
 }
 
-/* Restliche Stile bleiben wie in deinem letzten Stand oder vorherigen Vorschlägen */
+/* Restliche Stile bleiben wie in deinem letzten Stand oder vorherigen Vorschlï¿½gen */
 .global-burger-button {
     position: fixed;
     top: 10px;
@@ -38,6 +38,9 @@
     padding: 0.25rem 0.5rem;
     line-height: 1;
     border-radius: 0.25rem;
+    background-color: #2C2C2C;
+    border-color: #444444;
+    color: #E0E0E0;
 }
 
     .global-burger-button i.bi-list {
@@ -53,6 +56,9 @@
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
     line-height: 1;
+    background-color: #2C2C2C;
+    border-color: #444444;
+    color: #E0E0E0;
 }
 
     .settings-button-relocated i.bi-gear-fill {
@@ -85,7 +91,7 @@
 }
 
 .top-row .navbar-toggler.mobile-burger-button {
-    --bs-navbar-toggler-icon-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 0, 0, 0.55)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    --bs-navbar-toggler-icon-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(224, 224, 224, 0.55)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
     border: none;
 }
 

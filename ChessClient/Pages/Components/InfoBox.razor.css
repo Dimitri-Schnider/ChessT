@@ -1,22 +1,23 @@
-﻿.info-box-wrapper { /* Neuer Wrapper für Flex-Layout */
+﻿.info-box-wrapper {
     position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.8);
-    color: white;
+    background: #2C2C2C;
+    color: #E0E0E0;
     padding: 0.75rem 1rem;
     border-radius: 8px;
     font-size: 1.1rem;
-    z-index: 1060; 
+    z-index: 1060;
     transition: opacity 0.3s ease-in-out;
-    display: flex; 
+    display: flex;
     align-items: center;
-    gap: 10px; 
+    gap: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 1px solid #444444;
 }
 
-    .info-box-wrapper[hidden] { 
+    .info-box-wrapper[hidden] {
         opacity: 0;
         pointer-events: none;
     }
@@ -26,5 +27,8 @@
 }
 
 .info-box-action-button {
-    flex-shrink: 0; 
+    flex-shrink: 0;
+    background-color: #677D6A;
+    border-color: #677D6A;
+    color: #E0E0E0;
 }

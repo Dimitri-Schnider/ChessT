@@ -8,7 +8,7 @@
 }
 
 .scroll-arrow {
-    background-color: rgba(108, 117, 125, 0.6);
+    background-color: rgba(103, 125, 106, 0.6);
     color: white;
     border: none;
     border-radius: 50%;
@@ -27,7 +27,7 @@
 }
 
     .scroll-arrow:hover:not(:disabled) {
-        background-color: rgba(80, 80, 80, 0.8);
+        background-color: rgba(103, 125, 106, 0.8);
     }
 
     .scroll-arrow:disabled {
@@ -49,13 +49,13 @@
     overflow-y: hidden;
     gap: 8px;
     padding: 8px;
-    background-color: #e9ecef;
+    background-color: #2C2C2C;
     border-radius: 6px;
     height: 100%;
     align-items: center;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: #888 #e0e0e0;
+    scrollbar-color: #444444 #2C2C2C;
     flex-grow: 1;
     min-width: 0;
     box-sizing: border-box;
@@ -66,17 +66,17 @@
     }
 
     .hand-cards-container::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: #2C2C2C;
         border-radius: 10px;
     }
 
     .hand-cards-container::-webkit-scrollbar-thumb {
-        background: #a0a0a0;
+        background: #444444;
         border-radius: 10px;
     }
 
         .hand-cards-container::-webkit-scrollbar-thumb:hover {
-            background: #888;
+            background: #677D6A;
         }
 
     .hand-cards-container.selection-disabled {
@@ -106,7 +106,6 @@
     position: relative;
     transform-style: preserve-3d;
     transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
-    /* NEU: Erzwingt GPU-Rendering zur Behebung von 3D-Glitches */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
 }
@@ -124,7 +123,6 @@
     border-radius: 5px;
     overflow: hidden;
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    /* NEU: Stellt sicher, dass auch die Flächen im 3D-Raum bleiben */
     -webkit-transform-style: preserve-3d;
     transform-style: preserve-3d;
     -webkit-transform: translateZ(0);
@@ -138,7 +136,7 @@
 
 .card-in-hand-wrapper:hover .hand-card-flipper:not(.is-flipped) {
     transform: translateY(-4px) scale(1.03);
-    transition-duration: 0.2s; /* Schnellere Animation für Hover */
+    transition-duration: 0.2s;
 }
 
 .card-in-hand-wrapper.disabled {
@@ -150,7 +148,7 @@
     }
 
 .card-in-hand-wrapper.selected {
-    border-color: #007bff;
+    border-color: #A55B4B;
 }
 
     .card-in-hand-wrapper.selected .hand-card-flipper:not(.is-flipped) {
@@ -221,7 +219,7 @@
 .card-title-text-hand {
     font-size: 0.6em;
     font-weight: bold;
-    color: #402C1A;
+    color: #1A1A1D;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -229,14 +227,13 @@
 }
 
 .no-cards-text {
-    color: #555;
+    color: #B0B0B0;
     font-style: italic;
     margin: auto;
     white-space: nowrap;
     padding: 0 15px;
 }
 
-/* Media Queries bleiben unverändert */
 @media (max-width: 420px) {
     .hand-cards-container {
         height: 120px;

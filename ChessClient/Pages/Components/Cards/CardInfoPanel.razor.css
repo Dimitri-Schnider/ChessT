@@ -1,6 +1,4 @@
-﻿
-/* Stellt sicher, dass das Panel im Modal-Body korrekt angezeigt wird */
-.card-info-panel-content {
+﻿.card-info-panel-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -8,36 +6,30 @@
     padding: 20px;
     box-sizing: border-box;
     width: 100%;
-    /* Entferne oder kommentiere den festen Hintergrund hier aus,
-       wenn der Modal-Hintergrund (.modal-content) das steuern soll */
-    /* background-color: #fff; */
     border-radius: 0.5rem;
 }
 
 .card-info-modal .modal-dialog {
-    /* max-width kann hier gesetzt werden, wenn modal-lg nicht ausreicht oder spezifischer sein soll */
-    /* z.B. max-width: 400px; für ein kompakteres Karten-Modal. modal-lg ist ca. 800px */
-    max-width: 450px; /* Machen wir es etwas kompakter als modal-lg */
+    max-width: 450px;
 }
 
 .card-info-modal .modal-content {
-    background-color: rgba(50, 50, 50, 0.85); /* Dunkler, leicht transparenter Hintergrund für das Modal-Fenster selbst */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 0.75rem; /* Etwas grössere Rundung */
+    background-color: #2C2C2C;
+    border: 1px solid #444444;
+    border-radius: 0.75rem;
     box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
-    color: #f8f9fa; /* Helle Textfarbe für den Kontrast */
+    color: #E0E0E0;
 }
 
     .card-info-modal .modal-content .text-muted small {
-        color: #adb5bd !important; /* Helleres Grau für den Text auf dunklem Hintergrund */
+        color: #B0B0B0 !important;
     }
 
-/* Visuelle Darstellung der Karte */
 .card-visual-representation {
     position: relative;
     width: 280px;
     height: calc(280px * 1050 / 750);
-    background-color: transparent; /* Sicherstellen, dass kein eigener Hintergrund die Karte überdeckt */
+    background-color: transparent;
     border: none;
     box-sizing: border-box;
     margin: 0 auto 20px auto;
@@ -98,9 +90,9 @@
 .card-title-text {
     font-size: 1.1em;
     font-weight: bold;
-    color: #f0e0c0; /* Hellerer, warmer Ton für den Titel auf dunklem Hintergrund */
+    color: #E0E0E0;
     margin: 0;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.7); /* Stärkerer Schatten für Lesbarkeit */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
 }
 
 .card-description-section {
@@ -109,7 +101,7 @@
     left: 15%;
     width: 70%;
     height: 15%;
-    color: #e0e0e0; /* Hellere Textfarbe für die Beschreibung */
+    color: #E0E0E0;
     font-size: 0.85em;
     line-height: 1.3;
     overflow-y: auto;
@@ -148,17 +140,17 @@
 
 .close-modal-button-cip {
     position: absolute;
-    top: 15px; /* Etwas mehr Abstand vom Rand */
-    right: 15px; /* Etwas mehr Abstand vom Rand */
+    top: 15px;
+    right: 15px;
     z-index: 10;
-    background-color: rgba(255, 255, 255, 0.2); /* Hellt den Button leicht auf, damit er sichtbar ist */
-    color: #fff; /* Weisse Schrift für den Button */
-    border: 1px solid rgba(255,255,255,0.4);
+    background-color: rgba(224, 224, 224, 0.2);
+    color: #E0E0E0;
+    border: 1px solid rgba(224, 224, 224, 0.4);
     border-radius: 50%;
-    width: 32px; /* Leicht grösser */
-    height: 32px; /* Leicht grösser */
+    width: 32px;
+    height: 32px;
     padding: 0;
-    font-size: 1.2rem; /* Grösseres X */
+    font-size: 1.2rem;
     line-height: 30px;
     text-align: center;
     opacity: 0.8;
@@ -167,15 +159,14 @@
 
     .close-modal-button-cip:hover {
         opacity: 1;
-        background-color: rgba(255, 255, 255, 0.3);
+        background-color: rgba(224, 224, 224, 0.3);
     }
 
-/* Styling für den Preview-Modus, falls du Textfarben anpassen musst */
 .card-info-panel-content.preview-only-mode .card-visual-representation .card-title-text,
 .card-info-panel-content.preview-only-mode .card-visual-representation .card-description-text {
-    color: #a09070; /* Angepasste Farbe für Preview auf dunklem Hintergrund */
+    color: #B0B0B0;
 }
 
 .card-info-panel-content.preview-only-mode .text-muted small {
-    color: #9a9fa5 !important; /* Helleres Grau für Preview-Text */
+    color: #B0B0B0 !important;
 }

@@ -4,7 +4,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -20,8 +20,8 @@
 }
 
 .card-animation-container {
-    width: 280px; /* Basisbreite der Karte */
-    height: 390px; /* Basishöhe der Karte */
+    width: 280px;
+    height: 390px;
     transform: scale(0.5);
     opacity: 0;
     animation: cardPopIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.1s forwards;
@@ -52,7 +52,6 @@
     transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
     transform-style: preserve-3d;
     position: relative;
-    /* Hinzugefügt: Versucht, die Hardwarebeschleunigung zu erzwingen und Rendering-Glitches vorzubeugen */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
 }
@@ -65,12 +64,11 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    /* Hinzugefügt: Webkit-Präfix und erneutes translateZ(0) für die einzelnen Seiten */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    -webkit-transform-style: preserve-3d; /* Stellt sicher, dass Kindelemente im 3D-Raum bleiben */
+    -webkit-transform-style: preserve-3d;
     transform-style: preserve-3d;
-    -webkit-transform: translateZ(0); /* Kann helfen, die Seite auf eine eigene Kompositionsebene zu heben */
+    -webkit-transform: translateZ(0);
     transform: translateZ(0);
     border-radius: 15px;
     overflow: hidden;
@@ -82,7 +80,7 @@
 }
 
 .card-front {
-    background-color: #fff;
+    background-color: #2C2C2C;
 }
 
 .card-back {
@@ -99,12 +97,10 @@
         object-fit: cover;
         display: block;
         border-radius: 15px;
-        /* Hinzugefügt: Ein minimaler 3D-Transform direkt auf das Bild kann das Rendering erzwingen */
         -webkit-transform: translateZ(0.1px);
         transform: translateZ(0.1px);
     }
 
-/* Visuelle Darstellung der Karte (Vorderseite) */
 .card-visual-representation-animated {
     position: relative;
     width: 100%;
@@ -166,30 +162,28 @@
 .card-title-text-animated {
     font-size: 1em;
     font-weight: bold;
-    color: #402C1A;
+    color: #E0E0E0;
     margin: 0;
-    text-shadow: 1px 1px 1px #D4C5A9;
-    background-color: rgba(255, 255, 255, 0.5);
+    text-shadow: 1px 1px 1px #1A1A1D;
+    background-color: rgba(44, 44, 44, 0.7);
     padding: 2px 5px;
     border-radius: 3px;
 }
 
-/* Glow Effekt */
 .card-animation-container.glow-animation-active .card-flipper .card-face.card-front {
     animation: cardGlowEffectAnimated 0.4s ease-in-out infinite alternate;
 }
 
 @keyframes cardGlowEffectAnimated {
     from {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 15px #ffffff, 0 0 25px rgba(255, 255, 255, 0.8), 0 0 35px rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 15px #A55B4B, 0 0 25px rgba(165, 91, 75, 0.8), 0 0 35px rgba(165, 91, 75, 0.6);
     }
 
     to {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 30px #ffffff, 0 0 45px rgba(255, 255, 255, 0.9), 0 0 60px rgba(255, 255, 255, 0.7);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 30px #A55B4B, 0 0 45px rgba(165, 91, 75, 0.9), 0 0 60px rgba(165, 91, 75, 0.7);
     }
 }
 
-/* Animation für das Wegfliegen zur History */
 .card-animation-container.animate-to-history {
     animation: moveToHistoryAndFade 0.25s ease-in forwards;
 }

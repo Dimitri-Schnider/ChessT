@@ -1,43 +1,67 @@
-﻿/* Globale Schriftart.
-*/
+﻿/* Globale Schriftart. */
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    height: 100%;
-    /* Stellt sicher, dass html und body die volle Viewport-H�he als Basis haben */
-    margin: 0;
-    /* Entfernt Standard-Browser-Margins */
+    height: 100%; /* Stellt sicher, dass html und body die volle Viewport-H�he als Basis haben */
+    margin: 0; /* Entfernt Standard-Browser-Margins */
     overflow-x: hidden; /* Verhindert horizontales Scrollen global, falls etwas �bersteht */
+    background-color: #1A1A1D;
+    color: #E0E0E0;
 }
 
-/* Entfernt Fokus-Rahmen von H1.
-*/
+/* --- NEU: Custom Scrollbar Styles --- */
+/* Für Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #444444 #1A1A1D;
+}
+
+/* Für Webkit-Browser (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1A1A1D;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #444444;
+    border-radius: 10px;
+    border: 3px solid #1A1A1D;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: #677D6A;
+    }
+
+
+/* Entfernt Fokus-Rahmen von H1. */
 h1:focus {
     outline: none;
 }
 
 /* Standardfarbe f�r Links. */
 a, .btn-link {
-    color: #0071c1;
+    color: #677D6A;
 }
 
 /* Styling f�r prim�re Buttons. */
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: #A55B4B;
+    border-color: #A55B4B;
 }
 
-/* Touch-Optimierung f�r Buttons.
-*/
+/* Touch-Optimierung f�r Buttons. */
 .btn {
     min-width: 44px;
     min-height: 44px;
 }
 
-    /* Fokus-Styling.
-*/
+    /* Fokus-Styling. */
     .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-        box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+        box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #677D6A;
     }
 
 /* Standard-Padding f�r Inhaltsbereiche. */
@@ -57,26 +81,54 @@ a, .btn-link {
 }
 
     .modal-backdrop.show {
-        opacity: 0.65 !important;
-        /* Erh�he die Deckkraft f�r st�rkere Abdunklung, !important falls n�tig */
-        /* background-color: rgba(0, 0, 0, 0.65);
-/* Du kannst hier auch die Farbe explizit setzen, aber opacity ist meist ausreichend */
+        opacity: 0.85 !important;
     }
 
-/* Zeigt das Modal an.
-*/
+/* Zeigt das Modal an. */
 .modal.show {
     display: block;
 }
 
-/* Markierung f�r g�ltige, modifizierte Eingabefelder.
-*/
+/* --- Dark Theme Modal Styles --- */
+.modal-content {
+    background-color: #2C2C2C;
+    color: #E0E0E0;
+    border: 1px solid #444444;
+}
+
+.modal-header {
+    border-bottom: 1px solid #444444;
+}
+
+.modal-footer {
+    border-top: 1px solid #444444;
+}
+
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.modal .form-control,
+.modal .form-select {
+    background-color: #1A1A1D;
+    color: #E0E0E0;
+    border: 1px solid #444444;
+}
+
+    .modal .form-control:focus,
+    .modal .form-select:focus {
+        background-color: #1A1A1D;
+        color: #E0E0E0;
+        border-color: #A55B4B;
+        box-shadow: 0 0 0 0.25rem rgba(165, 91, 75, 0.25);
+    }
+
+/* Markierung f�r g�ltige, modifizierte Eingabefelder. */
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }
 
-/* Markierung f�r ung�ltige Eingabefelder.
-*/
+/* Markierung f�r ung�ltige Eingabefelder. */
 .invalid {
     outline: 1px solid red;
 }
@@ -101,8 +153,7 @@ a, .btn-link {
     z-index: 1000;
 }
 
-    /* Button zum Schliessen der Blazor-Fehleranzeige.
-*/
+    /* Button zum Schliessen der Blazor-Fehleranzeige. */
     #blazor-error-ui .dismiss {
         cursor: pointer;
         position: absolute;
@@ -117,8 +168,7 @@ a, .btn-link {
     color: white;
 }
 
-    /* Textinhalt f�r die Fehlergrenze.
-*/
+    /* Textinhalt f�r die Fehlergrenze. */
     .blazor-error-boundary::after {
         content: "An error has occurred.";
     }
@@ -132,26 +182,23 @@ a, .btn-link {
     margin: 20vh auto 1rem auto;
 }
 
-    /* Kreise f�r den Ladefortschritt.
-*/
+    /* Kreise f�r den Ladefortschritt. */
     .loading-progress circle {
         fill: none;
-        stroke: #e0e0e0;
+        stroke: #444444;
         stroke-width: 0.6rem;
         transform-origin: 50% 50%;
         transform: rotate(-90deg);
     }
 
-        /* Vordergrundkreis, der den Fortschritt anzeigt.
-*/
+        /* Vordergrundkreis, der den Fortschritt anzeigt. */
         .loading-progress circle:last-child {
-            stroke: #1b6ec2;
+            stroke: #A55B4B;
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
 
-/* Text unter dem Ladefortschrittsbalken.
-*/
+/* Text unter dem Ladefortschrittsbalken. */
 .loading-progress-text {
     position: absolute;
     text-align: center;
@@ -169,8 +216,7 @@ code {
     color: #c02d76;
 }
 
-/* Platzhalter-Styling f�r schwebende Formular-Labels.
-*/
+/* Platzhalter-Styling f�r schwebende Formular-Labels. */
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
     color: var(--bs-secondary-color);
     text-align: end;
@@ -180,8 +226,7 @@ code {
     text-align: start;
 }
 
-/* Hilfsklasse f�r Schachbrett-Layout.
-*/
+/* Hilfsklasse f�r Schachbrett-Layout. */
 .rank-row {
     display: contents;
 }
@@ -189,17 +234,12 @@ code {
 /* Styling f�r die Sidebar. */
 .sidebar {
     width: 200px;
-    border-right: 1px solid #ccc;
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    border-right: 1px solid #444444;
+    background-image: linear-gradient(180deg, #1A1A1D 0%, #2C2C2C 70%);
 }
 
-
-
-/* Container f�r die Timer-Anzeigen.
-*/
+/* Container f�r die Timer-Anzeigen. */
 .timers-container {
-    /* margin-bottom: 0.75rem;
-    max-width: min(65vh, 600px);*/
     margin-left: 0;
     margin-right: 0;
     padding-left: 0;
@@ -208,15 +248,12 @@ code {
 
 /* Box f�r einzelne Timer. */
 .timer-box {
-    /* padding: 0.3rem 0.5rem;
-*/
-    border: 1px solid #ccc;
+    border: 1px solid #444444;
     border-radius: 4px;
-    background-color: #f8f9fa;
+    background-color: #2C2C2C;
 }
 
-/* Anzeige der verbleibenden Zeit.
-*/
+/* Anzeige der verbleibenden Zeit. */
 .time-display {
     font-size: 1.2rem;
     font-weight: bold;
@@ -225,12 +262,12 @@ code {
 
 /* Styling f�r den aktiven Timer. */
 .timer-box.timer-active .time-display {
-    color: green;
+    color: #677D6A;
 }
 
 .timer-box.timer-active {
-    border-color: green;
-    box-shadow: 0 0 5px green;
+    border-color: #677D6A;
+    box-shadow: 0 0 5px #677D6A;
 }
 
 /* Anpassungen f�r gr�ssere Bildschirme (Sidebar).
@@ -255,10 +292,8 @@ code {
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    /* Sehr hoch, um �ber allem zu liegen */
-    color: white;
+    color: #E0E0E0;
     font-size: 15vw;
-    /* Skaliert mit der Fensterbreite */
     font-weight: bold;
     text-shadow: 0 0 20px black;
     animation: fadeIn 0.5s ease-in-out;
@@ -307,29 +342,27 @@ code {
 
 .loader-card {
     position: absolute;
-    width: 35px; /* Breite der Kartenrücken anpassen */
+    width: 35px;
     height: auto;
     left: 50%;
     bottom: 0;
     transform-origin: bottom center;
-    /* --- GEÄNDERT: Animationsdauer angepasst --- */
     animation: swing-and-fan 1.25s ease-in-out infinite;
     animation-delay: calc(0.15s * var(--i));
 }
 
 .loader-text {
     position: absolute;
-    /* --- GEÄNDERT: Abstand vergrößert --- */
     bottom: -45px; /* Text unter der Animation positionieren */
     width: 100%;
     text-align: center;
     font-weight: bold;
-    color: #808080; /* Farbe für den Lade-Text, falls im Light-Mode */
+    color: #B0B0B0;
 }
 
 /* In einem dunklen Overlay (wie bei "Spiel erstellen") sollte der Text weiss sein. */
 .loading-overlay .loader-text {
-    color: #f0f0f0;
+    color: #E0E0E0;
 }
 
 

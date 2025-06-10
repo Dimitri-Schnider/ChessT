@@ -5,7 +5,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.65);
+    background-color: rgba(0, 0, 0, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -22,8 +22,8 @@
 
 .card-swap-specific-container {
     position: relative;
-    width: 600px; /* Genug Platz für nebeneinanderliegende Karten */
-    height: 450px; /* Höhe des Animationsbereichs */
+    width: 600px;
+    height: 450px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -31,13 +31,12 @@
 }
 
 .swapping-card {
-    /* NEU: Kartengrösse angepasst, z.B. auf 220px Breite */
     width: 220px;
-    height: calc(220px * 1050 / 750); /* Proportion beibehalten */
+    height: calc(220px * 1050 / 750);
     position: absolute;
     transform-style: preserve-3d;
     opacity: 0;
-    transform: scale(0.7); /* Startskalierung für Einfliegeeffekt */
+    transform: scale(0.7);
 }
 
     .swapping-card .card-flipper {
@@ -57,9 +56,9 @@
         width: 100%;
         height: 100%;
         backface-visibility: hidden;
-        border-radius: 10px; /* Etwas grösserer Radius für grössere Karten */
+        border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.25); /* Etwas stärkerer Schatten */
+        box-shadow: 0 3px 10px rgba(0,0,0,0.25);
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -70,24 +69,19 @@
     }
 
     .swapping-card .card-back {
-        /* KORREKTUR: Kein background-image hier, da das <img> Tag im Markup die Quelle setzt */
-        /* background-image: url('/img/cards/templateback.png'); */
         transform: rotateY(180deg);
     }
-        /* Stellt sicher, dass das <img> Tag in .card-back korrekt angezeigt wird */
+
         .swapping-card .card-back img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Oder contain, je nach Bild */
-            border-radius: 10px; /* Passend zum card-face Radius */
+            object-fit: cover;
+            border-radius: 10px;
         }
 
 
     .swapping-card .swap-card-art {
         position: absolute;
-        /* Genaue Werte für top/left/width/height hängen von deinem template.png ab.
-           Diese Werte sind Beispiele und müssen evtl. angepasst werden,
-           um die Kunst korrekt im transparenten Bereich des Rahmens zu platzieren. */
         width: 68%;
         height: auto;
         top: 15%;
@@ -108,57 +102,51 @@
 
     .swapping-card .swap-card-title {
         position: absolute;
-        /* Genaue Werte anpassen für grössere Karten und dein template.png */
         bottom: 22%;
         left: 10%;
         width: 80%;
-        font-size: 0.85em; /* Evtl. Schriftgrösse leicht anpassen */
+        font-size: 0.85em;
         font-weight: bold;
-        color: #402C1A;
+        color: #1A1A1D;
         text-align: center;
         z-index: 3;
-        background-color: rgba(255, 255, 255, 0.65); /* Etwas mehr Deckkraft für bessere Lesbarkeit */
+        background-color: rgba(176, 176, 176, 0.75);
         padding: 2px 4px;
         border-radius: 3px;
     }
 
-    /* Phase 1: Einfliegen - Karten kommen von den Seiten/Ecken und landen nebeneinander in der Mitte */
-    .swapping-card.fly-in-from-bottom-to-left-center { /* Eigene Karte (gegeben) */
+    .swapping-card.fly-in-from-bottom-to-left-center {
         animation: flyInBottomToLeftCenter 1s forwards cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
-    .swapping-card.fly-in-from-top-to-right-center { /* Gegnerkarte (erhalten) */
+    .swapping-card.fly-in-from-top-to-right-center {
         animation: flyInTopToRightCenter 1s forwards cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
-/* Von unten (links beginnend) nach links-mittig */
 @keyframes flyInBottomToLeftCenter {
     from {
         transform: translateY(280px) translateX(-200px) scale(0.7);
         opacity: 0;
     }
-    /* Startet weiter unten und links aussen */
+
     to {
         transform: translateY(0px) translateX(-70px) scale(1);
         opacity: 1;
     }
-    /* Landet links von der Mitte, Y ist zentriert */
 }
-/* Von oben (rechts beginnend) nach rechts-mittig */
+
 @keyframes flyInTopToRightCenter {
     from {
         transform: translateY(-280px) translateX(200px) scale(0.7);
         opacity: 0;
     }
-    /* Startet weiter oben und rechts aussen */
+
     to {
         transform: translateY(0px) translateX(70px) scale(1);
         opacity: 1;
     }
-    /* Landet rechts von der Mitte, Y ist zentriert */
 }
 
-/* Haltepositionen für die Pause (angepasst an die Landepositionen) */
 .swapping-card.in-center-left {
     transform: translateY(0px) translateX(-70px) scale(1);
     opacity: 1;
@@ -169,12 +157,11 @@
     opacity: 1;
 }
 
-/* Phase 3: Ausfliegen - Von ihren Mittelpositionen zu den Zielbereichen */
-.swapping-card.fly-out-to-opponent-from-left { /* Eigene Karte (gegeben), war links-mittig, fliegt nach oben-rechts */
+.swapping-card.fly-out-to-opponent-from-left {
     animation: flyOutToOpponentFromLeftCenter 1s forwards cubic-bezier(0.75, 0, 0.75, 0.9);
 }
 
-.swapping-card.fly-out-to-player-from-right { /* Gegnerkarte (erhalten), war rechts-mittig, fliegt nach unten-links */
+.swapping-card.fly-out-to-player-from-right {
     animation: flyOutToPlayerFromRightCenter 1s forwards cubic-bezier(0.75, 0, 0.75, 0.9);
 }
 
@@ -188,7 +175,6 @@
         transform: translateY(-280px) translateX(200px) scale(0.7);
         opacity: 0;
     }
-    /* Fliegt nach oben-rechts weg */
 }
 
 @keyframes flyOutToPlayerFromRightCenter {
@@ -201,5 +187,4 @@
         transform: translateY(280px) translateX(-200px) scale(0.7);
         opacity: 0;
     }
-    /* Fliegt nach unten-links weg */
 }

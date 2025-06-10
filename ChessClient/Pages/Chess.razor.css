@@ -17,43 +17,28 @@
     overflow: hidden;
     flex-grow: 1;
     min-height: 0;
-    align-items: stretch; /* Kinder (.chessboard-column, .game-side-panel) füllen die Höhe */
+    align-items: stretch;
 }
 
 .chessboard-column {
     display: flex;
-    align-items: center; /* Zentriert .chessboard-container horizontal in der Spalte */
-    justify-content: center; /* Zentriert .chessboard-container vertikal in der Spalte */
-    /* Die Spalte selbst soll nicht wachsen, ihre Grösse wird durch .chessboard-container bestimmt */
+    align-items: center;
+    justify-content: center;
     flex-grow: 0;
-    flex-shrink: 0; /* Soll auch nicht schrumpfen, Grösse kommt vom Inhalt */
-    /* Die Höhe wird vom Parent .chess-page-container (align-items: stretch) übernommen */
-    /* Die Breite wird durch das Kind .chessboard-container (mit aspect-ratio) bestimmt */
+    flex-shrink: 0;
     height: 100%;
     position: relative;
     padding: 10px;
 }
 
-.chessboard-container { /* Kind von .chessboard-column, Parent von .chessboard-grid */
+.chessboard-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* WICHTIG: .chessboard-container bestimmt die Grösse des Brettes */
-    /* Es nimmt die volle Höhe der .chessboard-column (die gestreckt wurde) */
-    /* und berechnet seine Breite basierend auf dem 1:1 Seitenverhältnis. */
     height: 100%;
-    width: auto; /* Breite wird durch aspect-ratio aus der Höhe abgeleitet */
+    width: auto;
     aspect-ratio: 1 / 1;
-    /* Optional: Eine absolute Maximalgrösse, falls die Viewport-Höhe zu gross wird */
-    /* max-height: 90vh; */ /* Z.B. nicht höher als 90% des Viewports */
-    /* max-width: 90vh; */ /* Analog für die Breite */
 }
-/*
-   Erinnerung: .chessboard-grid (in ChessBoard.razor.css) sollte sein:
-   width: 100%; height: 100%; aspect-ratio: 1/1; (oder width:100%; height:auto; aspect-ratio:1/1)
-   max-width: 100%; max-height: 100%; Damit füllt es den .chessboard-container perfekt aus.
-   Der aktuelle Stil: .chessboard-grid { width: 100%; max-width: 100%; aspect-ratio: 1/1; margin: 0; } ist gut.
-*/
 
 .game-side-panel {
     display: flex;
@@ -62,20 +47,19 @@
     padding: 10px;
     box-sizing: border-box;
     overflow: hidden;
-    flex-grow: 1; /* NIMMT ALLEN VERBLEIBENDEN PLATZ HORIZONTAL */
-    min-width: 380px; /* Mindestbreite für die Funktionalität */
-    flex-shrink: 1; /* Darf schrumpfen, wenn nötig, bis min-width */
-    /* height: 100%; */ /* Ergibt sich aus align-items: stretch des Parents */
+    flex-grow: 1;
+    min-width: 380px;
+    flex-shrink: 1;
 }
 
     .game-side-panel .played-cards-history-display-wrapper {
         overflow-y: auto;
         min-height: 80px;
         flex-grow: 1;
-        border: 1px solid #d3d3d3;
+        border: 1px solid #444444;
         border-radius: 6px;
         padding: 8px;
-        background-color: #fdfdfd;
+        background-color: #2C2C2C;
         flex-shrink: 1;
     }
 
@@ -106,13 +90,13 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.85);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 9998; /* Unter dem Modal, aber über allem anderen */
-    color: white;
+    z-index: 9998;
+    color: #E0E0E0;
 }
 
 /* --- Mobile Layout Anpassungen (sollten so bleiben wie im letzten funktionierenden Stand) --- */
@@ -138,7 +122,7 @@
         justify-content: flex-start;
         min-width: unset;
         height: auto;
-        aspect-ratio: unset !important; /* Wichtig: Desktop aspect-ratio hier aufheben, falls es auf .chessboard-column wäre */
+        aspect-ratio: unset !important;
     }
 
     .chess-page-container {
@@ -154,7 +138,7 @@
         height: auto;
         margin: 0;
         padding: 0;
-        aspect-ratio: unset !important; /* Wichtig: Desktop aspect-ratio hier aufheben */
+        aspect-ratio: unset !important;
     }
 
     .game-side-panel {
@@ -174,10 +158,9 @@
             flex-grow: 0;
             flex-shrink: 1;
             margin-bottom: 5px;
-            /* Hinzugefügt: Standard-Display-Typ für den Fall, dass .hidden-on-mobile nicht greift oder entfernt wird */
-            display: block; /* oder flex, je nachdem was der Inhalt benötigt */
+            display: block;
         }
-            /* Diese Regel muss sehr spezifisch sein und Vorrang haben! */
+
             .game-side-panel .played-cards-history-display-wrapper.hidden-on-mobile {
                 display: none !important;
             }
@@ -200,16 +183,15 @@
     }
 }
 
-/* Stile für EndGamePopup und CardActivationAnimation können hier bleiben */
 .endgame-popup {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: #fff;
-    color: #333;
+    background: #2C2C2C;
+    color: #E0E0E0;
     padding: 1.5rem 2rem;
-    border: 2px solid #444;
+    border: 2px solid #444444;
     border-radius: 8px;
     font-size: 1.25rem;
     z-index: 1050;
@@ -223,7 +205,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     padding: 20px 40px;
-    background-color: rgba(0, 128, 0, 0.8);
+    background-color: rgba(103, 125, 106, 0.8);
     color: white;
     font-size: 1.5em;
     border-radius: 8px;
