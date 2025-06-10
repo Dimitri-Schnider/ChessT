@@ -35,6 +35,10 @@ namespace ChessClient.State
         CardDto? CardForInfoPanelModal { get; }
         bool IsCardInInfoPanelModalActivatable { get; }
         bool IsCardInInfoPanelModalPreviewOnly { get; }
+        bool ShowErrorModal { get; }
+        string ErrorModalMessage { get; }
+        void OpenErrorModal(string message);
+        void CloseErrorModal();
 
         void OpenCreateGameModal();
         void CloseCreateGameModal();

@@ -15,15 +15,18 @@ namespace ChessClient.State
         public bool IsCardSwapAnimating { get; private set; }
         public CardDto? CardGivenForSwap { get; private set; }
         public CardDto? CardReceivedForSwap { get; private set; }
-
-        // NEU: Implementierung
         public CardDto? LastAnimatedCard { get; private set; }
+        public CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; private set; }
 
         public AnimationState()
         {
         }
+        public void SetPendingSwapAnimationDetails(CardSwapAnimationDetailsDto? details)
+        {
+            PendingSwapAnimationDetails = details;
+            OnStateChanged();
+        }
 
-        // NEU: Implementierung
         public void SetLastAnimatedCard(CardDto card)
         {
             LastAnimatedCard = card;

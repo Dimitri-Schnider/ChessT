@@ -1,0 +1,8 @@
+﻿.modal-content.border-danger {
+    border-width: 2px;
+}
+
+.modal-body p {
+    word-wrap: break-word;
+    font-size: 1.1rem;
+}

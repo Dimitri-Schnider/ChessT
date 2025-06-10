@@ -54,8 +54,7 @@
         <div class="chessboard-column">
                @if (UiState != null)
             {
-                <InfoBox Message="@(UiState.CurrentInfoMessageForBox ??
-string.Empty)" 
+                <InfoBox Message="@(UiState.CurrentInfoMessageForBox ?? string.Empty)" 
                          AutoHide="@(!UiState.InfoBoxShowActionButton)" 
                          ShowActionButton="@UiState.InfoBoxShowActionButton"
                          ActionButtonText="@UiState.InfoBoxActionButtonText"
@@ -71,11 +70,6 @@ string.Empty)"
             }
 
  
-
-             @if (UiState != null && !string.IsNullOrEmpty(UiState.ErrorMessage))
-            {
-                <div class="alert alert-danger mt-2 mx-auto" role="alert" style="max-width: 600px;">@UiState.ErrorMessage</div>
-            }
 
             @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo == null && string.IsNullOrWhiteSpace(GameCoreState.GameIdFromQueryString) && ModalState != null && !ModalState.ShowCreateGameModal && !ModalState.ShowJoinGameModal && UiState != null && 
 !UiState.IsCreatingGame)
@@ -204,4 +198,9 @@ Choices="@(ModalState.PieceSelectionModalChoices ?? new List<PieceSelectionChoic
                          OnPieceSelected="@HandlePieceTypeSelectedFromModal"
                       
    OnCancelled="@HandlePieceSelectionModalCancelled" />
+
+    <ErrorModal 
+        IsVisible="@ModalState.ShowErrorModal"
+        ErrorMessage="@ModalState.ErrorModalMessage"
+        OnClose="@ModalState.CloseErrorModal" />
 }

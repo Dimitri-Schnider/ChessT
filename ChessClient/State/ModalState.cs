@@ -37,6 +37,8 @@ namespace ChessClient.State
         public CardDto? CardForInfoPanelModal { get; private set; }
         public bool IsCardInInfoPanelModalActivatable { get; private set; }
         public bool IsCardInInfoPanelModalPreviewOnly { get; private set; }
+        public bool ShowErrorModal { get; private set; }
+        public string ErrorModalMessage { get; private set; } = "";
 
 
         public ModalState()
@@ -170,6 +172,24 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
+        // NEU: Methoden zur Steuerung des Fehler-Modals
+        public void OpenErrorModal(string message)
+        {
+            CloseAllModals(); // Stellt sicher, dass kein anderes Modal offen ist
+            ErrorModalMessage = message;
+            ShowErrorModal = true;
+            OnStateChanged();
+        }
+
+        public void CloseErrorModal()
+        {
+            if (ShowErrorModal)
+            {
+                ShowErrorModal = false;
+                OnStateChanged();
+            }
+        }
+
         private void CloseAllModals()
         {
             ShowCreateGameModal = false;
@@ -177,6 +197,7 @@ namespace ChessClient.State
             ShowPieceSelectionModal = false;
             ShowPawnPromotionModalSpecifically = false;
             ShowCardInfoPanelModal = false;
+            ShowErrorModal = false; // Schliesst auch das Error-Modal, falls ein neues Modal geöffnet wird
         }
     }
 }

@@ -16,6 +16,15 @@ using System.Threading.Tasks;
 
 namespace ChessClient.Pages
 {
+    public enum BoardInteractivityState
+    {
+        MyTurn,
+        OpponentTurn,
+        ModalOpen,
+        AwaitingCardSelection,
+        Animating,
+        GameNotRunning
+    }
     public partial class Chess : IAsyncDisposable
     {
         [Inject] private IConfiguration Configuration { get; set; } = default!;
@@ -69,7 +78,7 @@ namespace ChessClient.Pages
                 }
                 catch (Exception)
                 {
-                    UiState.SetErrorMessage($"Spiel mit ID '{id}' konnte nicht gefunden werden.");
+                    ModalState.OpenErrorModal($"Spiel mit ID '{id}' konnte nicht gefunden werden.");
                     ModalState.OpenCreateGameModal();
                 }
             }
@@ -81,29 +90,16 @@ namespace ChessClient.Pages
 
         private async Task SubmitCreateGame(CreateGameParameters args)
         {
-            // Logik für robustere UI-Aktualisierung
             ModalState.CloseCreateGameModal();
             UiState.SetIsCreatingGame(true);
 
-            CreateGameResultDto? createResult = null;
             try
             {
-                // Schritt 1: Spiel auf dem Server erstellen und auf das Ergebnis warten
-                createResult = await GameOrchestrationService.CreateGameOnServerAsync(args);
+                var createResult = await GameOrchestrationService.CreateGameOnServerAsync(args);
+                if (createResult is null) return;
 
-                // Wenn die Erstellung fehlschlägt, wurde die Fehlermeldung bereits im Service gesetzt.
-                if (createResult is null)
-                {
-                    return; // Beendet die Methode frühzeitig
-                }
-
-                // Schritt 2: Spiel wurde erfolgreich erstellt. Lade-Overlay jetzt ausblenden.
                 UiState.SetIsCreatingGame(false);
-
-                // Schritt 3: Zum Hub verbinden. Dies kann den Countdown für PvC-Spiele auslösen.
                 await GameOrchestrationService.ConnectAndRegisterPlayerToHubAsync(createResult.GameId, createResult.PlayerId);
-
-                // Schritt 4: UI für das erstellte Spiel aktualisieren (z.B. Einladungslink anzeigen)
                 MyMainLayout.UpdateActiveGameId(createResult.GameId);
                 if (!GameCoreState.IsPvCGame)
                 {
@@ -113,12 +109,10 @@ namespace ChessClient.Pages
             }
             catch (Exception ex)
             {
-                // Allgemeine Fehlerbehandlung, falls etwas Unerwartetes passiert.
-                UiState.SetErrorMessage($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
+                ModalState.OpenErrorModal($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
             }
             finally
             {
-                // Stellt sicher, dass der Ladebildschirm auf jeden Fall ausgeblendet wird.
                 if (UiState.IsCreatingGame)
                 {
                     UiState.SetIsCreatingGame(false);
@@ -143,34 +137,7 @@ namespace ChessClient.Pages
 
         private async Task HandleSquareClickForCard(string algebraicCoord)
         {
-            if (!CardState.IsCardActivationPending || CardState.ActiveCardForBoardSelection == null) return;
-            string cardId = CardState.ActiveCardForBoardSelection.Id;
-            var request = new ActivateCardRequestDto { CardInstanceId = CardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = cardId };
-            // Logik für die zwei-Klick-Aktionen
-            if (cardId is CardConstants.Teleport or CardConstants.Positionstausch)
-            {
-                if (string.IsNullOrEmpty(CardState.FirstSquareSelectedForTeleportOrSwap))
-                {
-                    CardState.SetFirstSquareForTeleportOrSwap(algebraicCoord);
-                }
-                else
-                {
-                    request.FromSquare = CardState.FirstSquareSelectedForTeleportOrSwap;
-                    request.ToSquare = algebraicCoord;
-                    await GameOrchestrationService.FinalizeCardActivationOnServerAsync(request, CardState.ActiveCardForBoardSelection);
-                }
-            }
-            else if (cardId is CardConstants.Wiedergeburt && CardState.IsAwaitingRebirthTargetSquareSelection)
-            {
-                request.PieceTypeToRevive = CardState.PieceTypeSelectedForRebirth;
-                request.TargetRevivalSquare = algebraicCoord;
-                await GameOrchestrationService.FinalizeCardActivationOnServerAsync(request, CardState.ActiveCardForBoardSelection);
-            }
-            else if (cardId is CardConstants.SacrificeEffect && CardState.IsAwaitingSacrificePawnSelection)
-            {
-                request.FromSquare = algebraicCoord;
-                await GameOrchestrationService.FinalizeCardActivationOnServerAsync(request, CardState.ActiveCardForBoardSelection);
-            }
+            await GameOrchestrationService.HandleSquareClickForCardAsync(algebraicCoord);
         }
 
         private async Task HandlePieceTypeSelectedFromModal(PieceType selectedType)
@@ -181,57 +148,7 @@ namespace ChessClient.Pages
             }
             else if (CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection?.Id == CardConstants.Wiedergeburt)
             {
-                // 1. Modal schliessen
-                ModalState.ClosePieceSelectionModal();
-                // 2. Den ausgewählten Figurentyp für den weiteren Prozess im State speichern
-                CardState.SetAwaitingRebirthTargetSquareSelection(selectedType);
-                // 3. Gültige Zielfelder für die Wiederbelebung berechnen
-                List<string> originalSquares = PieceHelperClient.GetOriginalStartSquares(selectedType, GameCoreState.MyColor);
-                List<string> validTargetSquaresOnBoard = new();
-                if (GameCoreState.BoardDto?.Squares != null)
-                {
-                    foreach (string squareString in originalSquares)
-                    {
-                        (int row, int col) = PositionHelper.ToIndices(squareString);
-                        if (row >= 0 && row < 8 && col >= 0 && col < 8 && GameCoreState.BoardDto.Squares[row][col] == null)
-                        {
-                            validTargetSquaresOnBoard.Add(squareString);
-                        }
-                    }
-                }
-
-                // 4. Je nach Anzahl der gültigen Felder unterschiedlich reagieren
-                if (validTargetSquaresOnBoard.Count == 0)
-                {
-
-                    // Fall A: Keine gültigen Felder -> Aktion fehlschlagen lassen und Server informieren
-                    await UiState.SetCurrentInfoMessageForBoxAsync($"Keine freien Ursprungsfelder für {selectedType} verfügbar. Karte verfällt.", true, 4000);
-                    var request = new ActivateCardRequestDto { CardInstanceId = CardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType };
-                    if (CardState.ActiveCardForBoardSelection != null)
-                    {
-                        await GameOrchestrationService.FinalizeCardActivationOnServerAsync(request, CardState.ActiveCardForBoardSelection);
-                    }
-                }
-                else if (validTargetSquaresOnBoard.Count == 1)
-                {
-                    // Fall B: Nur ein gültiges Feld -> Aktion sofort ausführen
-                    await UiState.SetCurrentInfoMessageForBoxAsync($"Wiederbelebe {selectedType} auf {validTargetSquaresOnBoard[0]}...", false);
-                    var request = new ActivateCardRequestDto { CardInstanceId = CardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType, TargetRevivalSquare = validTargetSquaresOnBoard[0] };
-                    if (CardState.ActiveCardForBoardSelection != null)
-                    {
-                        await GameOrchestrationService.FinalizeCardActivationOnServerAsync(request, CardState.ActiveCardForBoardSelection);
-                    }
-                }
-                else
-                {
-                    // Fall C: Mehrere gültige Felder -> Benutzer zur Auswahl auffordern
-                    HighlightState.SetCardTargetSquaresForSelection(validTargetSquaresOnBoard);
-                    await UiState.SetCurrentInfoMessageForBoxAsync($"Wähle ein leeres Ursprungsfeld für {selectedType}.",
-                        autoClear: false,
-                        showActionButton: true,
-                        actionButtonText: "Abbrechen",
-                         onActionButtonClicked: new EventCallback(null, () => CardState.ResetCardActivationState(true, "Kartenaktion abgebrochen.")));
-                }
+                await GameOrchestrationService.HandlePieceTypeSelectedFromModalAsync(selectedType);
             }
         }
 
@@ -257,8 +174,22 @@ namespace ChessClient.Pages
 
         private void HandleGenericAnimationFinished()
         {
+            // Prüfen, ob die beendete Animation ein Kartentausch war
+            if (AnimationState.LastAnimatedCard?.Id == CardConstants.CardSwap)
+            {
+                // Prüfen, ob Tausch-Details vom Server angekommen sind
+                if (AnimationState.PendingSwapAnimationDetails != null)
+                {
+                    // Spezifische Tausch-Animation starten
+                    AnimationState.StartCardSwapAnimation(
+                        AnimationState.PendingSwapAnimationDetails.CardGiven,
+                        AnimationState.PendingSwapAnimationDetails.CardReceived
+                    );
+                    // Gespeicherte Details löschen
+                    AnimationState.SetPendingSwapAnimationDetails(null);
+                }
+            }
             AnimationState.FinishCardActivationAnimation();
-            // Die Logik zum Starten der Swap-Animation befindet sich jetzt im AnimationState
         }
 
         private void HandleSwapAnimationFinished()
@@ -270,24 +201,41 @@ namespace ChessClient.Pages
         private void CloseJoinGameModal() => ModalState.CloseJoinGameModal();
         private void HandlePieceSelectionModalCancelled() => CardState.ResetCardActivationState(true, "Auswahl abgebrochen.");
 
+        private BoardInteractivityState CurrentBoardState
+        {
+            get
+            {
+                // Prüfe Zustände mit höchster Priorität zuerst
+                if (GameCoreState is null || UiState is null || CardState is null || ModalState is null || AnimationState is null)
+                    return BoardInteractivityState.GameNotRunning;
+
+                if (!GameCoreState.IsGameRunning || !string.IsNullOrEmpty(GameCoreState.EndGameMessage))
+                    return BoardInteractivityState.GameNotRunning;
+
+                if (UiState.IsCountdownVisible || AnimationState.IsCardActivationAnimating || AnimationState.IsCardSwapAnimating)
+                    return BoardInteractivityState.Animating;
+
+                if (ModalState.ShowCreateGameModal || ModalState.ShowJoinGameModal || ModalState.ShowPieceSelectionModal || ModalState.ShowCardInfoPanelModal)
+                    return BoardInteractivityState.ModalOpen;
+
+                if (CardState.IsCardActivationPending)
+                    return BoardInteractivityState.AwaitingCardSelection;
+
+                if (CardState.IsAwaitingTurnConfirmation)
+                    return BoardInteractivityState.OpponentTurn;
+
+                if (GameCoreState.MyColor != GameCoreState.CurrentTurnPlayer)
+                    return BoardInteractivityState.OpponentTurn;
+
+                // Wenn keine der obigen Bedingungen zutrifft, ist der Spieler am Zug
+                return BoardInteractivityState.MyTurn;
+            }
+        }
+
         private bool IsChessboardEnabled()
         {
-            if (UiState.IsCountdownVisible || !CardState.AreCardsRevealed || CardState.IsAwaitingTurnConfirmation || ModalState.ShowCreateGameModal || ModalState.ShowJoinGameModal || ModalState.ShowPieceSelectionModal || ModalState.ShowCardInfoPanelModal)
-            {
-                return false;
-            }
-
-            if (CardState.IsCardActivationPending)
-            {
-                string? cardId = CardState.ActiveCardForBoardSelection?.Id;
-                return cardId is CardConstants.Teleport or CardConstants.Positionstausch or CardConstants.Wiedergeburt or CardConstants.SacrificeEffect;
-            }
-
-            // !CardState.IsCardActivationPending ist wichtig um Race Conditions zu verhindern.
-            return GameCoreState.OpponentJoined &&
-                   GameCoreState.MyColor == GameCoreState.CurrentTurnPlayer &&
-                   string.IsNullOrEmpty(GameCoreState.EndGameMessage) &&
-                   !CardState.IsCardActivationPending;
+            var state = CurrentBoardState;
+            return state is BoardInteractivityState.MyTurn or BoardInteractivityState.AwaitingCardSelection;
         }
 
 

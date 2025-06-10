@@ -9,11 +9,14 @@ using ChessLogic;
 using ChessNetwork;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace ChessClient.Services
@@ -29,6 +32,7 @@ namespace ChessClient.Services
         private readonly IChessLogger _logger;
         private readonly ChessHubService _hubService;
         private readonly IConfiguration _configuration;
+        private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
         public GameOrchestrationService(
             IGameSession gameService,
@@ -52,59 +56,21 @@ namespace ChessClient.Services
             _configuration = configuration;
         }
 
-        // Die Logik wurde in zwei Methoden aufgeteilt. Diese ist jetzt privat.
-        private async Task<(bool Success, Guid GameId)> CreateNewGameAsync(CreateGameParameters args)
-        {
-            _gameCoreState.SetGameSpecificDataInitialized(false);
-            if (string.IsNullOrWhiteSpace(args.Name))
-            {
-                _uiState.SetErrorMessage("Bitte gib einen Spielernamen ein.");
-                return (false, Guid.Empty);
-            }
-            _uiState.ClearErrorMessage();
-            _uiState.ClearCurrentInfoMessageForBox();
-            _highlightState.ClearAllActionHighlights();
-            try
-            {
-                var createGameDtoForServer = new CreateGameDto
-                {
-                    PlayerName = args.Name,
-                    Color = args.Color,
-                    InitialMinutes = args.TimeMinutes,
-                    OpponentType = args.OpponentType.ToString(),
-                    ComputerDifficulty = args.ComputerDifficulty.ToString()
-                };
-                var result = await _gameService.CreateGameAsync(createGameDtoForServer);
-                _gameCoreState.InitializeNewGame(result, args.Name, result.Color, args.TimeMinutes, args.OpponentType.ToString());
-                _modalState.UpdateCreateGameModalArgs(args.Name, args.Color, args.TimeMinutes);
-                _modalState.CloseCreateGameModal();
 
-                await ConnectAndRegisterToHubAsync(result.GameId, result.PlayerId);
-
-                return (true, _gameCoreState.GameId);
-            }
-            catch (Exception ex)
-            {
-                _uiState.SetErrorMessage($"Fehler beim Erstellen des Spiels: {ex.Message}");
-                return (false, Guid.Empty);
-            }
-        }
 
         // Methode nur für die API-Erstellung
         public async Task<CreateGameResultDto?> CreateGameOnServerAsync(CreateGameParameters args)
         {
-            _gameCoreState.SetGameSpecificDataInitialized(false);
             if (string.IsNullOrWhiteSpace(args.Name))
             {
-                _uiState.SetErrorMessage("Bitte gib einen Spielernamen ein.");
+                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
+                _modalState.OpenErrorModal("Bitte gib einen Spielernamen ein.");
                 return null;
             }
-            _uiState.ClearErrorMessage();
-            _uiState.ClearCurrentInfoMessageForBox();
-            _highlightState.ClearAllActionHighlights();
+
             try
             {
-                var createGameDtoForServer = new CreateGameDto
+                var createGameDto = new CreateGameDto
                 {
                     PlayerName = args.Name,
                     Color = args.Color,
@@ -112,58 +78,169 @@ namespace ChessClient.Services
                     OpponentType = args.OpponentType.ToString(),
                     ComputerDifficulty = args.ComputerDifficulty.ToString()
                 };
-                var result = await _gameService.CreateGameAsync(createGameDtoForServer);
+                var result = await _gameService.CreateGameAsync(createGameDto);
                 _gameCoreState.InitializeNewGame(result, args.Name, result.Color, args.TimeMinutes, args.OpponentType.ToString());
                 _modalState.UpdateCreateGameModalArgs(args.Name, args.Color, args.TimeMinutes);
-
                 return result;
             }
             catch (Exception ex)
             {
-                _uiState.SetErrorMessage($"Fehler beim Erstellen des Spiels: {ex.Message}");
+                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
+                _modalState.OpenErrorModal($"Fehler beim Erstellen des Spiels: {ex.Message}");
                 return null;
             }
+        }
+
+
+        // Versucht, eine spezifische Fehlermeldung aus einer JSON-Antwort zu extrahieren.
+        private static string ParseErrorMessageFromJson(string jsonContent)
+        {
+            try
+            {
+                var moveResult = JsonSerializer.Deserialize<MoveResultDto>(jsonContent, _jsonOptions);
+                if (!string.IsNullOrWhiteSpace(moveResult?.ErrorMessage)) return moveResult.ErrorMessage;
+            }
+            catch (JsonException) { /* Ignorieren */ }
+
+            try
+            {
+                var cardResult = JsonSerializer.Deserialize<ServerCardActivationResultDto>(jsonContent, _jsonOptions);
+                if (!string.IsNullOrWhiteSpace(cardResult?.ErrorMessage)) return cardResult.ErrorMessage;
+            }
+            catch (JsonException) { /* Ignorieren */ }
+
+            return jsonContent;
         }
 
         // Methode nur für die Hub-Registrierung
         public async Task ConnectAndRegisterPlayerToHubAsync(Guid gameId, Guid playerId)
         {
-            await ConnectAndRegisterToHubAsync(gameId, playerId);
+            if (!_hubService.IsConnected)
+            {
+                string? serverBaseUrl = _configuration.GetValue<string>("ServerBaseUrl") ?? ClientConstants.DefaultServerBaseUrl;
+                await _hubService.StartAsync($"{serverBaseUrl.TrimEnd('/')}{ClientConstants.ChessHubRelativePath}");
+            }
+            if (_hubService.IsConnected)
+            {
+                await _hubService.RegisterPlayerWithHubAsync(gameId, playerId);
+            }
+            else
+            {
+                _logger.LogClientSignalRConnectionWarning("SignalR konnte nicht verbunden werden.");
+            }
+        }
+
+        // NEU: Implementierung der fehlenden Methode
+        public async Task HandleSquareClickForCardAsync(string algebraicCoord)
+        {
+            if (!_cardState.IsCardActivationPending || _cardState.ActiveCardForBoardSelection == null || _gameCoreState.CurrentPlayerInfo == null) return;
+
+            var activeCard = _cardState.ActiveCardForBoardSelection;
+            var request = new ActivateCardRequestDto { CardInstanceId = _cardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = activeCard.Id };
+
+            if (activeCard.Id is CardConstants.Teleport or CardConstants.Positionstausch)
+            {
+                if (string.IsNullOrEmpty(_cardState.FirstSquareSelectedForTeleportOrSwap))
+                {
+                    _cardState.SetFirstSquareForTeleportOrSwap(algebraicCoord);
+                    var msg = activeCard.Id == CardConstants.Teleport ? $"Teleport: Figur auf {algebraicCoord} ausgewählt. Wähle nun ein leeres Zielfeld." : $"Positionstausch: Erste Figur auf {algebraicCoord} ausgewählt. Wähle nun deine zweite Figur.";
+                    await SetCardActionInfoBoxMessage(msg, true);
+                    _highlightState.SetHighlights(algebraicCoord, null, false);
+                }
+                else
+                {
+                    request.FromSquare = _cardState.FirstSquareSelectedForTeleportOrSwap;
+                    request.ToSquare = algebraicCoord;
+                    await FinalizeCardActivationOnServerAsync(request, activeCard);
+                }
+            }
+            else if (activeCard.Id is CardConstants.Wiedergeburt && _cardState.IsAwaitingRebirthTargetSquareSelection)
+            {
+                request.PieceTypeToRevive = _cardState.PieceTypeSelectedForRebirth;
+                request.TargetRevivalSquare = algebraicCoord;
+                await FinalizeCardActivationOnServerAsync(request, activeCard);
+            }
+            else if (activeCard.Id is CardConstants.SacrificeEffect && _cardState.IsAwaitingSacrificePawnSelection)
+            {
+                request.FromSquare = algebraicCoord;
+                await FinalizeCardActivationOnServerAsync(request, activeCard);
+            }
+        }
+
+        // NEU: Implementierung der fehlenden Methode
+        public async Task HandlePieceTypeSelectedFromModalAsync(PieceType selectedType)
+        {
+            if (_modalState.ShowPawnPromotionModalSpecifically)
+            {
+                await ProcessPawnPromotionAsync(selectedType);
+            }
+            else if (_cardState.IsCardActivationPending && _cardState.ActiveCardForBoardSelection?.Id == CardConstants.Wiedergeburt)
+            {
+                _modalState.ClosePieceSelectionModal();
+                _cardState.SetAwaitingRebirthTargetSquareSelection(selectedType);
+
+                List<string> originalSquares = PieceHelperClient.GetOriginalStartSquares(selectedType, _gameCoreState.MyColor);
+                List<string> validTargetSquares = originalSquares.Where(s => {
+                    (int r, int c) = PositionHelper.ToIndices(s);
+                    return _gameCoreState.BoardDto?.Squares[r][c] == null;
+                }).ToList();
+
+                if (validTargetSquares.Count == 0)
+                {
+                    await _uiState.SetCurrentInfoMessageForBoxAsync($"Keine freien Ursprungsfelder für {selectedType} verfügbar. Karte verfällt.", true, 4000);
+                    var request = new ActivateCardRequestDto { CardInstanceId = _cardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType };
+                    if (_cardState.ActiveCardForBoardSelection != null)
+                    {
+                        await FinalizeCardActivationOnServerAsync(request, _cardState.ActiveCardForBoardSelection);
+                    }
+                }
+                else if (validTargetSquares.Count == 1)
+                {
+                    await _uiState.SetCurrentInfoMessageForBoxAsync($"Wiederbelebe {selectedType} auf {validTargetSquares[0]}...", false);
+                    var request = new ActivateCardRequestDto { CardInstanceId = _cardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType, TargetRevivalSquare = validTargetSquares[0] };
+                    if (_cardState.ActiveCardForBoardSelection != null)
+                    {
+                        await FinalizeCardActivationOnServerAsync(request, _cardState.ActiveCardForBoardSelection);
+                    }
+                }
+                else
+                {
+                    _highlightState.SetCardTargetSquaresForSelection(validTargetSquares);
+                    await SetCardActionInfoBoxMessage($"Wähle ein leeres Ursprungsfeld für {selectedType}.", true);
+                }
+            }
         }
 
         public async Task<(bool Success, Guid GameId)> JoinExistingGameAsync(string name, string gameIdToJoin)
         {
-            _gameCoreState.SetGameSpecificDataInitialized(false);
             if (string.IsNullOrWhiteSpace(name))
             {
-                _uiState.SetErrorMessage("Bitte gib einen Spielernamen ein.");
+                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
+                _modalState.OpenErrorModal("Bitte gib einen Spielernamen ein.");
                 return (false, Guid.Empty);
             }
-            if (!Guid.TryParse(gameIdToJoin, out var parsedGuidForJoin))
+            if (!Guid.TryParse(gameIdToJoin, out var parsedGuid))
             {
-                _uiState.SetErrorMessage("Ungültiges Game-ID Format.");
+                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
+                _modalState.OpenErrorModal("Ungültiges Game-ID Format.");
                 return (false, Guid.Empty);
             }
 
-            _uiState.ClearErrorMessage();
-            _uiState.ClearCurrentInfoMessageForBox();
-            _highlightState.ClearAllActionHighlights();
             _modalState.UpdateJoinGameModalArgs(name, gameIdToJoin);
             try
             {
-                var result = await _gameService.JoinGameAsync(parsedGuidForJoin, name);
-                _gameCoreState.InitializeJoinedGame(result, parsedGuidForJoin, result.Color);
+                var result = await _gameService.JoinGameAsync(parsedGuid, name);
+                _gameCoreState.InitializeJoinedGame(result, parsedGuid, result.Color);
                 _gameCoreState.SetOpponentJoined(true);
                 _gameCoreState.SetIsPvCGame(false);
                 _modalState.CloseJoinGameModal();
-
-                await ConnectAndRegisterToHubAsync(parsedGuidForJoin, result.PlayerId);
-
+                await ConnectAndRegisterPlayerToHubAsync(parsedGuid, result.PlayerId);
                 return (true, _gameCoreState.GameId);
             }
             catch (Exception ex)
             {
-                _uiState.SetErrorMessage($"Fehler beim Beitreten zum Spiel: {ex.Message}");
+                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
+                _modalState.OpenErrorModal($"Fehler beim Beitreten zum Spiel: {ex.Message}");
                 _gameCoreState.SetOpponentJoined(false);
                 return (false, Guid.Empty);
             }
@@ -189,11 +266,6 @@ namespace ChessClient.Services
 
         public async Task ProcessPlayerMoveAsync(MoveDto clientMove)
         {
-            if (_uiState.IsCountdownVisible || !_cardState.AreCardsRevealed || _modalState.ShowPieceSelectionModal || _modalState.ShowCardInfoPanelModal || _cardState.IsCardActivationPending || _gameCoreState.CurrentPlayerInfo == null || _gameCoreState.GameId == Guid.Empty || !string.IsNullOrEmpty(_gameCoreState.EndGameMessage) || !_gameCoreState.OpponentJoined || _gameCoreState.MyColor != _gameCoreState.CurrentTurnPlayer)
-            {
-                return;
-            }
-
             if (IsPawnPromotion(clientMove.From, clientMove.To))
             {
                 _modalState.OpenPawnPromotionModal(clientMove, _gameCoreState.MyColor);
@@ -203,30 +275,28 @@ namespace ChessClient.Services
 
             try
             {
-                var moveToSend = new MoveDto(clientMove.From, clientMove.To, _gameCoreState.CurrentPlayerInfo.Id, clientMove.PromotionTo);
-                var serverResult = await _gameService.SendMoveAsync(_gameCoreState.GameId, moveToSend);
-                if (!serverResult.IsValid)
-                {
-                    _uiState.SetErrorMessage(serverResult.ErrorMessage ?? "Unbekannter Fehler beim Zug vom Server.");
-                    _highlightState.ClearAllActionHighlights();
-                }
-                else
-                {
-                    _uiState.ClearErrorMessage();
-                }
+                var moveToSend = new MoveDto(clientMove.From, clientMove.To, _gameCoreState.CurrentPlayerInfo!.Id, clientMove.PromotionTo);
+                await _gameService.SendMoveAsync(_gameCoreState.GameId, moveToSend);
+            }
+            catch (HttpRequestException ex)
+            {
+                string friendlyMessage = ParseErrorMessageFromJson(ex.Message);
+                _modalState.OpenErrorModal(friendlyMessage);
+                _highlightState.ClearAllActionHighlights();
             }
             catch (Exception ex)
             {
-                _uiState.SetErrorMessage($"Fehler beim Senden des Zugs: {ex.Message}");
+                _modalState.OpenErrorModal($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
                 _highlightState.ClearAllActionHighlights();
             }
         }
+
 
         public async Task ProcessPawnPromotionAsync(PieceType promotionType)
         {
             if (_modalState.PendingPromotionMove == null || _gameCoreState.CurrentPlayerInfo == null)
             {
-                _uiState.SetErrorMessage("Fehler bei der Bauernumwandlung: Zustand inkonsistent.");
+                _modalState.OpenErrorModal("Fehler bei der Bauernumwandlung: Zustand inkonsistent.");
                 _modalState.ClosePawnPromotionModal();
                 return;
             }
@@ -241,15 +311,11 @@ namespace ChessClient.Services
 
             try
             {
-                MoveResultDto result = await _gameService.SendMoveAsync(_gameCoreState.GameId, moveWithPromotion);
-                if (!result.IsValid)
-                {
-                    _uiState.SetErrorMessage(result.ErrorMessage ?? "Unbekannter Fehler bei der Bauernumwandlung vom Server.");
-                }
+                await _gameService.SendMoveAsync(_gameCoreState.GameId, moveWithPromotion);
             }
             catch (Exception ex)
             {
-                _uiState.SetErrorMessage($"Fehler beim Senden des Umwandlungszugs: {ex.Message}");
+                _modalState.OpenErrorModal($"Fehler beim Senden des Umwandlungszugs: {ex.Message}");
             }
         }
 
@@ -326,13 +392,34 @@ namespace ChessClient.Services
 
         private async Task HandleRebirthCardActivationAsync(CardDto card)
         {
-            if (_gameCoreState.CurrentPlayerInfo == null) return;
+            if (_gameCoreState.CurrentPlayerInfo == null || _gameCoreState.GameId == Guid.Empty) return;
 
             await _cardState.LoadCapturedPiecesForRebirthAsync(_gameCoreState.GameId, _gameCoreState.CurrentPlayerInfo.Id, _gameService);
-            var choices = _cardState.CapturedPiecesForRebirth?.Select(p => p.Type).Distinct().ToList() ?? new List<PieceType>();
-            if (choices.Count > 0)
+            var capturedPieceTypes = _cardState.CapturedPiecesForRebirth?.Select(p => p.Type).Distinct().ToList() ?? new List<PieceType>();
+
+            if (capturedPieceTypes.Count > 0)
             {
-                var choiceInfos = choices.Select(pt => new PieceSelectionChoiceInfo(pt, true)).ToList(); // Simplified
+                List<PieceSelectionChoiceInfo> choiceInfos = new();
+                foreach (var pieceType in capturedPieceTypes)
+                {
+                    List<string> originalSquares = PieceHelperClient.GetOriginalStartSquares(pieceType, _gameCoreState.MyColor);
+                    bool canBeRevived = false;
+                    if (_gameCoreState.BoardDto?.Squares != null)
+                    {
+                        foreach (string squareString in originalSquares)
+                        {
+                            (int row, int col) = PositionHelper.ToIndices(squareString);
+                            if (row >= 0 && row < 8 && col >= 0 && col < 8 && _gameCoreState.BoardDto.Squares[row][col] == null)
+                            {
+                                canBeRevived = true;
+                                break;
+                            }
+                        }
+                    }
+                    string tooltip = canBeRevived ? $"{pieceType} kann wiederbelebt werden." : $"Alle Startfelder für {pieceType} sind besetzt.";
+                    choiceInfos.Add(new PieceSelectionChoiceInfo(pieceType, canBeRevived, tooltip));
+                }
+
                 _modalState.OpenPieceSelectionModal("Figur wiederbeleben", "Wähle eine Figur:", choiceInfos, _gameCoreState.MyColor);
             }
             else
@@ -345,39 +432,51 @@ namespace ChessClient.Services
         public async Task FinalizeCardActivationOnServerAsync(ActivateCardRequestDto requestDto, CardDto activatedCardDefinition)
         {
             if (_gameCoreState.CurrentPlayerInfo == null) return;
-            var result = await _gameService.ActivateCardAsync(_gameCoreState.GameId, _gameCoreState.CurrentPlayerInfo.Id, requestDto);
 
-            if (result.PawnPromotionPendingAt != null && result.Success)
+            try
             {
-                _cardState.SetAwaitingTurnConfirmation(false);
-                var pos = result.PawnPromotionPendingAt;
-                var move = new MoveDto(PositionHelper.ToAlgebraic(pos.Row, pos.Column), PositionHelper.ToAlgebraic(pos.Row, pos.Column), _gameCoreState.CurrentPlayerInfo.Id);
-                _modalState.OpenPawnPromotionModal(move, _gameCoreState.MyColor);
-                await _uiState.SetCurrentInfoMessageForBoxAsync("Bauer umwandeln!");
-                _cardState.SetIsCardActivationPending(true);
-            }
-            else
-            {
-                // *** BEGINN DER KORREKTUR ***
-                // Prüfen, ob der Zug bereits durch SignalR verarbeitet wurde.
-                // Dies ist der Fall, wenn die Karte den Zug beenden sollte, aber wir laut State schon wieder dran sind.
-                bool turnAlreadyProcessedBySignalR = result.Success && result.EndsPlayerTurn && _gameCoreState.CurrentTurnPlayer == _gameCoreState.MyColor;
+                var result = await _gameService.ActivateCardAsync(_gameCoreState.GameId, _gameCoreState.CurrentPlayerInfo.Id, requestDto);
 
-                // Den allgemeinen "Kartenaktivierung läuft"-Status zurücksetzen.
-                _cardState.ResetCardActivationState(!result.Success, result.Success ? $"Karte '{activatedCardDefinition.Name}' erfolgreich aktiviert!" : _uiState.ErrorMessage);
-
-                // JETZT das "Warten auf Zug"-Flag setzen, aber NUR, wenn der Zug nicht bereits verarbeitet wurde.
-                if (turnAlreadyProcessedBySignalR)
+                if (result.PawnPromotionPendingAt != null && result.Success)
                 {
-                    // SignalR war schneller. Der Zug ist schon da. Nicht auf Bestätigung warten.
                     _cardState.SetAwaitingTurnConfirmation(false);
+                    var pos = result.PawnPromotionPendingAt;
+                    var move = new MoveDto(PositionHelper.ToAlgebraic(pos.Row, pos.Column), PositionHelper.ToAlgebraic(pos.Row, pos.Column), _gameCoreState.CurrentPlayerInfo.Id);
+                    _modalState.OpenPawnPromotionModal(move, _gameCoreState.MyColor);
+                    await _uiState.SetCurrentInfoMessageForBoxAsync("Bauer umwandeln!");
+                    _cardState.SetIsCardActivationPending(true);
                 }
                 else
                 {
-                    // Das Flag basierend auf dem HTTP-Ergebnis setzen. SignalR wird es später löschen.
-                    _cardState.SetAwaitingTurnConfirmation(result.Success && result.EndsPlayerTurn);
+                    bool turnAlreadyProcessedBySignalR = result.Success && result.EndsPlayerTurn && _gameCoreState.CurrentTurnPlayer == _gameCoreState.MyColor;
+
+                    // KORREKTUR: Der Fehlertext kommt jetzt direkt vom `result`, wenn die Aktivierung serverseitig fehlschlägt.
+                    string message = result.Success ? $"Karte '{activatedCardDefinition.Name}' erfolgreich aktiviert!" : result.ErrorMessage ?? "Kartenaktivierung fehlgeschlagen.";
+                    _cardState.ResetCardActivationState(!result.Success, message);
+
+                    if (turnAlreadyProcessedBySignalR)
+                    {
+                        _cardState.SetAwaitingTurnConfirmation(false);
+                    }
+                    else
+                    {
+                        _cardState.SetAwaitingTurnConfirmation(result.Success && result.EndsPlayerTurn);
+                    }
                 }
-                // *** ENDE DER KORREKTUR ***
+            }
+            catch (HttpRequestException ex)
+            {
+                string friendlyMessage = ParseErrorMessageFromJson(ex.Message);
+                _logger.LogClientSignalRConnectionWarning($"Fehler bei Kartenaktivierung vom Server: {friendlyMessage}");
+                _modalState.OpenErrorModal(friendlyMessage);
+                _cardState.ResetCardActivationState(true, friendlyMessage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogClientSignalRConnectionWarning($"Unerwarteter Fehler bei Kartenaktivierung: {ex.Message}");
+                var errorMsg = "Ein unerwarteter Fehler ist aufgetreten.";
+                _modalState.OpenErrorModal(errorMsg);
+                _cardState.ResetCardActivationState(true, errorMsg);
             }
         }
 

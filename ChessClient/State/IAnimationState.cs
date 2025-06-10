@@ -10,14 +10,13 @@ namespace ChessClient.State
         bool IsCardActivationAnimating { get; }
         CardDto? CardForAnimation { get; }
         bool IsOwnCardForAnimation { get; }
-
-        // NEU: Hinzugefügt
         CardDto? LastAnimatedCard { get; }
-        void SetLastAnimatedCard(CardDto card);
+        CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; }
+        void SetPendingSwapAnimationDetails(CardSwapAnimationDetailsDto? details);
 
+        void SetLastAnimatedCard(CardDto card);
         void StartCardActivationAnimation(CardDto card, bool isOwnCard);
         void FinishCardActivationAnimation();
-
         bool IsCardSwapAnimating { get; }
         CardDto? CardGivenForSwap { get; }
         CardDto? CardReceivedForSwap { get; }

@@ -23,8 +23,6 @@ namespace ChessClient.Services
         private readonly IModalState _modalState;
         private readonly IChessLogger _logger;
 
-        private CardSwapAnimationDetailsDto? _pendingSwapAnimationDetails;
-
         public HubSubscriptionService(
             ChessHubService hubService,
             IGameCoreState gameCoreState,
@@ -120,7 +118,7 @@ namespace ChessClient.Services
 
             if (!highlightLogicWasHandledByExtraTurn)
             {
-                if (cardEffectSquaresFromServer != null && cardEffectSquaresFromServer.Any())
+                if (cardEffectSquaresFromServer != null && cardEffectSquaresFromServer.Count > 0)
                 {
                     _highlightState.SetHighlightForCardEffect(
                         cardEffectSquaresFromServer.Select(eff => (eff.Square, eff.Type)).ToList()
@@ -236,7 +234,7 @@ namespace ChessClient.Services
         {
             if (_gameCoreState.CurrentPlayerInfo != null && details.PlayerId == _gameCoreState.CurrentPlayerInfo.Id)
             {
-                _pendingSwapAnimationDetails = details;
+                _animationState.SetPendingSwapAnimationDetails(details);
                 _logger.LogHandleReceiveCardSwapDetails(details.CardGiven.Name, details.CardReceived.Name, _animationState.IsCardActivationAnimating);
             }
         }
@@ -250,27 +248,6 @@ namespace ChessClient.Services
                 _animationState.StartCardActivationAnimation(cardForAnimation, _gameCoreState.MyColor == playerColorActivating);
                 _ = _uiState.SetCurrentInfoMessageForBoxAsync($"Karte '{cardForAnimation.Name}' wird aktiviert...");
                 _logger.LogGenericCardAnimationStartedForCard(cardForAnimation.Name);
-
-                // NEUE LOGIK HINZUFÜGEN:
-                // Wenn die generische Animation für einen Kartentausch gestartet wurde,
-                // warten wir und starten dann die spezifische Animation.
-                if (cardForAnimation.Id == CardConstants.CardSwap)
-                {
-                    // Warten Sie, bis die generische Animation ungefähr abgeschlossen ist.
-                    // Die Dauer sollte den Animation-Timings in CardActivationAnimation.razor.cs entsprechen
-                    // (z.B. ShowBackDurationMs + FlipAnimDurationMs + GlowVisibleDurationMs)
-                    Task.Delay(2900).ContinueWith(_ =>
-                    {
-                        if (_pendingSwapAnimationDetails != null)
-                        {
-                            _animationState.StartCardSwapAnimation(
-                                _pendingSwapAnimationDetails.CardGiven,
-                                _pendingSwapAnimationDetails.CardReceived
-                            );
-                            _pendingSwapAnimationDetails = null; // Details nach Verwendung löschen
-                        }
-                    });
-                }
             }
         }
 
