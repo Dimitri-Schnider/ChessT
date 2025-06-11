@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\ChessServer\Hubs\ChessHub.cs
-using Chess.Logging;
+﻿using Chess.Logging;
 using ChessLogic;
 using ChessNetwork.DTOs;
 using ChessServer.Services;
@@ -100,8 +99,8 @@ namespace ChessServer.Hubs
             {
                 if (_gameManager is InMemoryGameManager manager && manager.GetSessionForDirectHubSend(gameId) is GameSession session)
                 {
-                    List<CardDto> hand = session.GetPlayerHand(playerId);
-                    int drawPileCount = session.GetDrawPileCount(playerId);
+                    List<CardDto> hand = session.CardManager.GetPlayerHand(playerId);
+                    int drawPileCount = session.CardManager.GetDrawPileCount(playerId);
                     var initialHandDto = new InitialHandDto(hand, drawPileCount);
 
                     _logger.LogHubSendingInitialHand(playerId, Context.ConnectionId, gameId, initialHandDto.Hand.Count, initialHandDto.DrawPileCount);
@@ -123,9 +122,10 @@ namespace ChessServer.Hubs
 
                         if (opponentId != Guid.Empty && PlayerIdToConnectionMap.TryGetValue(opponentId, out string? opponentConnectionId))
                         {
-                            List<CardDto> opponentHand = session.GetPlayerHand(opponentId);
-                            int opponentDrawPileCount = session.GetDrawPileCount(opponentId);
+                            List<CardDto> opponentHand = session.CardManager.GetPlayerHand(opponentId);
+                            int opponentDrawPileCount = session.CardManager.GetDrawPileCount(opponentId);
                             var opponentInitialHandDto = new InitialHandDto(opponentHand, opponentDrawPileCount);
+
                             _logger.LogHubSendingInitialHand(opponentId, opponentConnectionId, gameId, opponentInitialHandDto.Hand.Count, opponentInitialHandDto.DrawPileCount);
                             await Clients.Client(opponentConnectionId).SendAsync("ReceiveInitialHand", opponentInitialHandDto);
                         }

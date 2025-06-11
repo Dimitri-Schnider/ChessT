@@ -68,3 +68,6 @@ app.MapControllers();
 app.MapHub<ChessHub>(ServerConstants.ChessHubRoute);
 
 app.Run();
+
+// Macht die Program-Klasse für das Testprojekt sichtbar.
+public partial class Program { }

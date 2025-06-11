@@ -68,7 +68,7 @@ namespace ChessServer.Controllers
                     var sessionForCardDef = concreteMgr.GetSessionForDirectHubSend(gameId);
                     if (sessionForCardDef != null)
                     {
-                        cardForAnimation = sessionForCardDef.GetCardDefinitionForAnimation(dto.CardTypeId);
+                        cardForAnimation = sessionForCardDef.CardManager.GetCardDefinitionForAnimation(dto.CardTypeId);
                     }
                 }
 

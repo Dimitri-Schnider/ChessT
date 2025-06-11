@@ -9,110 +9,53 @@ using System.Linq;
 
 namespace ChessServer.Services.CardEffects
 {
-    // Implementiert den Karteneffekt, der eine geschlagene Figur wiederbelebt.
     public class RebirthEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
+        public RebirthEffect(IChessLogger logger) { _logger = logger; }
 
-        public RebirthEffect(IChessLogger logger)
+        private static Piece CreateNewPieceByType(PieceType type, Player color) => type switch
         {
-            _logger = logger;
-        }
-
-        // Erstellt eine neue Figur basierend auf dem gewählten Typ.
-        private static Piece CreateNewPieceByType(PieceType type, Player color)
+            PieceType.Queen => new Queen(color),
+            PieceType.Rook => new Rook(color),
+            PieceType.Bishop => new Bishop(color),
+            PieceType.Knight => new Knight(color),
+            _ => throw new ArgumentException($"Ungültiger Typ für Wiederbelebung: {type}"),
+        };
+        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor, string cardTypeId, string? fromSquareAlg, string? toSquareAlg)
         {
-            return type switch
-            {
-                PieceType.Queen => new Queen(color),
-                PieceType.Rook => new Rook(color),
-                PieceType.Bishop => new Bishop(color),
-                PieceType.Knight => new Knight(color),
-                _ => throw new ArgumentException($"Ungültiger oder nicht unterstützter Figurentyp für Wiederbelebung: {type}"),
-            };
-        }
+            if (cardTypeId != CardConstants.Wiedergeburt || !Enum.TryParse<PieceType>(fromSquareAlg, true, out var pieceType) || toSquareAlg == null)
+                return new CardActivationResult(false, ErrorMessage: "Ungültige Anfrage für Wiedergeburt.");
 
-        // Führt den Wiederbelebungseffekt aus.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
-                                            string cardTypeId,
-                                            string? fromSquareAlg,
-                                            string? toSquareAlg)
-        {
-            string? pieceTypeToReviveStringInternal = fromSquareAlg;
-            string? targetRevivalSquareAlgInternal = toSquareAlg;
+            var targetPos = GameSession.ParsePos(toSquareAlg);
 
-            if (cardTypeId != CardConstants.Wiedergeburt)
+            List<Position> possibleOriginalSquares = PieceHelper.GetOriginalStartSquares(pieceType, playerDataColor);
+            if (!possibleOriginalSquares.Any(s => s.Row == targetPos.Row && s.Column == targetPos.Column))
             {
-                return new CardActivationResult(false, ErrorMessage: $"RebirthEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+                _logger.LogRebirthEffectFailedEnum($"{toSquareAlg} ist kein gültiges Ursprungsfeld für {pieceType}.", pieceType, toSquareAlg, session.GameId);
+                // Wichtig: true zurückgeben, damit die Karte als "verbraucht" gilt, wie in der alten Logik.
+                return new CardActivationResult(true, ErrorMessage: $"{toSquareAlg} ist kein gültiges Ursprungsfeld für {pieceType}. Karte verbraucht.", EndsPlayerTurn: true);
             }
 
-            if (string.IsNullOrEmpty(pieceTypeToReviveStringInternal) || string.IsNullOrEmpty(targetRevivalSquareAlgInternal))
+            if (!session.CardManager.GetCapturedPieceTypesOfPlayer(playerDataColor).Any(p => p.Type == pieceType))
             {
-                return new CardActivationResult(false, ErrorMessage: "Informationen zur wiederzubelebenden Figur oder zum Zielfeld fehlen. Bitte wähle eine Figur und ein Feld.");
+                _logger.LogRebirthEffectFailedEnum($"Spieler hat keinen geschlagenen {pieceType}.", pieceType, toSquareAlg, session.GameId);
+                return new CardActivationResult(true, ErrorMessage: $"Du hast keinen geschlagenen {pieceType} zum Wiederbeleben.", EndsPlayerTurn: true);
             }
 
-            if (!Enum.TryParse<PieceType>(pieceTypeToReviveStringInternal, true, out PieceType pieceTypeToRevive))
-            {
-                _logger.LogRebirthEffectFailedString($"Ungültiger Figurentyp: {pieceTypeToReviveStringInternal}", pieceTypeToReviveStringInternal, targetRevivalSquareAlgInternal, session.GameId);
-                return new CardActivationResult(false, ErrorMessage: $"Ungültiger Figurentyp angegeben: {pieceTypeToReviveStringInternal}");
-            }
-
-            if (pieceTypeToRevive == PieceType.Pawn)
-            {
-                _logger.LogRebirthEffectFailedEnum("Bauern können nicht wiederbelebt werden.", pieceTypeToRevive, targetRevivalSquareAlgInternal, session.GameId);
-                return new CardActivationResult(false, ErrorMessage: "Bauern können nicht wiederbelebt werden.");
-            }
-
-            Position targetRevivalSquare;
-            try
-            {
-                targetRevivalSquare = GameSession.ParsePos(targetRevivalSquareAlgInternal);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogRebirthEffectFailedEnum($"Ungültiges Zielquadrat: {targetRevivalSquareAlgInternal} ({ex.Message})", pieceTypeToRevive, targetRevivalSquareAlgInternal, session.GameId);
-                return new CardActivationResult(false, ErrorMessage: $"Ungültiges Zielquadrat angegeben: {targetRevivalSquareAlgInternal}");
-            }
-
-            List<Position> possibleOriginalSquares = PieceHelper.GetOriginalStartSquares(pieceTypeToRevive, playerDataColor);
-            if (!possibleOriginalSquares.Any(s => s.Row == targetRevivalSquare.Row && s.Column == targetRevivalSquare.Column))
-            {
-                _logger.LogRebirthEffectFailedEnum($"{targetRevivalSquareAlgInternal} ist kein gültiges Ursprungsfeld für {pieceTypeToRevive}.", pieceTypeToRevive, targetRevivalSquareAlgInternal, session.GameId);
-                return new CardActivationResult(true, ErrorMessage: $"{targetRevivalSquareAlgInternal} ist kein gültiges Ursprungsfeld für {pieceTypeToRevive}. Karte verbraucht.", EndsPlayerTurn: true, BoardUpdatedByCardEffect: false);
-            }
-
-            if (!session.HasCapturedPieceOfType(playerDataColor, pieceTypeToRevive))
-            {
-                _logger.LogRebirthEffectFailedEnum($"Spieler hat keinen geschlagenen {pieceTypeToRevive}.", pieceTypeToRevive, targetRevivalSquareAlgInternal, session.GameId);
-                return new CardActivationResult(true, ErrorMessage: $"Du hast keinen geschlagenen {pieceTypeToRevive}, der wiederbelebt werden könnte. Karte verbraucht.", EndsPlayerTurn: true, BoardUpdatedByCardEffect: false);
-            }
-
-            if (!session.CurrentGameState.Board.IsEmpty(targetRevivalSquare))
-            {
-                _logger.LogRebirthEffectFailedEnum($"Zielfeld {targetRevivalSquareAlgInternal} ist besetzt.", pieceTypeToRevive, targetRevivalSquareAlgInternal, session.GameId);
-                return new CardActivationResult(true, ErrorMessage: $"Pech gehabt! Das Feld {targetRevivalSquareAlgInternal} ist besetzt. Karte verbraucht.", EndsPlayerTurn: true, BoardUpdatedByCardEffect: false);
-            }
+            if (!session.CurrentGameState.Board.IsEmpty(targetPos))
+                return new CardActivationResult(true, ErrorMessage: $"Feld {toSquareAlg} ist besetzt.", EndsPlayerTurn: true);
 
             Board boardCopy = session.CurrentGameState.Board.Copy();
-            Piece revivedPieceForCheck = CreateNewPieceByType(pieceTypeToRevive, playerDataColor);
-            revivedPieceForCheck.HasMoved = true;
-            boardCopy[targetRevivalSquare] = revivedPieceForCheck;
+            boardCopy[targetPos] = CreateNewPieceByType(pieceType, playerDataColor);
             if (boardCopy.IsInCheck(playerDataColor))
-            {
-                _logger.LogRebirthEffectFailedEnum("Wiederbelebung würde eigenen König ins Schach stellen.", pieceTypeToRevive, targetRevivalSquareAlgInternal, session.GameId);
-                return new CardActivationResult(false, ErrorMessage: "Wiederbelebung nicht möglich, da eigener König dadurch ins Schach geraten würde.");
-            }
+                return new CardActivationResult(false, ErrorMessage: "Wiederbelebung nicht möglich, da König im Schach stehen würde.");
 
-            Piece revivedPiece = CreateNewPieceByType(pieceTypeToRevive, playerDataColor);
-            revivedPiece.HasMoved = true;
-            session.CurrentGameState.Board[targetRevivalSquare] = revivedPiece;
-            session.RemoveCapturedPieceOfType(playerDataColor, pieceTypeToRevive);
-            _logger.LogRebirthEffectExecuted(pieceTypeToRevive, targetRevivalSquareAlgInternal, playerDataColor, playerId, session.GameId);
+            session.CurrentGameState.Board[targetPos] = CreateNewPieceByType(pieceType, playerDataColor);
+            session.CardManager.RemoveCapturedPieceOfType(playerDataColor, pieceType);
 
-            var affectedSquares = new List<AffectedSquareInfo>
-            {
-                new AffectedSquareInfo { Square = targetRevivalSquareAlgInternal, Type = "card-rebirth" }
-            };
+            _logger.LogRebirthEffectExecuted(pieceType, toSquareAlg, playerDataColor, playerId, session.GameId);
+            var affectedSquares = new List<AffectedSquareInfo> { new() { Square = toSquareAlg, Type = "card-rebirth" } };
             return new CardActivationResult(true, BoardUpdatedByCardEffect: true, AffectedSquaresByCard: affectedSquares);
         }
     }
