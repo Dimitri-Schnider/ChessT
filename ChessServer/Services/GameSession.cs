@@ -152,6 +152,25 @@ namespace ChessServer.Services
                 return new ServerCardActivationResultDto { Success = false, ErrorMessage = effectResult.ErrorMessage ?? "Fehler", CardId = cardTypeId };
             }
 
+            // --- NEUE LOGIK FÜR KORREKTEN ABLAUF ---
+            // 1. Animation beim Client auslösen
+            await _hubContext.Clients.Group(GameId.ToString()).SendAsync("PlayCardActivationAnimation", playedCard, playerId, activatingPlayerColor);
+            await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnCardPlayed", playerId, playedCard);
+
+            // 2. Auf dem Server auf das Ende der Animation warten
+            // Für Kartentausch geben wir mehr Zeit, da zwei Karten animiert werden.
+            int delayMs = (cardTypeId == CardConstants.CardSwap) ? 5000 : playedCard.AnimationDelayMs;
+            if (delayMs > 0)
+            {
+                if (cardTypeId == CardConstants.CardSwap)
+                    _logger.LogComputerTurnDelayCardSwap(GameId, delayMs / 1000.0);
+                else
+                    _logger.LogComputerTurnDelayAfterCard(GameId, cardTypeId, delayMs / 1000.0);
+
+                await Task.Delay(delayMs);
+            }
+            // --- ENDE NEUE LOGIK ---
+
             _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow });
             Position? promotionSquareAfterCard = null;
             if (effectResult.BoardUpdatedByCardEffect)
@@ -183,7 +202,6 @@ namespace ChessServer.Services
                 }
             }
 
-            await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnCardPlayed", playerId, playedCard);
             CardDto? newlyDrawnCard = null;
             if (effectResult.PlayerIdToSignalDraw.HasValue)
             {
@@ -191,10 +209,14 @@ namespace ChessServer.Services
                 if (newlyDrawnCard != null) await SignalCardDrawnToPlayer(effectResult.PlayerIdToSignalDraw.Value, newlyDrawnCard, "ActivateCard");
             }
 
+            // Erst JETZT, nach der Animation, den neuen Zustand senden
             await SendOnTurnChangedNotification(ToBoardDto(), _state.CurrentPlayer, GetStatusForPlayer(_state.CurrentPlayer), null, null, effectResult.AffectedSquaresByCard);
+
+            // Nach erfolgreicher Zustandsaktualisierung den Computerzug verarbeiten
             if (effectResult.EndsPlayerTurn && _playerManager.OpponentType == "Computer" && !_state.IsGameOver())
             {
-                await Task.Run(() => ProcessComputerTurnIfNeeded(cardTypeId));
+                // Computerzug wird mit einer zusätzliche Verzögerung gestartet
+                await Task.Run(() => ProcessComputerTurnIfNeeded(null, Random.Shared.Next(1000, 2001)));
             }
 
             return new ServerCardActivationResultDto
@@ -208,11 +230,9 @@ namespace ChessServer.Services
                 NewlyDrawnCard = newlyDrawnCard,
                 CardGivenByPlayerForSwap = effectResult.CardGivenByPlayerForSwapEffect,
                 CardReceivedByPlayerForSwap = effectResult.CardReceivedByPlayerForSwapEffect,
-                PawnPromotionPendingAt = promotionSquareAfterCard != null ?
-new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) : null
+                PawnPromotionPendingAt = promotionSquareAfterCard != null ? new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) : null
             };
         }
-
         public bool PauseTimerForAction()
         {
             lock (_sessionLock)
@@ -441,21 +461,33 @@ new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) :
             'n' => PieceType.Knight,
             _ => null
         };
-        private async Task ProcessComputerTurnIfNeeded(string? cardId = null)
+        private async Task ProcessComputerTurnIfNeeded(string? cardId = null, int animationDelayMs = -1)
         {
-            var cardDef = cardId != null ? CardManager.GetCardDefinitionForAnimation(cardId) : null;
-            if (cardDef != null && cardDef.AnimationDelayMs > 0)
+            // Wenn animationDelayMs nicht explizit übergeben wird, verwenden wir die alte Logik.
+            // Wenn es 0 ist, wurde die Verzögerung bereits extern behandelt.
+            if (animationDelayMs == -1)
             {
-                await Task.Delay(cardDef.AnimationDelayMs);
+                var cardDef = cardId != null ? CardManager.GetCardDefinitionForAnimation(cardId) : null;
+                animationDelayMs = cardDef?.AnimationDelayMs ?? Random.Shared.Next(1000, 2001);
             }
-            else if (cardId == null)
+
+            if (animationDelayMs > 0)
             {
-                await Task.Delay(Random.Shared.Next(1000, 2001));
+                // Timer pausieren, um zu verhindern, dass der Computer während der Animation Zeit verliert
+                Player computerColorToPause;
+                lock (_sessionLock) { computerColorToPause = _state.CurrentPlayer; }
+                _logger.LogComputerTimerPausedForAnimation(GameId, computerColorToPause);
+                TimerService.PauseTimer();
+
+                await Task.Delay(animationDelayMs);
+
+                // Timer fortsetzen, bevor der Computer "denkt"
+                TimerService.ResumeTimer();
+                _logger.LogComputerTimerResumedAfterAnimation(GameId, computerColorToPause);
             }
 
             Guid? computerId;
             Player computerColor;
-
             lock (_sessionLock)
             {
                 if (_playerManager.OpponentType != "Computer" ||
@@ -463,6 +495,8 @@ new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) :
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) != _state.CurrentPlayer ||
                     _state.IsGameOver())
                 {
+                    // Wenn sich der Zustand während der Verzögerung geändert hat, brechen wir ab.
+                    if (animationDelayMs > 0) _logger.LogComputerSkippingTurnAfterAnimationDelay(GameId, cardId ?? "N/A");
                     return;
                 }
                 computerId = _playerManager.ComputerPlayerId;

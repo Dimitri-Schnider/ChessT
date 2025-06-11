@@ -227,9 +227,9 @@ namespace Chess.Logging
             LoggerMessage.Define<Guid, Player, string, string>(LogLevel.Information, new EventId(SessionLogBaseId + 33, "LogPawnPromotionPendingAfterCard"), "[GameSession] Spiel {GameId}: Bauernumwandlung für Spieler {PlayerColor} auf Feld {PromotionSquare} nach Karteneffekt {CardTypeId} anstehend. Zug endet nicht.");
         private static readonly Action<ILogger, Guid, Player, Guid?, Guid?, Exception?> _logGetPlayerIdByColorFailedAction =
             LoggerMessage.Define<Guid, Player, Guid?, Guid?>(LogLevel.Debug, new EventId(SessionLogBaseId + 34, "SessionGetPlayerIdByColorFailedLog"), "[GameSession] Spiel {GameId}: GetPlayerIdByColor Anfrage für Farbe {Color}, aber kein Spieler zugewiesen. WhiteId: {WhiteId}, BlackId: {BlackId}");
-        
+
         // EventId 23035 und 23036 sind nicht vergeben. Nächste freie ID: SessionLogBaseId + 37
-        
+
         private static readonly Action<ILogger, Guid, string, double, Exception?> _logComputerTurnDelayAfterCardAction =
                LoggerMessage.Define<Guid, string, double>(LogLevel.Information, new EventId(SessionLogBaseId + 37, "LogComputerTurnDelayAfterCard"), "[GameSession] Karte {CardTypeId} vom Menschen gespielt. Verzögere Computerzug um {DelaySeconds}s in Spiel {GameId}.");
         private static readonly Action<ILogger, Guid, double, Exception?> _logComputerTurnDelayCardSwapAction =

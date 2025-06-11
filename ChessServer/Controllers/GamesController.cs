@@ -49,71 +49,23 @@ namespace ChessServer.Controllers
 
             try
             {
-                // Zuerst die Karten-Aktivierung vollständig auf dem Server validieren und ausführen.
+                // Der Aufruf bleibt gleich, aber die Implementierung im GameManager/GameSession wird nun asynchron sein und die Verzögerung enthalten.
                 ServerCardActivationResultDto activationResultFull = await _mgr.ActivateCardEffect(gameId, playerId, dto);
 
-                // Wenn die Aktivierung nicht erfolgreich war, sofort eine Fehlermeldung zurückgeben.
-                // Es wird keine Animation gesendet.
                 if (!activationResultFull.Success)
                 {
                     _logger.LogCardActivationFailedController(gameId, playerId, dto.CardTypeId, activationResultFull.ErrorMessage ?? "Unbekannter Kartenaktivierungsfehler");
                     return BadRequest(activationResultFull);
                 }
 
-                // ERST JETZT: Da die Aktivierung erfolgreich war, senden wir das Signal für die Animation.
-                Player playerDataColor = _mgr.GetPlayerColor(gameId, playerId);
-                CardDto? cardForAnimation = null;
-                if (_mgr is InMemoryGameManager concreteMgr)
-                {
-                    var sessionForCardDef = concreteMgr.GetSessionForDirectHubSend(gameId);
-                    if (sessionForCardDef != null)
-                    {
-                        cardForAnimation = sessionForCardDef.CardManager.GetCardDefinitionForAnimation(dto.CardTypeId);
-                    }
-                }
+                // ERFOLGREICH - Die Session hat bereits alle nötigen Hub-Nachrichten (Animation, OnTurnChanged) in der korrekten Reihenfolge gesendet.
+                // Der Controller muss hier nichts mehr an den Hub senden.
 
-                if (cardForAnimation == null)
-                {
-                    // Fallback, sollte nicht passieren bei erfolgreicher Aktivierung.
-                    _logger.LogGameNotFoundOnMove(gameId, playerId);
-                }
-
-                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("PlayCardActivationAnimation", cardForAnimation ?? new CardDto { Id = dto.CardTypeId, Name = dto.CardTypeId, Description = "Lade...", ImageUrl = CardConstants.DefaultCardBackImageUrl, InstanceId = Guid.Empty }, playerId, playerDataColor);
-
-                // Restliche Logik nach erfolgreicher Aktivierung (war bereits vorhanden)
                 _logger.LogCardActivationSuccessController(gameId, playerId, dto.CardTypeId);
-                if (dto.CardTypeId == CardConstants.CardSwap && activationResultFull.CardGivenByPlayerForSwap != null && activationResultFull.CardReceivedByPlayerForSwap != null)
-                {
-                    await SendCardSwapAnimationDetails(gameId, playerId, activationResultFull.CardGivenByPlayerForSwap, activationResultFull.CardReceivedByPlayerForSwap);
-                    await SendHandUpdatesAfterCardSwap(gameId, playerId, _mgr.GetOpponentInfo(gameId, playerId));
-                }
 
-                var timeUpdate = _mgr.GetTimeUpdate(gameId);
-                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTimeUpdate", timeUpdate);
-                _logger.LogOnTimeUpdateSentAfterMove(gameId);
-
-                if (activationResultFull.PlayerIdToSignalCardDraw.HasValue && activationResultFull.NewlyDrawnCard != null)
-                {
-                    Guid playerIdDrew = activationResultFull.PlayerIdToSignalCardDraw.Value;
-                    string? targetConnectionId = GetConnectionIdForPlayerViaHubMap(playerIdDrew);
-                    if (!string.IsNullOrEmpty(targetConnectionId))
-                    {
-                        int drawPileCount = _mgr.GetDrawPileCount(gameId, playerIdDrew);
-                        await _hubContext.Clients.Client(targetConnectionId)
-                                                 .SendAsync("CardAddedToHand", activationResultFull.NewlyDrawnCard, drawPileCount);
-                        _logger.LogControllerActivateCardSentCardToHand(activationResultFull.NewlyDrawnCard.Name, targetConnectionId, playerIdDrew);
-                    }
-                    else if (activationResultFull.NewlyDrawnCard.Name.Contains(CardConstants.NoMoreCardsName))
-                    {
-                        _logger.LogControllerConnectionIdNotFoundNoMoreCards("ActivateCard", playerIdDrew);
-                    }
-                    else
-                    {
-                        await _hubContext.Clients.Group(gameId.ToString())
-                                         .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
-                        _logger.LogControllerConnectionIdNotFoundGeneric("ActivateCard", playerIdDrew);
-                    }
-                }
+                // Die Logik für das Senden von neu gezogenen Karten und Hand-Updates nach einem Tausch muss in der Session bleiben,
+                // da sie auf dem finalen Zustand basiert, der erst nach der Animation feststeht.
+                // Der Controller gibt einfach das finale Ergebnis zurück.
 
                 return Ok(activationResultFull);
             }

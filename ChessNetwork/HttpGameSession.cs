@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\ChessNetwork\HttpGameSession.cs
-using ChessLogic;
+﻿using ChessLogic;
 using ChessNetwork.DTOs;
 using System;
 using System.Collections.Generic;
@@ -31,6 +30,14 @@ namespace ChessNetwork
         {
             if (!response.IsSuccessStatusCode)
             {
+                var contentType = response.Content.Headers.ContentType?.MediaType;
+                if (contentType != "application/json")
+                {
+                    // Wenn die Antwort kein JSON ist, handelt es sich wahrscheinlich um eine Infrastruktur-Fehlerseite (z.B. 503 HTML).
+                    // Wir geben eine benutzerfreundliche, generische Meldung aus.
+                    throw new HttpRequestException($"Der Server ist derzeit nicht verfügbar oder startet gerade (Status: {response.StatusCode}). Bitte versuche es in einem Moment erneut.", null, response.StatusCode);
+                }
+
                 string errorContent = await response.Content.ReadAsStringAsync();
                 throw new HttpRequestException(string.IsNullOrWhiteSpace(errorContent) ? response.ReasonPhrase : errorContent, null, response.StatusCode);
             }
