@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\ChessClient\wwwroot\js\tourInterop.js
-window.tourInterop = {
+﻿window.tourInterop = {
     dotNetHelper: null,
     driverObj: null,
 
@@ -20,14 +19,11 @@ window.tourInterop = {
             doneBtnText: "Fertig",
             steps: [
                 { element: '.chessboard-container', popover: { title: 'Das Schachbrett', description: 'Das ist das Herzstück des Spiels. Dein Ziel ist es, den gegnerischen König Schachmatt zu setzen.' } },
-                { element: '[data-coord-for-debug="e4"]', popover: { title: 'Dein Zug', description: 'Du bewegst deine Figuren wie im normalen Schach. Dieser Zug hat dir das Recht auf eine neue Karte eingebracht!' } },
-                { element: '.hand-cards-container', popover: { title: 'Karten erhalten', description: 'Nach Zügen erhältst du mächtige Karten auf deine Hand. Setze sie klug ein! Lass uns diese Karte gleich mal spielen.' } },
-                {
-                    element: '.hand-cards-container',
-                    popover: { title: 'Karten-Aktivierung', description: 'Die Karte wird gespielt und ihre Animation zeigt den Effekt an. In diesem Fall: Du erhältst einen Extra-Zug!', side: 'bottom', align: 'start' }
-                },
-                { element: '[data-coord-for-debug="f3"]', popover: { title: 'Der Extra-Zug', description: 'Dank der Karte darfst du sofort einen weiteren Zug machen. Wir bewegen den Springer.' } },
-                { element: '[data-coord-for-debug="e5"]', popover: { title: 'Zug ausnutzen', description: 'Mit dem zweiten Zug können wir direkt den gegnerischen Bauern schlagen! Die Tour ist nun zu Ende.' } }
+                { element: '[data-coord-for-debug="e4"]', popover: { title: 'Dein Zug', description: 'Du bewegst deine Figuren wie im normalen Schach. Dein letzter Zug hat dir das Recht auf eine neue Karte eingebracht!' } },
+                { element: '.hand-cards-container', popover: { title: 'Karten erhalten', description: 'Nach 5 Zügen erhältst du mächtige Karten auf deine Hand. Setze sie klug ein! Lass uns diese Karte gleich mal spielen.' } },
+                { element: '.hand-cards-container', popover: { title: 'Karten-Aktivierung', description: 'Die Karte wird gespielt und ihre Animation zeigt den Effekt an. In diesem Fall: Du erhältst einen Extra-Zug!', side: 'bottom', align: 'start' }},
+                { element: '[data-coord-for-debug="f3"]', popover: { title: 'Der Extra-Zug', description: 'Dank dieser Karte darfst du sofort einen weiteren Zug machen. Wir bewegen den Springer erneut!' } },
+                { element: '[data-coord-for-debug="e5"]', popover: { title: 'Zug ausnutzen', description: 'Mit dem zweiten Zug können wir direkt den gegnerischen Bauern schlagen! Nutze die Karten weise!' } }
             ],
 
             onHighlightStarted: async (element, step, options) => {

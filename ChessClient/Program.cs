@@ -1,4 +1,3 @@
-// File: [SolutionDir]\ChessClient\Program.cs
 using ChessClient;
 using ChessClient.Services;
 using ChessNetwork;
@@ -40,6 +39,7 @@ builder.Services.AddScoped<IGameSession>(sp =>
 
 builder.Services.AddSingleton<ChessHubService>();
 builder.Services.AddScoped<ModalService>();
+builder.Services.AddScoped<TourService>(); // TourService für die Tour-Funktionalität
 
 // State Container mit Interfaces registrieren
 builder.Services.AddScoped<IUiState, UiState>();

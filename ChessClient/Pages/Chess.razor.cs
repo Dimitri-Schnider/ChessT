@@ -40,6 +40,7 @@ namespace ChessClient.Pages
         [Inject] private GameOrchestrationService GameOrchestrationService { get; set; } = default!;
         [Inject] private HubSubscriptionService HubSubscriptionService { get; set; } = default!;
         [Inject] private IChessLogger Logger { get; set; } = default!;
+        [Inject] private TourService TourService { get; set; } = default!;
 
         private bool _showMobilePlayedCardsHistory;
         private bool _isGameActiveForLeaveWarning;
@@ -57,6 +58,7 @@ namespace ChessClient.Pages
             HubSubscriptionService.Initialize();
             ModalService.ShowCreateGameModalRequested += () => ModalState.OpenCreateGameModal();
             ModalService.ShowJoinGameModalRequested += () => ModalState.OpenJoinGameModal(GameCoreState.GameIdFromQueryString);
+            TourService.TourRequested += StartTutorialAsync; 
             await InitializePageBasedOnUrlAsync();
         }
 
@@ -162,12 +164,7 @@ namespace ChessClient.Pages
                 catch (Exception)
                 {
                     ModalState.OpenErrorModal($"Spiel mit ID '{id}' konnte nicht gefunden werden.");
-                    ModalState.OpenCreateGameModal();
                 }
-            }
-            else if (GameCoreState.CurrentPlayerInfo == null)
-            {
-                ModalState.OpenCreateGameModal();
             }
         }
         private async Task SubmitCreateGame(CreateGameParameters args)
@@ -334,6 +331,7 @@ namespace ChessClient.Pages
             }
             ModalService.ShowCreateGameModalRequested -= ModalState.OpenCreateGameModal;
             ModalService.ShowJoinGameModalRequested -= () => ModalState.OpenJoinGameModal(GameCoreState.GameIdFromQueryString);
+            TourService.TourRequested -= StartTutorialAsync; 
             _dotNetHelperForTour?.Dispose();
             GC.SuppressFinalize(this);
         }

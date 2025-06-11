@@ -1,0 +1,71 @@
+﻿@using System.Threading.Tasks
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible)
+{
+    <div class="landing-overlay @(isFadingOut ? "fade-out" : "")">
+        <div class="animation-canvas">
+            
+            @* Karten-Container *@
+            <div class="cards-container @animationStepClass">
+                <div class="card-wrapper card-1">
+                    <img src="img/cards/templateback.png" alt="Kartenrücken 1" />
+                </div>
+                <div class="card-wrapper card-2">
+                    <img src="img/cards/templateback.png" alt="Kartenrücken 2" />
+                </div>
+                <div class="card-wrapper card-3">
+                    <img src="img/cards/templateback.png" alt="Kartenrücken 3" />
+                </div>
+            </div>
+
+            @* Text-Container *@
+            <div class="text-container @(showText ? "visible" : "")">
+                <div class="title-text">SchachT</div>
+                <div class="subtitle-text">Schach mit Twist</div>
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnAnimationFinished { get; set; }
+
+    private string animationStepClass = "";
+    private bool showText = false; // NEU: Steuert die Sichtbarkeit des Textes
+    private bool isFadingOut = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && IsVisible)
+        {
+            // Start der Karten-Animation
+            animationStepClass = "step-1-fly-in";
+            StateHasChanged();
+
+            await Task.Delay(1200); // Warte bis die erste Karte da ist
+            animationStepClass = "step-2-fan-out";
+            StateHasChanged();
+
+            // NEU: Warte, bis die Karten aufgefächert sind, DANN starte die Text-Animation
+            await Task.Delay(500);
+            showText = true;
+            StateHasChanged();
+
+            await Task.Delay(2500); // Gesamtdauer der Animation auf dem Schirm
+            isFadingOut = true;
+            StateHasChanged();
+
+            await Task.Delay(500); // Dauer des Fade-Outs
+            if (OnAnimationFinished.HasDelegate)
+            {
+                await OnAnimationFinished.InvokeAsync();
+            }
+        }
+    }
+}

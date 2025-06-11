@@ -7,10 +7,9 @@ namespace ChessClient.Layout
 {
     public partial class NavMenu : ComponentBase, IDisposable
     {
-        [Inject]
-        private NavigationManager NavigationManager { get; set; } = null!;
-        [Inject]
-        private ModalService ModalService { get; set; } = null!;
+        [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+        [Inject] private ModalService ModalService { get; set; } = null!;
+        [Inject] private TourService TourService { get; set; } = null!;
 
         // Parameter vom MainLayout
         [Parameter] public bool IsPinnedModeRequest { get; set; } // Info, ob Menü als pinned (Desktop, kein Spiel) dargestellt werden soll
@@ -56,6 +55,17 @@ namespace ChessClient.Layout
             Console.WriteLine("NavMenu: RequestJoinGame. Navigating & requesting modal.");
             NavigationManager.NavigateTo("/chess");
             ModalService.RequestShowJoinGameModal();
+            // Menü nur schliessen, wenn es als Overlay agiert
+            if (!IsPinnedModeRequest)
+            {
+                await OnRequestCloseMenu.InvokeAsync();
+            }
+        }
+
+        private async Task StartTour()
+        {
+            NavigationManager.NavigateTo("/chess");
+            await TourService.RequestTourAsync();
             // Menü nur schliessen, wenn es als Overlay agiert
             if (!IsPinnedModeRequest)
             {
