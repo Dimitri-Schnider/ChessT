@@ -35,6 +35,20 @@ html, body {
         background-color: #677D6A;
     }
 
+/* Tour: Erzwingt das Ausblenden des Popovers und des Overlays für den Animationsschritt */
+body.tour-animation-step .driver-popover {
+    display: none !important;
+}
+
+/* Tour */
+body.tour-animation-step .driver-overlay {
+    opacity: 0 !important;
+}
+
+/* Hide Back Button */
+.driver-popover-prev-btn {
+    display: none !important;
+}
 
 /* Entfernt Fokus-Rahmen von H1. */
 h1:focus {
