@@ -31,9 +31,11 @@ namespace ChessServer.Services
 
         public int GetMoveCount() => _moveCounter;
 
-        public void AddPlayedCard(PlayedCardDto card)
+        public void AddPlayedCard(PlayedCardDto card, bool boardWasUpdatedByCard)
         {
-            card.MoveNumberWhenActivated = _moveCounter + 1;
+            // Wenn die Karte das Brett aktualisiert hat, ist sie der aktuelle Zug (_moveCounter).
+            // Ansonsten wird sie VOR dem nächsten Zug (_moveCounter + 1) aktiviert.
+            card.MoveNumberWhenActivated = boardWasUpdatedByCard ? _moveCounter : _moveCounter + 1;
             _playedCards.Add(card);
         }
 

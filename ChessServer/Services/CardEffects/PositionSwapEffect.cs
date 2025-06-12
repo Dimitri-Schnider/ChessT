@@ -13,7 +13,6 @@ namespace ChessServer.Services.CardEffects
     public class PositionSwapEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
-
         public PositionSwapEffect(IChessLogger logger)
         {
             _logger = logger;
@@ -21,6 +20,7 @@ namespace ChessServer.Services.CardEffects
 
         // Führt den Tauscheffekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            IHistoryManager historyManager,
                                             string cardTypeId,
                                             string? fromSquareAlg,
                                             string? toSquareAlg)
@@ -54,7 +54,6 @@ namespace ChessServer.Services.CardEffects
 
             Piece? piece1 = session.CurrentGameState.Board[piece1Pos];
             Piece? piece2 = session.CurrentGameState.Board[piece2Pos];
-
             if (piece1 == null || piece2 == null)
             {
                 return new CardActivationResult(false, ErrorMessage: "Eines oder beide Felder für Positionstausch sind leer.");
@@ -72,6 +71,21 @@ namespace ChessServer.Services.CardEffects
             }
 
             positionSwapMove.Execute(session.CurrentGameState.Board);
+
+            // HINZUGEFÜGT: Protokollierung des Zugs im Spielverlauf
+            historyManager.AddMove(new PlayedMoveDto
+            {
+                PlayerId = playerId,
+                PlayerColor = playerDataColor,
+                From = fromSquareAlg,
+                To = toSquareAlg,
+                ActualMoveType = MoveType.PositionSwap,
+                PieceMoved = $"{piece1.Color} {piece1.Type} swapped with {piece2.Color} {piece2.Type}",
+                TimestampUtc = DateTime.UtcNow,
+                TimeTaken = TimeSpan.Zero,
+                RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
+                RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
+            });
 
             _logger.LogPositionSwapEffectExecuted(fromSquareAlg, toSquareAlg, playerId, session.GameId);
             var affectedSquares = new List<AffectedSquareInfo>

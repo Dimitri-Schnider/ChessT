@@ -142,13 +142,16 @@ namespace ChessServer.Services
                 {
                     CardManager.RemoveCardFromPlayerHand(playerId, playedCard.InstanceId);
                     CardManager.MarkCardAsUsedGlobal(playerId, cardTypeId);
-                    _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow });
+                    _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow }, true);
                     await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnCardPlayed", playerId, playedCard);
                     return new ServerCardActivationResultDto { Success = true, ErrorMessage = effectResult.ErrorMessage, CardId = cardTypeId, EndsPlayerTurn = true, BoardUpdatedByCardEffect = false };
                 }
 
                 return new ServerCardActivationResultDto { Success = false, ErrorMessage = effectResult.ErrorMessage ?? "Fehler", CardId = cardTypeId };
             }
+
+            // Stoppe die Uhr des Spielers, um die Bedenkzeit für die Kartenaktion zu ermitteln
+            TimeSpan timeTakenForCard = TimerService.StopAndCalculateElapsedTime();
 
             CardManager.RemoveCardFromPlayerHand(playerId, playedCard.InstanceId);
             CardManager.MarkCardAsUsedGlobal(playerId, cardTypeId);
@@ -168,7 +171,6 @@ namespace ChessServer.Services
                 // TODO  _logger.LogComputerTurnDelayCardSwap(GameId, cardTypeId, delayMs / 1000.0);
                 else
                     _logger.LogComputerTurnDelayAfterCard(GameId, cardTypeId, delayMs / 1000.0);
-
                 await Task.Delay(delayMs);
             }
 
@@ -177,7 +179,28 @@ namespace ChessServer.Services
                 await SignalHandUpdatesAfterCardSwap(playerId, GetOpponentDetails(playerId));
             }
 
-            _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow });
+            _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow }, effectResult.BoardUpdatedByCardEffect);
+
+            // Wenn die Karte das Brett NICHT verändert hat UND den Zug des Spielers NICHT beendet, fügen wir einen "AbstractMove" hinzu.
+            if (effectResult.Success && !effectResult.BoardUpdatedByCardEffect && effectResult.EndsPlayerTurn)
+            {
+                _historyManager.AddMove(new PlayedMoveDto
+                {
+                    PlayerId = playerId,
+                    PlayerColor = activatingPlayerColor,
+                    From = "card", // Deskriptiver Platzhalter
+                    To = "play",   // Deskriptiver Platzhalter
+                    ActualMoveType = MoveType.AbstractMove,
+                    PromotionPiece = null,
+                    TimestampUtc = DateTime.UtcNow,
+                    TimeTaken = timeTakenForCard, // KORREKTUR: Die tatsächlich vergangene Zeit verwenden
+                    RemainingTimeWhite = TimerService.GetCurrentTimeForPlayer(Player.White),
+                    RemainingTimeBlack = TimerService.GetCurrentTimeForPlayer(Player.Black),
+                    PieceMoved = $"Card: {playedCard.Name}", // Eindeutige Beschreibung der Aktion
+                    CapturedPiece = null
+                });
+            }
+
             Position? promotionSquareAfterCard = null;
             if (effectResult.BoardUpdatedByCardEffect)
             {
@@ -200,11 +223,15 @@ namespace ChessServer.Services
                 else if (effectResult.BoardUpdatedByCardEffect) _state.RecordCurrentStateForRepetition(null);
 
                 _state.CheckForGameOver();
-                if (_state.IsGameOver()) { _historyManager.UpdateOnGameOver(_state.Result!); NotifyTimerGameOver(); }
+                if (_state.IsGameOver())
+                {
+                    _historyManager.UpdateOnGameOver(_state.Result!); NotifyTimerGameOver();
+                }
                 else
                 {
                     if (effectResult.EndsPlayerTurn) SwitchPlayerTimer();
                     else if (timerWasPaused) TimerService.ResumeTimer();
+                    else if (!TimerService.IsPaused) TimerService.StartPlayerTimer(activatingPlayerColor, false); // Timer wieder starten, falls er nicht pausiert war
                 }
             }
 
@@ -216,13 +243,11 @@ namespace ChessServer.Services
             }
 
             await SendOnTurnChangedNotification(ToBoardDto(), _state.CurrentPlayer, GetStatusForPlayer(_state.CurrentPlayer), null, null, effectResult.AffectedSquaresByCard);
-
             if (effectResult.EndsPlayerTurn && _playerManager.OpponentType == "Computer" && !_state.IsGameOver())
             {
                 await Task.Run(() => ProcessComputerTurnIfNeeded(null, Random.Shared.Next(1000, 2001)));
             }
 
-            // KORREKTUR: Die überflüssigen Eigenschaften wurden aus dem return-Statement entfernt.
             return new ServerCardActivationResultDto
             {
                 Success = true,
@@ -413,8 +438,14 @@ namespace ChessServer.Services
 
         private bool IsPlayerTurn(Guid playerId)
         {
-            try { return GetPlayerColor(playerId) == _state.CurrentPlayer; }
-            catch (InvalidOperationException ex) { _logger.LogSessionErrorIsPlayerTurn(_gameIdInternal, ex); return false; }
+            try
+            {
+                return GetPlayerColor(playerId) == _state.CurrentPlayer;
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogSessionErrorIsPlayerTurn(_gameIdInternal, ex); return false;
+            }
         }
 
         private void SwitchPlayerTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
@@ -453,7 +484,6 @@ namespace ChessServer.Services
             }
         }
 
-        // NEUE HILFSMETHODE
         private async Task SignalCardSwapAnimationDetails(Guid activatingPlayerId, CardDto cardGiven, CardDto cardReceived)
         {
             string? playerConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(activatingPlayerId);
@@ -475,7 +505,6 @@ namespace ChessServer.Services
             }
         }
 
-        // NEUE HILFSMETHODE
         private async Task SignalHandUpdatesAfterCardSwap(Guid playerId, OpponentInfoDto? opponentInfo)
         {
             string? playerConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(playerId);
@@ -510,8 +539,6 @@ namespace ChessServer.Services
         };
         private async Task ProcessComputerTurnIfNeeded(string? cardId = null, int animationDelayMs = -1)
         {
-            // Wenn animationDelayMs nicht explizit übergeben wird, verwenden wir die alte Logik.
-            // Wenn es 0 ist, wurde die Verzögerung bereits extern behandelt.
             if (animationDelayMs == -1)
             {
                 var cardDef = cardId != null ? CardManager.GetCardDefinitionForAnimation(cardId) : null;
@@ -520,7 +547,6 @@ namespace ChessServer.Services
 
             if (animationDelayMs > 0)
             {
-                // Timer pausieren, um zu verhindern, dass der Computer während der Animation Zeit verliert
                 Player computerColorToPause;
                 lock (_sessionLock) { computerColorToPause = _state.CurrentPlayer; }
                 _logger.LogComputerTimerPausedForAnimation(GameId, computerColorToPause);
@@ -528,7 +554,6 @@ namespace ChessServer.Services
 
                 await Task.Delay(animationDelayMs);
 
-                // Timer fortsetzen, bevor der Computer "denkt"
                 TimerService.ResumeTimer();
                 _logger.LogComputerTimerResumedAfterAnimation(GameId, computerColorToPause);
             }
@@ -542,7 +567,6 @@ namespace ChessServer.Services
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) != _state.CurrentPlayer ||
                     _state.IsGameOver())
                 {
-                    // Wenn sich der Zustand während der Verzögerung geändert hat, brechen wir ab.
                     if (animationDelayMs > 0) _logger.LogComputerSkippingTurnAfterAnimationDelay(GameId, cardId ?? "N/A");
                     return;
                 }

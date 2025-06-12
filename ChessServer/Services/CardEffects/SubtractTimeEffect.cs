@@ -10,7 +10,6 @@ namespace ChessServer.Services.CardEffects
     public class SubtractTimeEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
-
         public SubtractTimeEffect(IChessLogger logger)
         {
             _logger = logger;
@@ -18,6 +17,7 @@ namespace ChessServer.Services.CardEffects
 
         // Führt den Effekt aus: Zieht dem Gegner 2 Minuten Zeit ab.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            IHistoryManager historyManager,
                                             string cardTypeId,
                                             string? fromSquareAlg,
                                             string? toSquareAlg)

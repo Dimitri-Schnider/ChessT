@@ -10,7 +10,6 @@ namespace ChessServer.Services.CardEffects
     public class TimeSwapEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
-
         public TimeSwapEffect(IChessLogger logger)
         {
             _logger = logger;
@@ -18,6 +17,7 @@ namespace ChessServer.Services.CardEffects
 
         // Führt den Zeittausch-Effekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            IHistoryManager historyManager,
                                             string cardTypeId,
                                             string? fromSquareAlg,
                                             string? toSquareAlg)

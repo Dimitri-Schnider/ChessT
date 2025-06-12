@@ -25,6 +25,7 @@ namespace ChessServer.Services.CardEffects
             GameSession session,
             Guid playerId,
             Player playerDataColor,
+            IHistoryManager historyManager, 
             string cardTypeId,
             string? fromSquareAlg,
             string? toSquareAlg

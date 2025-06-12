@@ -13,7 +13,6 @@ namespace ChessServer.Services.CardEffects
     public class TeleportEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
-
         public TeleportEffect(IChessLogger logger)
         {
             _logger = logger;
@@ -21,6 +20,7 @@ namespace ChessServer.Services.CardEffects
 
         // Führt den Teleport-Effekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            IHistoryManager historyManager,
                                             string cardTypeId,
                                             string? fromSquareAlg,
                                             string? toSquareAlg)
@@ -63,6 +63,21 @@ namespace ChessServer.Services.CardEffects
             {
                 return new CardActivationResult(false, ErrorMessage: "Teleport würde eigenen König ins Schach stellen oder ist anderweitig ungültig.");
             }
+
+            // HINZUGEFÜGT: Protokollierung des Zugs im Spielverlauf
+            historyManager.AddMove(new PlayedMoveDto
+            {
+                PlayerId = playerId,
+                PlayerColor = playerDataColor,
+                From = fromSquareAlg,
+                To = toSquareAlg,
+                ActualMoveType = MoveType.Teleport,
+                PieceMoved = $"{pieceToMove.Color} {pieceToMove.Type}",
+                TimestampUtc = DateTime.UtcNow,
+                TimeTaken = TimeSpan.Zero,
+                RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
+                RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
+            });
 
             teleportMove.Execute(session.CurrentGameState.Board);
 

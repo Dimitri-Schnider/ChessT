@@ -11,14 +11,12 @@ namespace ChessServer.Services.CardEffects
         private readonly IChessLogger _logger;
         public ExtraZugEffect(IChessLogger logger) { _logger = logger; }
 
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor, string cardTypeId, string? fromSquareAlg, string? toSquareAlg)
+        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor, IHistoryManager historyManager, string cardTypeId, string? fromSquareAlg, string? toSquareAlg)
         {
             if (cardTypeId != CardConstants.ExtraZug)
                 return new CardActivationResult(false, ErrorMessage: $"ExtraZugEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
-
             if (!session.CardManager.IsCardUsableGlobal(playerId, CardConstants.ExtraZug))
                 return new CardActivationResult(false, ErrorMessage: $"Karte '{CardConstants.ExtraZug}' wurde von Spieler {playerId} bereits verwendet.");
-
             session.CardManager.SetPendingCardEffectForNextMove(playerId, CardConstants.ExtraZug);
             session.CardManager.MarkCardAsUsedGlobal(playerId, cardTypeId);
 

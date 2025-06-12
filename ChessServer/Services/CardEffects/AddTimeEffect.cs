@@ -10,7 +10,6 @@ namespace ChessServer.Services.CardEffects
     public class AddTimeEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
-
         public AddTimeEffect(IChessLogger logger)
         {
             _logger = logger;
@@ -18,6 +17,7 @@ namespace ChessServer.Services.CardEffects
 
         // Führt den Effekt aus: Fügt dem Spieler 2 Minuten Zeit hinzu.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            IHistoryManager historyManager,
                                             string cardTypeId,
                                             string? fromSquareAlg,
                                             string? toSquareAlg)

@@ -13,9 +13,12 @@ namespace ChessServer.Services.CardEffects
         private readonly IChessLogger _logger;
         private static readonly Random _random = new();
 
-        public CardSwapEffect(IChessLogger logger) { _logger = logger; }
+        public CardSwapEffect(IChessLogger logger)
+        {
+            _logger = logger;
+        }
 
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor, string cardTypeId, string? fromSquareAlg, string? toSquareAlg)
+        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor, IHistoryManager historyManager, string cardTypeId, string? fromSquareAlg, string? toSquareAlg)
         {
             if (cardTypeId != CardConstants.CardSwap || !Guid.TryParse(fromSquareAlg, out Guid ownCardInstanceIdToSwap))
             {

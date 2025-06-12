@@ -12,7 +12,6 @@ namespace ChessServer.Services.CardEffects
     public class SacrificeEffect : ICardEffect
     {
         private readonly IChessLogger _logger;
-
         public SacrificeEffect(IChessLogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -20,6 +19,7 @@ namespace ChessServer.Services.CardEffects
 
         // Führt den Opfer-Effekt aus.
         public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
+                                            IHistoryManager historyManager,
                                             string cardTypeId,
                                             string? fromSquareAlg,
                                             string? toSquareAlg)
@@ -74,9 +74,23 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: "Opfergabe nicht möglich, da dies deinen König ins Schach stellen würde.");
             }
 
+            // HINZUGEFÜGT: Protokollierung des Zugs im Spielverlauf
+            historyManager.AddMove(new PlayedMoveDto
+            {
+                PlayerId = playerId,
+                PlayerColor = playerDataColor,
+                From = fromSquareAlg,
+                To = "off-board", // Spezieller Wert für Opfergabe
+                ActualMoveType = MoveType.Sacrifice,
+                PieceMoved = $"{pieceToSacrifice.Color} {pieceToSacrifice.Type}",
+                TimestampUtc = DateTime.UtcNow,
+                TimeTaken = TimeSpan.Zero,
+                RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
+                RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
+            });
+
             session.CurrentGameState.Board[pawnPos] = null;
             _logger.LogSacrificeEffectExecuted(session.GameId, playerId, fromSquareAlg);
-
             return new CardActivationResult(
                 Success: true,
                 EndsPlayerTurn: true,

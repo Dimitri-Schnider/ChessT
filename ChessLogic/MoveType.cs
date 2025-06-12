@@ -10,6 +10,9 @@
         EnPassant,      // Ein En-Passant-Schlagzug.
         PawnPromotion,  // Eine Bauernumwandlung auf der letzten Reihe.
         Teleport,       // Spezialzug: Teleport einer Figur (typischerweise durch eine Karte).
-        PositionSwap    // Spezialzug: Positionstausch zweier eigener Figuren (typischerweise durch eine Karte).
+        PositionSwap,   // Spezialzug: Positionstausch zweier eigener Figuren (typischerweise durch eine Karte).
+        Rebirth,        // Spezialzug: Wiederbelebung einer Figur (durch eine Karte).
+        Sacrifice,      // Spezialzug: Opfern einer Figur (durch eine Karte).
+        AbstractMove    // Ein Spielzug, der keine Figur bewegt (z.B. Zeitkarte spielen).
     }
 }

@@ -87,7 +87,7 @@ namespace ChessServer.Services
                 var timerWasManuallyPaused = _session.PauseTimerForAction();
                 string? param1ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.PieceTypeToRevive?.ToString() : (dto.CardTypeId == CardConstants.CardSwap) ? dto.CardInstanceIdToSwapFromHand?.ToString() : dto.FromSquare;
                 string? param2ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.TargetRevivalSquare : dto.ToSquare;
-                var effectResult = effect.Execute(_session, playerId, activatingPlayerColor, dto.CardTypeId, param1ForEffect, param2ForEffect);
+                var effectResult = effect.Execute(_session, playerId, activatingPlayerColor, _historyManager, dto.CardTypeId, param1ForEffect, param2ForEffect);
                 var finalResult = await _session.HandleCardActivationResult(effectResult, playerId, playedCardInstance, dto.CardTypeId, timerWasManuallyPaused);
                 return finalResult;
             }
