@@ -82,8 +82,26 @@ namespace ChessServer.Services
         public IEnumerable<string> GetLegalMoves(string fromAlg) => _state.LegalMovesForPiece(ParsePos(fromAlg)).Select(m => PieceHelper.ToAlgebraic(m.ToPos));
         public GameStatusDto GetStatus(Guid playerId) => GetStatusForPlayer(GetPlayerColor(playerId));
         public GameStatusDto GetStatusForOpponentOf(Guid lastPlayerId) => GetStatusForPlayer(GetPlayerColor(lastPlayerId).Opponent());
-        public void StartTheGameAndTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
+
         public Task<ServerCardActivationResultDto> ActivateCard(Guid playerId, ActivateCardRequestDto dto) => CardManager.ActivateCard(playerId, dto);
+
+        public void StartTheGameAndTimer()
+        {
+            TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
+
+            lock (_sessionLock)
+            {
+                if (_playerManager.OpponentType == "Computer" &&
+                    _playerManager.ComputerPlayerId.HasValue &&
+                    _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) == Player.White &&
+                    _state.CurrentPlayer == Player.White)
+                {
+                    var computerColor = _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value);
+                    _logger.LogComputerStartingInitialMove(GameId, computerColor, _state.CurrentPlayer);
+                    Task.Run(() => ProcessComputerTurnIfNeeded());
+                }
+            }
+        }
 
         public MoveResultDto MakeMove(MoveDto dto, Guid playerIdCalling)
         {

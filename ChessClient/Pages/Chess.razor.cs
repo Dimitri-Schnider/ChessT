@@ -86,7 +86,20 @@ namespace ChessClient.Pages
                     GameCoreState.ResetForNewGame();
                     var board1 = new BoardDto(new PieceDto?[8][] { new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8] });
                     var createResult = new CreateGameResultDto { GameId = Guid.NewGuid(), PlayerId = Guid.NewGuid(), Color = Player.White, Board = board1 };
-                    GameCoreState.InitializeNewGame(createResult, "Du", Player.White, 5, "Tutorial");
+
+                    // HIER IST DIE KORREKTUR:
+                    // Erstelle ein CreateGameParameters-Objekt für den Tour-Kontext.
+                    var tourGameParams = new CreateGameParameters
+                    {
+                        Name = "Du",
+                        Color = Player.White,
+                        TimeMinutes = 5,
+                        OpponentType = OpponentType.Computer, // Der Tour-Gegner ist simuliert
+                        ComputerDifficulty = ComputerDifficulty.Medium
+                    };
+                    // Rufe die Methode mit der neuen, korrekten Signatur auf.
+                    GameCoreState.InitializeNewGame(createResult, tourGameParams);
+
                     if (GameCoreState.BoardDto != null)
                     {
                         GameCoreState.BoardDto.Squares[6][4] = PieceDto.WhitePawn;
@@ -100,11 +113,17 @@ namespace ChessClient.Pages
                     break;
                 case "Dein Zug":
                     HighlightState.SetHighlights("e2", "e4", false);
-                    if (GameCoreState.BoardDto != null) { GameCoreState.BoardDto.Squares[6][4] = null; GameCoreState.BoardDto.Squares[4][4] = PieceDto.WhitePawn; }
+                    if (GameCoreState.BoardDto != null)
+                    {
+                        GameCoreState.BoardDto.Squares[6][4] = null; GameCoreState.BoardDto.Squares[4][4] = PieceDto.WhitePawn;
+                    }
                     break;
                 case "Karten erhalten":
                     HighlightState.SetHighlights("e7", "e5", false);
-                    if (GameCoreState.BoardDto != null) { GameCoreState.BoardDto.Squares[1][4] = null; GameCoreState.BoardDto.Squares[3][4] = PieceDto.BlackPawn; }
+                    if (GameCoreState.BoardDto != null)
+                    {
+                        GameCoreState.BoardDto.Squares[1][4] = null; GameCoreState.BoardDto.Squares[3][4] = PieceDto.BlackPawn;
+                    }
                     CardState.AddReceivedCardToHand(new CardDto { InstanceId = Guid.NewGuid(), Id = "ExtraZug", Name = "Extra-Zug", Description = "Spiele einen zweiten Zug direkt nach diesem.", ImageUrl = "img/cards/art/1-Extrazug_Art.png" }, 9);
                     break;
                 case "Karten-Aktivierung":
@@ -119,14 +138,20 @@ namespace ChessClient.Pages
                 case "Der Extra-Zug":
                     AnimationState.FinishCardActivationAnimation();
                     HighlightState.SetHighlights("g1", "f3", false);
-                    if (GameCoreState.BoardDto != null) { GameCoreState.BoardDto.Squares[7][6] = null; GameCoreState.BoardDto.Squares[5][5] = PieceDto.WhiteKnight; }
+                    if (GameCoreState.BoardDto != null)
+                    {
+                        GameCoreState.BoardDto.Squares[7][6] = null; GameCoreState.BoardDto.Squares[5][5] = PieceDto.WhiteKnight;
+                    }
                     break;
                 case "Zug ausnutzen":
                     HighlightState.SetHighlights("f3", "e5", true);
-                    if (GameCoreState.BoardDto != null) { GameCoreState.BoardDto.Squares[5][5] = null; GameCoreState.BoardDto.Squares[3][4] = PieceDto.WhiteKnight; }
+                    if (GameCoreState.BoardDto != null)
+                    {
+                        GameCoreState.BoardDto.Squares[5][5] = null; GameCoreState.BoardDto.Squares[3][4] = PieceDto.WhiteKnight;
+                    }
                     break;
             }
-            StateHasChanged();
+            StateHasChanged(); ;
             // KORREKTUR: Diese Verzögerung gibt dem Blazor-Renderer Zeit, die UI zu aktualisieren,
             // bevor die Kontrolle an JavaScript zurückgegeben wird.
             await Task.Delay(20);

@@ -59,21 +59,38 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
-        public void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes, string opponentTypeString)
+        public void InitializeNewGame(CreateGameResultDto result, CreateGameParameters args)
         {
-            CurrentPlayerInfo = new PlayerDto(result.PlayerId, playerName);
-            MyColor = assignedColor;
+            CurrentPlayerInfo = new PlayerDto(result.PlayerId, args.Name);
+            MyColor = result.Color;
             BoardDto = result.Board;
             GameId = result.GameId;
-            _isPvCGame = (opponentTypeString == OpponentType.Computer.ToString()); // Korrigiert
+            _isPvCGame = (args.OpponentType == OpponentType.Computer);
             OpponentJoined = _isPvCGame;
-            PlayerNames.Clear();
-            if (CurrentPlayerInfo != null) PlayerNames[MyColor] = CurrentPlayerInfo.Name;
+
+            // KORREKTUR: Erstelle ein neues Dictionary und weise es am Ende zu.
+            // Dies stellt eine "atomare" Aktualisierung sicher und verhindert Race Conditions im UI-Rendering.
+            var newPlayerNames = new Dictionary<Player, string>();
+
+            // 1. Füge den menschlichen Spieler hinzu.
+            newPlayerNames[MyColor] = args.Name;
+
+            // 2. Wenn es ein PvC-Spiel ist, füge den Computer hinzu.
+            if (_isPvCGame)
+            {
+                Player computerColor = MyColor.Opponent();
+                string computerName = $"Computer ({args.ComputerDifficulty})";
+                newPlayerNames[computerColor] = computerName;
+            }
+
+            // 3. Weise das vollständig vorbereitete Dictionary dem State zu.
+            PlayerNames = newPlayerNames;
+
             CurrentTurnPlayer = Player.White;
             IsGameSpecificDataInitialized = false;
             EndGameMessage = "";
-            UpdateDisplayedTimes(TimeSpan.FromMinutes(initialTimeMinutes), TimeSpan.FromMinutes(initialTimeMinutes), Player.White);
-            _isGameRunning = false; // Korrigiert
+            UpdateDisplayedTimes(TimeSpan.FromMinutes(args.TimeMinutes), TimeSpan.FromMinutes(args.TimeMinutes), Player.White);
+            _isGameRunning = false;
             SetExtraTurnSequenceActive(false);
             OnStateChanged();
         }

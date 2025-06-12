@@ -1,8 +1,8 @@
-﻿// File: [SolutionDir]\ChessClient\State\IGameCoreState.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using ChessLogic;
 using ChessNetwork.DTOs;
+using ChessClient.Models;
 
 namespace ChessClient.State
 {
@@ -31,7 +31,7 @@ namespace ChessClient.State
         void SetExtraTurnSequenceActive(bool isActive);
         void IncrementExtraTurnMovesMade();
 
-        void InitializeNewGame(CreateGameResultDto result, string playerName, Player assignedColor, int initialTimeMinutes, string opponentTypeString);
+        void InitializeNewGame(CreateGameResultDto result, CreateGameParameters args);
         void InitializeJoinedGame(JoinGameResultDto result, Guid gameId, Player assignedColor);
         void SetGameIdFromQuery(string? gameIdQuery, bool isValidAndExists);
         void UpdatePlayerNames(Dictionary<Player, string> names);

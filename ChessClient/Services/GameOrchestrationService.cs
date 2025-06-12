@@ -79,7 +79,7 @@ namespace ChessClient.Services
                     ComputerDifficulty = args.ComputerDifficulty.ToString()
                 };
                 var result = await _gameService.CreateGameAsync(createGameDto);
-                _gameCoreState.InitializeNewGame(result, args.Name, result.Color, args.TimeMinutes, args.OpponentType.ToString());
+                _gameCoreState.InitializeNewGame(result, args);
                 _modalState.UpdateCreateGameModalArgs(args.Name, args.Color, args.TimeMinutes);
                 return result;
             }

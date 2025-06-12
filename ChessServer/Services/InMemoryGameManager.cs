@@ -42,6 +42,13 @@ namespace ChessServer.Services
             _games[gameId] = session;
 
             _logger.LogMgrGameCreated(gameId, playerName, firstPlayerId, color, initialMinutes);
+
+            if (opponentType == "Computer")
+            {
+                StartGame(gameId);
+            }
+
+
             return (gameId, firstPlayerId);
         }
 

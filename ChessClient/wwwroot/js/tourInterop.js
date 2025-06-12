@@ -12,7 +12,7 @@
 
         this.driverObj = driver.js.driver({
             animate: true,
-            allowClose: true,
+            allowClose: false,
             showProgress: true,
             nextBtnText: "Weiter →",
             prevBtnText: null,
