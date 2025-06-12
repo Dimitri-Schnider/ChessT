@@ -92,11 +92,9 @@ namespace ChessServer.Services
                 var playerColor = GetPlayerColor(playerIdCalling);
                 if (playerColor != _state.CurrentPlayer)
                     return new MoveResultDto { IsValid = false, ErrorMessage = "Nicht dein Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
-
                 var fromPos = ParsePos(dto.From);
                 var toPos = ParsePos(dto.To);
                 Move? legalMove = FindLegalMove(dto, fromPos, toPos);
-
                 if (legalMove == null)
                 {
                     if (_state.Board.IsInCheck(playerColor)) _logger.LogPlayerInCheckTriedInvalidMove(GameId, playerIdCalling, playerColor, dto.From, dto.To);
@@ -152,24 +150,32 @@ namespace ChessServer.Services
                 return new ServerCardActivationResultDto { Success = false, ErrorMessage = effectResult.ErrorMessage ?? "Fehler", CardId = cardTypeId };
             }
 
-            // --- NEUE LOGIK FÜR KORREKTEN ABLAUF ---
-            // 1. Animation beim Client auslösen
+            CardManager.RemoveCardFromPlayerHand(playerId, playedCard.InstanceId);
+            CardManager.MarkCardAsUsedGlobal(playerId, cardTypeId);
+
+            if (cardTypeId == CardConstants.CardSwap && effectResult.CardGivenByPlayerForSwapEffect != null && effectResult.CardReceivedByPlayerForSwapEffect != null)
+            {
+                await SignalCardSwapAnimationDetails(playerId, effectResult.CardGivenByPlayerForSwapEffect, effectResult.CardReceivedByPlayerForSwapEffect);
+            }
+
             await _hubContext.Clients.Group(GameId.ToString()).SendAsync("PlayCardActivationAnimation", playedCard, playerId, activatingPlayerColor);
             await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnCardPlayed", playerId, playedCard);
 
-            // 2. Auf dem Server auf das Ende der Animation warten
-            // Für Kartentausch geben wir mehr Zeit, da zwei Karten animiert werden.
-            int delayMs = (cardTypeId == CardConstants.CardSwap) ? 5000 : playedCard.AnimationDelayMs;
+            int delayMs = playedCard.AnimationDelayMs;
             if (delayMs > 0)
             {
-                if (cardTypeId == CardConstants.CardSwap)
-                    _logger.LogComputerTurnDelayCardSwap(GameId, delayMs / 1000.0);
+                if (cardTypeId == CardConstants.CardSwap) { }
+                // TODO  _logger.LogComputerTurnDelayCardSwap(GameId, cardTypeId, delayMs / 1000.0);
                 else
                     _logger.LogComputerTurnDelayAfterCard(GameId, cardTypeId, delayMs / 1000.0);
 
                 await Task.Delay(delayMs);
             }
-            // --- ENDE NEUE LOGIK ---
+
+            if (cardTypeId == CardConstants.CardSwap)
+            {
+                await SignalHandUpdatesAfterCardSwap(playerId, GetOpponentDetails(playerId));
+            }
 
             _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow });
             Position? promotionSquareAfterCard = null;
@@ -205,20 +211,18 @@ namespace ChessServer.Services
             CardDto? newlyDrawnCard = null;
             if (effectResult.PlayerIdToSignalDraw.HasValue)
             {
-                (_, newlyDrawnCard) = CardManager.CheckAndProcessCardDraw(effectResult.PlayerIdToSignalDraw.Value);
+                newlyDrawnCard = CardManager.DrawCardForPlayer(effectResult.PlayerIdToSignalDraw.Value);
                 if (newlyDrawnCard != null) await SignalCardDrawnToPlayer(effectResult.PlayerIdToSignalDraw.Value, newlyDrawnCard, "ActivateCard");
             }
 
-            // Erst JETZT, nach der Animation, den neuen Zustand senden
             await SendOnTurnChangedNotification(ToBoardDto(), _state.CurrentPlayer, GetStatusForPlayer(_state.CurrentPlayer), null, null, effectResult.AffectedSquaresByCard);
 
-            // Nach erfolgreicher Zustandsaktualisierung den Computerzug verarbeiten
             if (effectResult.EndsPlayerTurn && _playerManager.OpponentType == "Computer" && !_state.IsGameOver())
             {
-                // Computerzug wird mit einer zusätzliche Verzögerung gestartet
                 await Task.Run(() => ProcessComputerTurnIfNeeded(null, Random.Shared.Next(1000, 2001)));
             }
 
+            // KORREKTUR: Die überflüssigen Eigenschaften wurden aus dem return-Statement entfernt.
             return new ServerCardActivationResultDto
             {
                 Success = true,
@@ -226,8 +230,6 @@ namespace ChessServer.Services
                 AffectedSquaresByCard = effectResult.AffectedSquaresByCard,
                 EndsPlayerTurn = effectResult.EndsPlayerTurn,
                 BoardUpdatedByCardEffect = effectResult.BoardUpdatedByCardEffect,
-                PlayerIdToSignalCardDraw = effectResult.PlayerIdToSignalDraw,
-                NewlyDrawnCard = newlyDrawnCard,
                 CardGivenByPlayerForSwap = effectResult.CardGivenByPlayerForSwapEffect,
                 CardReceivedByPlayerForSwap = effectResult.CardReceivedByPlayerForSwapEffect,
                 PawnPromotionPendingAt = promotionSquareAfterCard != null ? new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) : null
@@ -302,7 +304,6 @@ namespace ChessServer.Services
                 _state.UpdateStateAfterMove(captureOrPawn, true, legalMove);
             }
             lastMoveForHistory = legalMove;
-
             if (pieceAtDestination != null) CardManager.AddCapturedPiece(pieceAtDestination.Color, pieceAtDestination.Type);
             else if (legalMove is EnPassant) CardManager.AddCapturedPiece(playerColor.Opponent(), PieceType.Pawn);
 
@@ -452,6 +453,52 @@ namespace ChessServer.Services
             }
         }
 
+        // NEUE HILFSMETHODE
+        private async Task SignalCardSwapAnimationDetails(Guid activatingPlayerId, CardDto cardGiven, CardDto cardReceived)
+        {
+            string? playerConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(activatingPlayerId);
+            if (!string.IsNullOrEmpty(playerConnectionId))
+            {
+                await _hubContext.Clients.Client(playerConnectionId)
+                    .SendAsync("ReceiveCardSwapAnimationDetails", new CardSwapAnimationDetailsDto(activatingPlayerId, cardGiven, cardReceived));
+            }
+
+            var opponentInfo = GetOpponentDetails(activatingPlayerId);
+            if (opponentInfo != null)
+            {
+                string? opponentConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(opponentInfo.OpponentId);
+                if (!string.IsNullOrEmpty(opponentConnectionId))
+                {
+                    await _hubContext.Clients.Client(opponentConnectionId)
+                        .SendAsync("ReceiveCardSwapAnimationDetails", new CardSwapAnimationDetailsDto(opponentInfo.OpponentId, cardReceived, cardGiven));
+                }
+            }
+        }
+
+        // NEUE HILFSMETHODE
+        private async Task SignalHandUpdatesAfterCardSwap(Guid playerId, OpponentInfoDto? opponentInfo)
+        {
+            string? playerConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(playerId);
+            if (!string.IsNullOrEmpty(playerConnectionId))
+            {
+                var playerHand = CardManager.GetPlayerHand(playerId);
+                int playerDrawPile = CardManager.GetDrawPileCount(playerId);
+                await _hubContext.Clients.Client(playerConnectionId).SendAsync("UpdateHandContents", new InitialHandDto(playerHand, playerDrawPile));
+            }
+
+            if (opponentInfo != null)
+            {
+                string? opponentConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(opponentInfo.OpponentId);
+                if (!string.IsNullOrEmpty(opponentConnectionId))
+                {
+                    var opponentHand = CardManager.GetPlayerHand(opponentInfo.OpponentId);
+                    int opponentDrawPile = CardManager.GetDrawPileCount(opponentInfo.OpponentId);
+                    await _hubContext.Clients.Client(opponentConnectionId).SendAsync("UpdateHandContents", new InitialHandDto(opponentHand, opponentDrawPile));
+                }
+            }
+        }
+
+
         private sealed class ChessApiResponseDto { public string? Move { get; set; } }
         private static PieceType? ParsePromotionChar(char promoChar) => promoChar switch
         {
@@ -513,12 +560,10 @@ namespace ChessServer.Services
             string fromAlg = apiMoveString.Substring(0, 2);
             string toAlg = apiMoveString.Substring(2, 2);
             PieceType? promotion = apiMoveString.Length == 5 ? ParsePromotionChar(apiMoveString[4]) : null;
-
             var moveDto = new MoveDto(fromAlg, toAlg, computerId.Value, promotion);
             _logger.LogComputerMakingMove(GameId, fromAlg, toAlg);
 
             var moveResult = MakeMove(moveDto, computerId.Value);
-
             if (moveResult.IsValid)
             {
                 Player nextPlayerTurn = GetCurrentTurnPlayerLogic();

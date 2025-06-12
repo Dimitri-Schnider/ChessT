@@ -24,5 +24,7 @@ namespace ChessServer.Services
         void MarkCardAsUsedGlobal(Guid playerId, string cardTypeId);
         void AddCardToPlayerHand(Guid playerId, CardDto cardToAdd);
         void RemoveCapturedPieceOfType(Player ownerColor, PieceType type);
+        // NEU HINZUGEFÜGT: Eine öffentliche Methode zum direkten Ziehen einer Karte.
+        CardDto? DrawCardForPlayer(Guid playerId);
     }
 }

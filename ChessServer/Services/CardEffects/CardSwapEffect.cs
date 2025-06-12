@@ -45,7 +45,6 @@ namespace ChessServer.Services.CardEffects
             }
 
             var cardToReceive = opponentHand[_random.Next(opponentHand.Count)];
-
             // Alle Kartenmanipulationen über den CardManager
             session.CardManager.RemoveCardFromPlayerHand(playerId, cardToGive.InstanceId);
             session.CardManager.RemoveCardFromPlayerHand(opponentInfo.OpponentId, cardToReceive.InstanceId);
@@ -55,7 +54,6 @@ namespace ChessServer.Services.CardEffects
             session.CardManager.AddCardToPlayerHand(opponentInfo.OpponentId, cardToGive);
 
             _logger.LogCardSwapEffectExecuted(cardToGive.InstanceId, cardToReceive.InstanceId, playerId, session.GameId);
-
             return new CardActivationResult(
                 Success: true,
                 CardGivenByPlayerForSwapEffect: cardToGive,

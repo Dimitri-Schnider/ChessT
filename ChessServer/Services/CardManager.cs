@@ -19,7 +19,6 @@ namespace ChessServer.Services
         private readonly ILoggerFactory _loggerFactoryForEffects;
         private readonly object _sessionLock;
         private readonly IHistoryManager _historyManager;
-
         private readonly Random _random = new();
         private readonly List<CardDto> _allCardDefinitions;
         private readonly Dictionary<string, ICardEffect> _cardEffects;
@@ -31,7 +30,6 @@ namespace ChessServer.Services
         private readonly Dictionary<Guid, int> _playerMoveCounts = new();
         private readonly SemaphoreSlim _activateCardSemaphore = new(1, 1);
         private const int InitialHandSize = 3;
-
         public CardManager(GameSession session, object sessionLock, IHistoryManager historyManager, IChessLogger logger, ILoggerFactory loggerFactory)
         {
             _session = session;
@@ -283,7 +281,8 @@ namespace ChessServer.Services
             _logger.LogPlayerDeckInitialized(playerId, _session.GameId, newDeck.Count);
         }
 
-        private CardDto? DrawCardForPlayer(Guid playerId)
+        // KORREKTUR: Sichtbarkeit von 'private' auf 'public' geändert.
+        public CardDto? DrawCardForPlayer(Guid playerId)
         {
             lock (_sessionLock)
             {
@@ -315,7 +314,7 @@ namespace ChessServer.Services
             new() { InstanceId = Guid.Empty, Id = CardConstants.Teleport, Name = "Teleportation", Description = "Eine eigene Figur darf auf ein beliebiges leeres Feld auf dem Schachbrett gestellt werden.", ImageUrl = "img/cards/art/2-Teleportation_Art.png", AnimationDelayMs = 3000 },
             new() { InstanceId = Guid.Empty, Id = CardConstants.Positionstausch, Name = "Positionstausch", Description = "Zwei eigene Figuren tauschen ihre Plätze.", ImageUrl = "img/cards/art/3-Positionstausch_Art.png", AnimationDelayMs = 3000 },
             new() { InstanceId = Guid.Empty, Id = CardConstants.AddTime, Name = "Zeitgutschrift", Description = "Fügt deiner Bedenkzeit 2 Minuten hinzu.", ImageUrl = "img/cards/art/11-AddTime_Art.png", AnimationDelayMs = 3000 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (minimal 1 Minute Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png", AnimationDelayMs = 3000 },
+             new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (minimal 1 Minute Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png", AnimationDelayMs = 3000 },
             new() { InstanceId = Guid.Empty, Id = CardConstants.TimeSwap, Name = "Zeittausch", Description = "Tauscht die aktuellen Restbedenkzeiten mit deinem Gegner (minimal 1 Minute Restzeit für jeden).", ImageUrl = "img/cards/art/13-Zeittausch_Art.png", AnimationDelayMs = 3000 },
             new() { InstanceId = Guid.Empty, Id = CardConstants.Wiedergeburt, Name = "Wiedergeburt", Description = "Eine eigene, geschlagene Nicht-Bauern-Figur wird auf einem ihrer ursprünglichen Startfelder wiederbelebt. Ist das gewählte Feld besetzt, schlägt der Effekt fehl und die Karte ist verbraucht.", ImageUrl = "img/cards/art/5-Wiedergeburt_Art.png", AnimationDelayMs = 3000 },
             new() { InstanceId = Guid.Empty, Id = CardConstants.CardSwap, Name = "Kartentausch", Description = "Wähle eine deiner Handkarten. Diese wird mit einer zufälligen Handkarte deines Gegners getauscht. Hat der Gegner keine Karten, verfällt deine Karte ohne Effekt.", ImageUrl = "img/cards/art/14-Kartentausch_Art.png", AnimationDelayMs = 5000 },
@@ -327,14 +326,13 @@ namespace ChessServer.Services
             { CardConstants.ExtraZug, new ExtraZugEffect(new ChessLogger<ExtraZugEffect>(loggerFactory.CreateLogger<ExtraZugEffect>())) },
             { CardConstants.Teleport, new TeleportEffect(new ChessLogger<TeleportEffect>(loggerFactory.CreateLogger<TeleportEffect>())) },
             { CardConstants.Positionstausch, new PositionSwapEffect(new ChessLogger<PositionSwapEffect>(loggerFactory.CreateLogger<PositionSwapEffect>())) },
-            { CardConstants.AddTime, new AddTimeEffect(new ChessLogger<AddTimeEffect>(loggerFactory.CreateLogger<AddTimeEffect>())) },
+             { CardConstants.AddTime, new AddTimeEffect(new ChessLogger<AddTimeEffect>(loggerFactory.CreateLogger<AddTimeEffect>())) },
             { CardConstants.SubtractTime, new SubtractTimeEffect(new ChessLogger<SubtractTimeEffect>(loggerFactory.CreateLogger<SubtractTimeEffect>())) },
             { CardConstants.TimeSwap, new TimeSwapEffect(new ChessLogger<TimeSwapEffect>(loggerFactory.CreateLogger<TimeSwapEffect>())) },
             { CardConstants.Wiedergeburt, new RebirthEffect(new ChessLogger<RebirthEffect>(loggerFactory.CreateLogger<RebirthEffect>())) },
             { CardConstants.CardSwap, new CardSwapEffect(new ChessLogger<CardSwapEffect>(loggerFactory.CreateLogger<CardSwapEffect>())) },
             { CardConstants.SacrificeEffect, new SacrificeEffect(new ChessLogger<SacrificeEffect>(loggerFactory.CreateLogger<SacrificeEffect>())) }
         };
-
         public void Dispose()
         {
             _activateCardSemaphore.Dispose();
