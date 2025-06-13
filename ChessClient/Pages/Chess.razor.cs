@@ -1,4 +1,5 @@
-﻿using Chess.Logging;
+﻿// File: [SolutionDir]\ChessClient\Pages\Chess.razor.cs
+using Chess.Logging;
 using ChessClient.Configuration;
 using ChessClient.Layout;
 using ChessClient.Models;
@@ -29,22 +30,19 @@ namespace ChessClient.Pages
         [Inject]
         private IConfiguration Configuration
         {
-            get;
-            set;
+            get; set;
         } = default!;
         [Inject] private IGameSession Game { get; set; } = default!;
         [Inject]
         private NavigationManager NavManager
         {
-            get;
-            set;
+            get; set;
         } = default!;
         [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
         [Inject]
         private ModalService ModalService
         {
-            get;
-            set;
+            get; set;
         } = default!;
         [CascadingParameter(Name = "MyMainLayout")] private MainLayout MyMainLayout { get; set; } = default!;
         [Inject] private IUiState UiState { get; set; } = default!;
@@ -79,11 +77,14 @@ namespace ChessClient.Pages
         }
 
         // Diese Methode reagiert auf Änderungen im GameCoreState
-        private void OnGameCoreStateChanged()
+        private async void OnGameCoreStateChanged()
         {
             // Prüfen, ob eine Endspiel-Nachricht neu gesetzt wurde
             if (!string.IsNullOrEmpty(GameCoreState.EndGameMessage))
             {
+                // Deaktiviert die Warnung, wenn das Spiel zu Ende ist.
+                await UpdateGameActiveStateForLeaveWarning(false);
+
                 if (GameCoreState.EndGameMessage.Contains("gewonnen", StringComparison.OrdinalIgnoreCase))
                 {
                     UiState.TriggerWinAnimation();
@@ -127,18 +128,17 @@ namespace ChessClient.Pages
                     GameCoreState.ResetForNewGame();
                     var board1 = new BoardDto(new PieceDto?[8][] { new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8] });
                     var createResult = new CreateGameResultDto { GameId = Guid.NewGuid(), PlayerId = Guid.NewGuid(), Color = Player.White, Board = board1 };
-                    // HIER IST DIE KORREKTUR:
-                    // Erstelle ein CreateGameParameters-Objekt für den Tour-Kontext. 
+
                     var tourGameParams = new CreateGameParameters
                     {
                         Name = "Du",
                         Color = Player.White,
 
                         TimeMinutes = 5,
-                        OpponentType = OpponentType.Computer, // Der Tour-Gegner ist simuliert
+                        OpponentType = OpponentType.Computer,
                         ComputerDifficulty = ComputerDifficulty.Medium
                     };
-                    // Rufe die Methode mit der neuen, korrekten Signatur auf.
+      
                     GameCoreState.InitializeNewGame(createResult, tourGameParams);
                     if (GameCoreState.BoardDto != null)
                     {
@@ -196,8 +196,8 @@ namespace ChessClient.Pages
                     break;
             }
             StateHasChanged(); ;
-            // KORREKTUR: Diese Verzögerung gibt dem Blazor-Renderer Zeit, die UI zu aktualisieren,
-            // bevor die Kontrolle an JavaScript zurückgegeben wird. 
+            // Diese Verzögerung gibt dem Blazor-Renderer Zeit, die UI zu aktualisieren,
+            // bevor die Kontrolle an JavaScript zurückgegeben wird.
             await Task.Delay(20);
         }
 
@@ -357,8 +357,7 @@ namespace ChessClient.Pages
         }
         private bool IsBoardInCardSelectionMode() => CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection != null && CardState.ActiveCardForBoardSelection.Id is CardConstants.Teleport or CardConstants.Positionstausch or CardConstants.Wiedergeburt or CardConstants.SacrificeEffect;
         private Player? GetPlayerColorForCardPieceSelection() => (CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection?.Id is CardConstants.Teleport or CardConstants.Positionstausch && string.IsNullOrEmpty(CardState.FirstSquareSelectedForTeleportOrSwap)) ? GameCoreState.MyColor : null;
-        private string?
- GetFirstSelectedSquareForCardEffect() => CardState.FirstSquareSelectedForTeleportOrSwap;
+        private string? GetFirstSelectedSquareForCardEffect() => CardState.FirstSquareSelectedForTeleportOrSwap;
         private void ToggleMobilePlayedCardsHistory() => _showMobilePlayedCardsHistory = !_showMobilePlayedCardsHistory;
         private void StartNewGameFromEndGame()
         {
@@ -375,7 +374,6 @@ namespace ChessClient.Pages
 
             // Das Modal zum Erstellen eines neuen Spiels anfordern
             ModalService.RequestShowCreateGameModal();
-
             // UI-Update sicherstellen
             StateHasChanged();
         }

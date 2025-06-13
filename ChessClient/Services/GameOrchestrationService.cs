@@ -63,7 +63,7 @@ namespace ChessClient.Services
         {
             if (string.IsNullOrWhiteSpace(args.Name))
             {
-                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
+                // Verwende das Modal für Fehlermeldungen.
                 _modalState.OpenErrorModal("Bitte gib einen Spielernamen ein.");
                 return null;
             }
@@ -85,7 +85,7 @@ namespace ChessClient.Services
             }
             catch (Exception ex)
             {
-                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
+                // Verwende das Modal für Fehlermeldungen.
                 _modalState.OpenErrorModal($"Fehler beim Erstellen des Spiels: {ex.Message}");
                 return null;
             }
@@ -130,20 +130,18 @@ namespace ChessClient.Services
             }
         }
 
-        // NEU: Implementierung der fehlenden Methode
         public async Task HandleSquareClickForCardAsync(string algebraicCoord)
         {
             if (!_cardState.IsCardActivationPending || _cardState.ActiveCardForBoardSelection == null || _gameCoreState.CurrentPlayerInfo == null) return;
-
             var activeCard = _cardState.ActiveCardForBoardSelection;
             var request = new ActivateCardRequestDto { CardInstanceId = _cardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = activeCard.Id };
-
             if (activeCard.Id is CardConstants.Teleport or CardConstants.Positionstausch)
             {
                 if (string.IsNullOrEmpty(_cardState.FirstSquareSelectedForTeleportOrSwap))
                 {
                     _cardState.SetFirstSquareForTeleportOrSwap(algebraicCoord);
-                    var msg = activeCard.Id == CardConstants.Teleport ? $"Teleport: Figur auf {algebraicCoord} ausgewählt. Wähle nun ein leeres Zielfeld." : $"Positionstausch: Erste Figur auf {algebraicCoord} ausgewählt. Wähle nun deine zweite Figur.";
+                    var msg = activeCard.Id == CardConstants.Teleport ? $"Teleport: Figur auf {algebraicCoord} ausgewählt. Wähle nun ein leeres Zielfeld."
+                    : $"Positionstausch: Erste Figur auf {algebraicCoord} ausgewählt. Wähle nun deine zweite Figur.";
                     await SetCardActionInfoBoxMessage(msg, true);
                     _highlightState.SetHighlights(algebraicCoord, null, false);
                 }
@@ -167,7 +165,6 @@ namespace ChessClient.Services
             }
         }
 
-        // NEU: Implementierung der fehlenden Methode
         public async Task HandlePieceTypeSelectedFromModalAsync(PieceType selectedType)
         {
             if (_modalState.ShowPawnPromotionModalSpecifically)
@@ -184,7 +181,6 @@ namespace ChessClient.Services
                     (int r, int c) = PositionHelper.ToIndices(s);
                     return _gameCoreState.BoardDto?.Squares[r][c] == null;
                 }).ToList();
-
                 if (validTargetSquares.Count == 0)
                 {
                     await _uiState.SetCurrentInfoMessageForBoxAsync($"Keine freien Ursprungsfelder für {selectedType} verfügbar. Karte verfällt.", true, 4000);
@@ -197,7 +193,13 @@ namespace ChessClient.Services
                 else if (validTargetSquares.Count == 1)
                 {
                     await _uiState.SetCurrentInfoMessageForBoxAsync($"Wiederbelebe {selectedType} auf {validTargetSquares[0]}...", false);
-                    var request = new ActivateCardRequestDto { CardInstanceId = _cardState.SelectedCardInstanceIdInHand ?? Guid.Empty, CardTypeId = CardConstants.Wiedergeburt, PieceTypeToRevive = selectedType, TargetRevivalSquare = validTargetSquares[0] };
+                    var request = new ActivateCardRequestDto
+                    {
+                        CardInstanceId = _cardState.SelectedCardInstanceIdInHand ??Guid.Empty,
+                        CardTypeId = CardConstants.Wiedergeburt,
+                        PieceTypeToRevive = selectedType,
+                        TargetRevivalSquare = validTargetSquares[0]
+                    };
                     if (_cardState.ActiveCardForBoardSelection != null)
                     {
                         await FinalizeCardActivationOnServerAsync(request, _cardState.ActiveCardForBoardSelection);
@@ -215,13 +217,11 @@ namespace ChessClient.Services
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
                 _modalState.OpenErrorModal("Bitte gib einen Spielernamen ein.");
                 return (false, Guid.Empty);
             }
             if (!Guid.TryParse(gameIdToJoin, out var parsedGuid))
             {
-                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
                 _modalState.OpenErrorModal("Ungültiges Game-ID Format.");
                 return (false, Guid.Empty);
             }
@@ -233,13 +233,20 @@ namespace ChessClient.Services
                 _gameCoreState.InitializeJoinedGame(result, parsedGuid, result.Color);
                 _gameCoreState.SetOpponentJoined(true);
                 _gameCoreState.SetIsPvCGame(false);
+
+                // Nach dem Beitritt die Gegner-Infos abfragen und setzen.
+                var opponentInfo = await _gameService.GetOpponentInfoAsync(parsedGuid, result.PlayerId);
+                if (opponentInfo != null)
+                {
+                    _gameCoreState.SetPlayerName(opponentInfo.OpponentColor, opponentInfo.OpponentName);
+                }
+
                 _modalState.CloseJoinGameModal();
                 await ConnectAndRegisterPlayerToHubAsync(parsedGuid, result.PlayerId);
                 return (true, _gameCoreState.GameId);
             }
             catch (Exception ex)
             {
-                // KORREKTUR: Verwende das Modal für Fehlermeldungen.
                 _modalState.OpenErrorModal($"Fehler beim Beitreten zum Spiel: {ex.Message}");
                 _gameCoreState.SetOpponentJoined(false);
                 return (false, Guid.Empty);
@@ -304,7 +311,6 @@ namespace ChessClient.Services
             _modalState.ClosePawnPromotionModal();
             MoveDto pendingMove = _modalState.PendingPromotionMove;
             _modalState.ClearPendingPromotionMove();
-
             MoveDto moveWithPromotion = new(pendingMove.From, pendingMove.To, _gameCoreState.CurrentPlayerInfo.Id, promotionType);
             _logger.LogClientSignalRConnectionWarning($"[GOS] Attempting Pawn Promotion. From: {moveWithPromotion.From}, To: {moveWithPromotion.To}, Promotion: {moveWithPromotion.PromotionTo}");
             await _uiState.SetCurrentInfoMessageForBoxAsync($"Figur wird zu {promotionType} umgewandelt...");
@@ -329,7 +335,6 @@ namespace ChessClient.Services
             }
 
             _cardState.StartCardActivation(cardToActivate);
-
             switch (cardToActivate.Id)
             {
                 case CardConstants.Teleport:
@@ -393,10 +398,8 @@ namespace ChessClient.Services
         private async Task HandleRebirthCardActivationAsync(CardDto card)
         {
             if (_gameCoreState.CurrentPlayerInfo == null || _gameCoreState.GameId == Guid.Empty) return;
-
             await _cardState.LoadCapturedPiecesForRebirthAsync(_gameCoreState.GameId, _gameCoreState.CurrentPlayerInfo.Id, _gameService);
             var capturedPieceTypes = _cardState.CapturedPiecesForRebirth?.Select(p => p.Type).Distinct().ToList() ?? new List<PieceType>();
-
             if (capturedPieceTypes.Count > 0)
             {
                 List<PieceSelectionChoiceInfo> choiceInfos = new();
@@ -493,7 +496,6 @@ namespace ChessClient.Services
             if (_modalState.ShowPieceSelectionModal) return false;
             if (_cardState.IsCardActivationPending && _cardState.SelectedCardInstanceIdInHand != card.InstanceId) return false;
             if (_gameCoreState.CurrentPlayerInfo == null || !_gameCoreState.OpponentJoined || _gameCoreState.MyColor != _gameCoreState.CurrentTurnPlayer || !string.IsNullOrEmpty(_gameCoreState.EndGameMessage)) return false;
-
             if (card.Id == CardConstants.SubtractTime)
             {
                 Player opponentColor = _gameCoreState.MyColor.Opponent();
