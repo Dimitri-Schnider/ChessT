@@ -4,7 +4,10 @@
 <div class="nav-menu-component @NavMenuCssClasses">
     <div class="top-row ps-3 navbar navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="">ChessCardGame</a>
+            <a class="navbar-brand d-flex align-items-center" href="">
+                <img src="/favicon-32x32.png" alt="SchachT Logo" class="me-2" style="height: 32px;" />
+                SchachT
+            </a>
         </div>
     </div>
 
@@ -33,7 +36,6 @@
     </div>
 </div>
 
-@* Overlay für Klick-Daneben-Schliessen, nur aktiv wenn Menü als Overlay offen ist *@
 @if (!IsPinnedModeRequest && IsOpenAsOverlayRequest)
 {
     <div class="nav-overlay-external-control show" @onclick="async () => await OnRequestCloseMenu.InvokeAsync()"></div>
