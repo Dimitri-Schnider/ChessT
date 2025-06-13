@@ -5,7 +5,24 @@
     width: 100vw;
     height: 100vh;
     pointer-events: none;
-    z-index: 10000; 
+    z-index: 1040; /* KORREKTUR: Standard-Backdrop-Ebene, damit das Modal (1050+) darüber liegt */
+}
+
+/* NEU: Styling für das Gewinn-Overlay, damit es als Hintergrund dient */
+.win-overlay {
+    background-color: rgba(0, 0, 0, 0.75);
+    pointer-events: auto; /* Erlaubt Klicks (obwohl das Modal darüber liegen sollte) */
+    animation: fadeInWin 0.3s ease;
+}
+
+@keyframes fadeInWin {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .confetti {
@@ -15,12 +32,13 @@
     --rotation: 0deg;
     --color: #fff;
     position: absolute;
-    top: -20px; /* Startet ausserhalb des Bildschirms */
+    top: -20px;
     left: var(--start-x);
     width: 10px;
     height: 20px;
     background-color: var(--color);
     opacity: 0;
+    /* KORREKTUR: Animation auf die neuen, schnelleren Werte angepasst */
     animation: fall var(--duration) var(--delay) linear forwards;
 }
 
@@ -31,8 +49,9 @@
     }
 
     100% {
-        opacity: 0.5;
-        transform: translateY(105vh) rotateZ(var(--rotation)); /* Fällt komplett durch den Bildschirm */
+        opacity: 0.8;
+        /* KORREKTUR: Fällt jetzt wieder die gesamte Bildschirmhöhe hinab */
+        transform: translateY(105vh) rotateZ(var(--rotation));
     }
 }
 

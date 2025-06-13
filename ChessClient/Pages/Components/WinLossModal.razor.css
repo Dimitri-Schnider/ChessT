@@ -1,12 +1,16 @@
-﻿
-@keyframes modalBackdropFadeIn {
-    from {
-        opacity: 0;
-    }
+﻿// File: [SolutionDir]\ChessClient\Pages\Components\WinLossModal.razor.css
 
-    to {
-        opacity: 0.85;
-    }
+@keyframes modalBackdropFadeIn {
+    from
+
+{
+    opacity: 0;
+}
+
+to {
+    opacity: 0.85;
+}
+
 }
 
 @keyframes modalContentPopIn {
@@ -37,11 +41,12 @@
 .win-loss-modal .modal-body {
     padding: 2.5rem 2rem;
     position: relative;
+    overflow: hidden;
 }
 
 .message-content {
     position: relative;
-    z-index: 10;
+    z-index: 10; /* Text ist GANZ oben */
 }
 
     .message-content h2 {
@@ -63,4 +68,42 @@
     gap: 1rem;
     flex-wrap: wrap;
     margin-top: 1.5rem;
+}
+
+.confetti-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.confetti {
+    --start-x: 50vw;
+    --delay: 0s;
+    --duration: 5s;
+    --rotation: 0deg;
+    --color: #fff;
+    position: absolute;
+    top: -20px;
+    left: var(--start-x);
+    width: 10px;
+    height: 20px;
+    background-color: var(--color);
+    opacity: 0;
+    animation: fall var(--duration) var(--delay) linear forwards;
+}
+
+@keyframes fall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotateZ(0deg);
+    }
+
+    100% {
+        opacity: 0.5;
+        transform: translateY(calc(100% + 50px)) rotateZ(var(--rotation));
+    }
 }
