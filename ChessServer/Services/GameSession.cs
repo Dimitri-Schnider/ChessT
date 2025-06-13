@@ -65,10 +65,11 @@ namespace ChessServer.Services
         public (Guid PlayerId, Player Color) Join(string playerName, Player? preferredColor = null)
         {
             var (playerId, assignedColor) = _playerManager.Join(playerName, preferredColor);
-            CardManager.InitializeDecksForPlayer(playerId);
+            int initialTimeMinutes = _historyManager.GetGameHistory(_playerManager).InitialTimeMinutes;
+            CardManager.InitializeDecksForPlayer(playerId, initialTimeMinutes);
             if (_playerManager.ComputerPlayerId.HasValue && CardManager.GetPlayerHand(_playerManager.ComputerPlayerId.Value).Count == 0)
             {
-                CardManager.InitializeDecksForPlayer(_playerManager.ComputerPlayerId.Value);
+                CardManager.InitializeDecksForPlayer(_playerManager.ComputerPlayerId.Value, initialTimeMinutes);
             }
             return (playerId, assignedColor);
         }
@@ -94,6 +95,7 @@ namespace ChessServer.Services
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) == Player.White &&
                     _state.CurrentPlayer == Player.White)
 
+
                 {
                     var computerColor = _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value);
                     _logger.LogComputerStartingInitialMove(GameId, computerColor, _state.CurrentPlayer);
@@ -109,17 +111,14 @@ namespace ChessServer.Services
                 var playerColor = GetPlayerColor(playerIdCalling);
                 if (playerColor != _state.CurrentPlayer)
                     return new MoveResultDto { IsValid = false, ErrorMessage = "Nicht dein Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
-
                 var fromPos = ParsePos(dto.From);
                 var toPos = ParsePos(dto.To);
                 Move? legalMove = null;
-
                 // KORREKTUR: Spezialbehandlung für Umwandlung nach Karteneffekt
                 if (fromPos == toPos && dto.PromotionTo.HasValue)
                 {
                     var piece = _state.Board[fromPos];
                     int promotionRank = (playerColor == Player.White) ? 0 : 7;
-
                     if (piece is Pawn && piece.Color == playerColor && fromPos.Row == promotionRank)
                     {
                         var promotionMove = new PawnPromotion(fromPos, toPos, dto.PromotionTo.Value);
@@ -138,6 +137,7 @@ namespace ChessServer.Services
                 {
                     if (_state.Board.IsInCheck(playerColor))
                     {
+
                         // Spezifischere Fehlermeldung für fehlgeschlagene Umwandlung
                         if (fromPos == toPos && dto.PromotionTo.HasValue)
                         {
@@ -219,7 +219,7 @@ namespace ChessServer.Services
             if (delayMs > 0)
             {
                 if (cardTypeId == CardConstants.CardSwap) { }
-                // TODO  _logger.LogComputerTurnDelayCardSwap(GameId, cardTypeId, delayMs / 1000.0); 
+                // TODO  _logger.LogComputerTurnDelayCardSwap(GameId, cardTypeId, delayMs / 1000.0);
                 else
                     _logger.LogComputerTurnDelayAfterCard(GameId, cardTypeId, delayMs / 1000.0);
                 await Task.Delay(delayMs);
@@ -231,7 +231,7 @@ namespace ChessServer.Services
             }
 
             _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow }, effectResult.BoardUpdatedByCardEffect);
-            // Wenn die Karte das Brett NICHT verändert hat UND den Zug des Spielers NICHT beendet, fügen wir einen "AbstractMove" hinzu. 
+            // Wenn die Karte das Brett NICHT verändert hat UND den Zug des Spielers NICHT beendet, fügen wir einen "AbstractMove" hinzu.
             if (effectResult.Success && !effectResult.BoardUpdatedByCardEffect && effectResult.EndsPlayerTurn)
             {
                 _historyManager.AddMove(new PlayedMoveDto
@@ -239,15 +239,18 @@ namespace ChessServer.Services
                     PlayerId = playerId,
                     PlayerColor = activatingPlayerColor,
 
+
                     From = "card", // Deskriptiver Platzhalter
                     To = "play",   // Deskriptiver Platzhalter
                     ActualMoveType = MoveType.AbstractMove,
                     PromotionPiece = null,
 
+
                     TimestampUtc = DateTime.UtcNow,
                     TimeTaken = timeTakenForCard, // KORREKTUR: Die tatsächlich vergangene Zeit verwenden
                     RemainingTimeWhite = TimerService.GetCurrentTimeForPlayer(Player.White),
                     RemainingTimeBlack = TimerService.GetCurrentTimeForPlayer(Player.Black),
+
 
                     PieceMoved = $"Card: {playedCard.Name}", // Eindeutige Beschreibung der Aktion
                     CapturedPiece = null
@@ -308,6 +311,7 @@ namespace ChessServer.Services
                 CardId = cardTypeId,
                 AffectedSquaresByCard = effectResult.AffectedSquaresByCard,
                 EndsPlayerTurn = effectResult.EndsPlayerTurn,
+
 
                 BoardUpdatedByCardEffect = effectResult.BoardUpdatedByCardEffect,
                 CardGivenByPlayerForSwap = effectResult.CardGivenByPlayerForSwapEffect,
@@ -425,11 +429,13 @@ namespace ChessServer.Services
                 PlayerId = playerId,
                 PlayerColor = playerColor,
 
+
                 From = dto.From,
                 To = dto.To,
                 ActualMoveType = legalMove.Type,
                 PromotionPiece = (legalMove is PawnPromotion promoMove) ? promoMove.PromotionTo : null,
                 TimestampUtc = timestamp,
+
 
                 TimeTaken = timeTaken,
                 RemainingTimeWhite = TimerService.GetCurrentTimeForPlayer(Player.White),
@@ -446,12 +452,14 @@ namespace ChessServer.Services
                 IsValid = true,
                 ErrorMessage = null,
 
+
                 NewBoard = ToBoardDto(),
                 IsYourTurn = isExtraTurn,
                 Status = GetStatusForPlayer(GetPlayerColor(dto.PlayerId)),
                 PlayerIdToSignalCardDraw = drawPlayerId,
                 NewlyDrawnCard = drawnCard,
                 LastMoveFrom = dto.From,
+
 
                 LastMoveTo = dto.To,
                 CardEffectSquares = null
@@ -527,6 +535,7 @@ namespace ChessServer.Services
                     // Sende den Spieler 'p' (den Verlierer), nicht den 'winner'.
                     await SendOnTurnChangedNotification(currentBoardDto, p, GameStatusDto.TimeOut, null, null, null);
                     await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", finalTimeUpdate);
+
                 });
             }
         }
@@ -630,6 +639,7 @@ namespace ChessServer.Services
                     !_playerManager.ComputerPlayerId.HasValue ||
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) != _state.CurrentPlayer ||
                     _state.IsGameOver())
+
 
                 {
                     if (animationDelayMs > 0) _logger.LogComputerSkippingTurnAfterAnimationDelay(GameId, cardId ?? "N/A");

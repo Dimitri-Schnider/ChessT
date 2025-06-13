@@ -42,15 +42,46 @@ namespace ChessServer.Services
             _cardEffects = CreateCardEffects(_loggerFactoryForEffects);
         }
 
-        public void InitializeDecksForPlayer(Guid playerId)
+        public void InitializeDecksForPlayer(Guid playerId, int initialTimeMinutes)
         {
             _playerMoveCounts[playerId] = 0;
-            InitializeAndShufflePlayerDeck(playerId);
+
+            var availableCards = new List<CardDto>(_allCardDefinitions);
+            if (initialTimeMinutes <= 3)
+            {
+                availableCards.RemoveAll(c => c.Category == CardCategory.Time);
+            }
+
+            InitializeAndShufflePlayerDeck(playerId, availableCards);
+
             if (!_playerHands.ContainsKey(playerId))
             {
                 _playerHands[playerId] = new List<CardDto>();
-                for (int i = 0; i < InitialHandSize; i++) { DrawCardForPlayer(playerId); }
+                var deck = _playerDrawPiles.GetValueOrDefault(playerId, new List<CardDto>());
+                var hand = _playerHands[playerId];
+
+                // Stelle sicher, dass maximal eine Zeitkarte in der Starthand ist
+                var timeCardsInDeck = deck.Where(c => c.Category == CardCategory.Time).ToList();
+                var otherCardsInDeck = deck.Where(c => c.Category != CardCategory.Time).ToList();
+
+                // Füge eine Zeitkarte hinzu, falls vorhanden
+                if (timeCardsInDeck.Any())
+                {
+                    var timeCardToAdd = timeCardsInDeck.First();
+                    hand.Add(timeCardToAdd);
+                    deck.Remove(timeCardToAdd);
+                }
+
+                // Fülle den Rest der Hand mit anderen Karten auf
+                int cardsToDraw = InitialHandSize - hand.Count;
+                var otherCardsToAdd = deck.Where(c => c.Category != CardCategory.Time).Take(cardsToDraw).ToList();
+                foreach (var card in otherCardsToAdd)
+                {
+                    hand.Add(card);
+                    deck.Remove(card);
+                }
             }
+
             var playerColor = _session.GetPlayerColor(playerId);
             if (!_capturedPieces.ContainsKey(playerColor))
             {
@@ -84,11 +115,13 @@ namespace ChessServer.Services
                     _logger.LogSessionCardActivationFailed(_session.GameId, playerId, dto.CardTypeId, "Unbekannte Karte.");
                     return new ServerCardActivationResultDto { Success = false, ErrorMessage = "Unbekannte Karte.", CardId = dto.CardTypeId };
                 }
-                var timerWasManuallyPaused = _session.PauseTimerForAction();
+
+                var timerWasPaused = _session.PauseTimerForAction();
+
                 string? param1ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.PieceTypeToRevive?.ToString() : (dto.CardTypeId == CardConstants.CardSwap) ? dto.CardInstanceIdToSwapFromHand?.ToString() : dto.FromSquare;
                 string? param2ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.TargetRevivalSquare : dto.ToSquare;
                 var effectResult = effect.Execute(_session, playerId, activatingPlayerColor, _historyManager, dto.CardTypeId, param1ForEffect, param2ForEffect);
-                var finalResult = await _session.HandleCardActivationResult(effectResult, playerId, playedCardInstance, dto.CardTypeId, timerWasManuallyPaused);
+                var finalResult = await _session.HandleCardActivationResult(effectResult, playerId, playedCardInstance, dto.CardTypeId, timerWasPaused);
                 return finalResult;
             }
             finally
@@ -106,6 +139,7 @@ namespace ChessServer.Services
             {
                 if (!_playerMoveCounts.TryAdd(playerId, 1))
                 {
+
                     _playerMoveCounts[playerId]++;
                 }
                 _logger.LogPlayerMoveCountIncreased(_session.GameId, playerId, _playerMoveCounts[playerId]);
@@ -117,6 +151,7 @@ namespace ChessServer.Services
             lock (_sessionLock)
             {
                 if (_playerMoveCounts.TryGetValue(playerId, out int count) && count > 0 && count % 5 == 0)
+
                 {
                     var drawnCard = DrawCardForPlayer(playerId);
                     if (drawnCard != null && !drawnCard.Name.Contains(CardConstants.NoMoreCardsName))
@@ -135,6 +170,7 @@ namespace ChessServer.Services
             {
                 if (_capturedPieces.TryGetValue(ownerColor, out var list))
                 {
+
                     list.Add(pieceType);
                     _logger.LogCapturedPieceAdded(_session.GameId, pieceType, ownerColor);
                 }
@@ -155,6 +191,7 @@ namespace ChessServer.Services
             {
                 if (!_usedGlobalCardsPerPlayer.TryGetValue(playerId, out var usedCards))
                 {
+
                     usedCards = new HashSet<string>();
                     _usedGlobalCardsPerPlayer[playerId] = usedCards;
                 }
@@ -168,6 +205,7 @@ namespace ChessServer.Services
             {
                 if (_playerHands.TryGetValue(playerId, out var hand))
                 {
+
                     var cardInstance = hand.FirstOrDefault(c => c.InstanceId == cardInstanceIdToRemove);
                     if (cardInstance != null) { return hand.Remove(cardInstance); }
                 }
@@ -182,6 +220,7 @@ namespace ChessServer.Services
             {
                 if (!_playerHands.TryGetValue(playerId, out var hand))
                 {
+
                     hand = new List<CardDto>();
                     _playerHands[playerId] = hand;
                 }
@@ -195,6 +234,7 @@ namespace ChessServer.Services
             {
                 if (_capturedPieces.TryGetValue(ownerColor, out var list))
                 {
+
                     list.Remove(type);
                 }
             }
@@ -254,6 +294,7 @@ namespace ChessServer.Services
                 {
                     InstanceId = Guid.NewGuid(),
                     Id = definition.Id,
+
                     Name = definition.Name,
                     Description = definition.Description,
                     ImageUrl = definition.ImageUrl,
@@ -264,16 +305,18 @@ namespace ChessServer.Services
             return null;
         }
 
-        private void InitializeAndShufflePlayerDeck(Guid playerId)
+        private void InitializeAndShufflePlayerDeck(Guid playerId, List<CardDto> availableCardDefinitions)
         {
-            var newDeck = _allCardDefinitions.Select(cardDef => new CardDto
+            var newDeck = availableCardDefinitions.Select(cardDef => new CardDto
             {
                 InstanceId = Guid.NewGuid(),
                 Id = cardDef.Id,
+
                 Name = cardDef.Name,
                 Description = cardDef.Description,
                 ImageUrl = cardDef.ImageUrl,
-                AnimationDelayMs = cardDef.AnimationDelayMs
+                AnimationDelayMs = cardDef.AnimationDelayMs,
+                Category = cardDef.Category
             }).ToList();
             int n = newDeck.Count;
             while (n > 1) { n--; int k = _random.Next(n + 1); (newDeck[k], newDeck[n]) = (newDeck[n], newDeck[k]); }
@@ -286,11 +329,15 @@ namespace ChessServer.Services
         {
             lock (_sessionLock)
             {
-                if (_session.GetPlayerName(playerId) == null) { _logger.LogDrawAttemptUnknownPlayer(playerId, _session.GameId); return null; }
+                if (_session.GetPlayerName(playerId) == null)
+                {
+                    _logger.LogDrawAttemptUnknownPlayer(playerId, _session.GameId);
+                    return null;
+                }
                 if (!_playerDrawPiles.TryGetValue(playerId, out var specificDrawPile))
                 {
                     _logger.LogNoDrawPileForPlayer(playerId, _session.GameId);
-                    InitializeAndShufflePlayerDeck(playerId);
+                    InitializeAndShufflePlayerDeck(playerId, _allCardDefinitions);
                     if (!_playerDrawPiles.TryGetValue(playerId, out specificDrawPile) || specificDrawPile == null)
                         return new CardDto { InstanceId = Guid.NewGuid(), Id = $"{CardConstants.FallbackCardIdPrefix}error", Name = "Fehler", Description = "Deck nicht initialisiert.", ImageUrl = CardConstants.DefaultCardBackImageUrl };
                 }
@@ -301,7 +348,10 @@ namespace ChessServer.Services
                 }
                 CardDto drawnCard = specificDrawPile.First();
                 specificDrawPile.RemoveAt(0);
-                if (!_playerHands.TryGetValue(playerId, out var hand)) { hand = new List<CardDto>(); _playerHands[playerId] = hand; }
+                if (!_playerHands.TryGetValue(playerId, out var hand))
+                {
+                    hand = new List<CardDto>(); _playerHands[playerId] = hand;
+                }
                 hand.Add(drawnCard);
                 _logger.LogPlayerDrewCardFromOwnDeck(playerId, drawnCard.Name, drawnCard.Id.ToString(), _session.GameId, specificDrawPile.Count);
                 return drawnCard;
@@ -310,15 +360,16 @@ namespace ChessServer.Services
 
         private static List<CardDto> CreateCardDefinitions() => new()
         {
-            new() { InstanceId = Guid.Empty, Id = CardConstants.ExtraZug, Name = "Extrazug", Description = "Du darfst sofort einen weiteren Schachzug ausführen. (Einmal pro Spiel)", ImageUrl = "img/cards/art/1-Extrazug_Art.png", AnimationDelayMs = 0 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.Teleport, Name = "Teleportation", Description = "Eine eigene Figur darf auf ein beliebiges leeres Feld auf dem Schachbrett gestellt werden.", ImageUrl = "img/cards/art/2-Teleportation_Art.png", AnimationDelayMs = 3000 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.Positionstausch, Name = "Positionstausch", Description = "Zwei eigene Figuren tauschen ihre Plätze.", ImageUrl = "img/cards/art/3-Positionstausch_Art.png", AnimationDelayMs = 3000 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.AddTime, Name = "Zeitgutschrift", Description = "Fügt deiner Bedenkzeit 2 Minuten hinzu.", ImageUrl = "img/cards/art/11-AddTime_Art.png", AnimationDelayMs = 3000 },
-             new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (minimal 1 Minute Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png", AnimationDelayMs = 3000 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.TimeSwap, Name = "Zeittausch", Description = "Tauscht die aktuellen Restbedenkzeiten mit deinem Gegner (minimal 1 Minute Restzeit für jeden).", ImageUrl = "img/cards/art/13-Zeittausch_Art.png", AnimationDelayMs = 3000 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.Wiedergeburt, Name = "Wiedergeburt", Description = "Eine eigene, geschlagene Nicht-Bauern-Figur wird auf einem ihrer ursprünglichen Startfelder wiederbelebt. Ist das gewählte Feld besetzt, schlägt der Effekt fehl und die Karte ist verbraucht.", ImageUrl = "img/cards/art/5-Wiedergeburt_Art.png", AnimationDelayMs = 3000 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.CardSwap, Name = "Kartentausch", Description = "Wähle eine deiner Handkarten. Diese wird mit einer zufälligen Handkarte deines Gegners getauscht. Hat der Gegner keine Karten, verfällt deine Karte ohne Effekt.", ImageUrl = "img/cards/art/14-Kartentausch_Art.png", AnimationDelayMs = 5000 },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.SacrificeEffect, Name = "Opfergabe", Description = "Wähle einen eigenen Bauern. Entferne ihn vom Spiel. Du darfst sofort eine neue Karte ziehen.", ImageUrl = "img/cards/art/15-Opergabe_Art.png", AnimationDelayMs = 3000 }
+            new() { InstanceId = Guid.Empty, Id = CardConstants.ExtraZug, Name = "Extrazug", Description = "Du darfst sofort einen weiteren Schachzug ausführen. (Einmal pro Spiel)", ImageUrl = "img/cards/art/1-Extrazug_Art.png", AnimationDelayMs = 0, Category = CardCategory.Gameplay },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.Teleport, Name = "Teleportation", Description = "Eine eigene Figur darf auf ein beliebiges leeres Feld auf dem Schachbrett gestellt werden.", ImageUrl = "img/cards/art/2-Teleportation_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.Positionstausch, Name = "Positionstausch", Description = "Zwei eigene Figuren tauschen ihre Plätze.", ImageUrl = "img/cards/art/3-Positionstausch_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.AddTime, Name = "Zeitgutschrift", Description = "Fügt deiner Bedenkzeit 2 Minuten hinzu.", ImageUrl = "img/cards/art/11-AddTime_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
+
+          new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (minimal 1 Minute Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.TimeSwap, Name = "Zeittausch", Description = "Tauscht die aktuellen Restbedenkzeiten mit deinem Gegner (minimal 1 Minute Restzeit für jeden).", ImageUrl = "img/cards/art/13-Zeittausch_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.Wiedergeburt, Name = "Wiedergeburt", Description = "Eine eigene, geschlagene Nicht-Bauern-Figur wird auf einem ihrer ursprünglichen Startfelder wiederbelebt. Ist das gewählte Feld besetzt, schlägt der Effekt fehl und die Karte ist verbraucht.", ImageUrl = "img/cards/art/5-Wiedergeburt_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.CardSwap, Name = "Kartentausch", Description = "Wähle eine deiner Handkarten. Diese wird mit einer zufälligen Handkarte deines Gegners getauscht. Hat der Gegner keine Karten, verfällt deine Karte ohne Effekt.", ImageUrl = "img/cards/art/14-Kartentausch_Art.png", AnimationDelayMs = 5000, Category = CardCategory.Utility },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.SacrificeEffect, Name = "Opfergabe", Description = "Wähle einen eigenen Bauern. Entferne ihn vom Spiel. Du darfst sofort eine neue Karte ziehen.", ImageUrl = "img/cards/art/15-Opergabe_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay }
         };
 
         private static Dictionary<string, ICardEffect> CreateCardEffects(ILoggerFactory loggerFactory) => new()
@@ -326,6 +377,7 @@ namespace ChessServer.Services
             { CardConstants.ExtraZug, new ExtraZugEffect(new ChessLogger<ExtraZugEffect>(loggerFactory.CreateLogger<ExtraZugEffect>())) },
             { CardConstants.Teleport, new TeleportEffect(new ChessLogger<TeleportEffect>(loggerFactory.CreateLogger<TeleportEffect>())) },
             { CardConstants.Positionstausch, new PositionSwapEffect(new ChessLogger<PositionSwapEffect>(loggerFactory.CreateLogger<PositionSwapEffect>())) },
+
              { CardConstants.AddTime, new AddTimeEffect(new ChessLogger<AddTimeEffect>(loggerFactory.CreateLogger<AddTimeEffect>())) },
             { CardConstants.SubtractTime, new SubtractTimeEffect(new ChessLogger<SubtractTimeEffect>(loggerFactory.CreateLogger<SubtractTimeEffect>())) },
             { CardConstants.TimeSwap, new TimeSwapEffect(new ChessLogger<TimeSwapEffect>(loggerFactory.CreateLogger<TimeSwapEffect>())) },

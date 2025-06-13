@@ -11,5 +11,6 @@ namespace ChessNetwork.DTOs
         public string Description { get; set; } = string.Empty; // Die Beschreibung des Karteneffekts.
         public string ImageUrl { get; set; } = string.Empty;    // Die URL zum Bild der Karte.
         public int AnimationDelayMs { get; set; } = 2500;       // Verzögerung in Millisekunden (Gegen Computer), bevor die Karte animiert wird.
+        public CardCategory Category { get; set; }              // Die Kategorie der Karte (Gameplay, Time, Utility).
     }
 }
