@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using ChessLogic;
 using ChessNetwork.DTOs;
 using ChessClient.Models;
-
 namespace ChessClient.State
 {
     public interface IGameCoreState
@@ -25,7 +24,6 @@ namespace ChessClient.State
         bool IsPvCGame { get; }
         bool IsGameRunning { get; }
 
-        // NEU: Hinzugefügt für Extrazug-Logik
         bool IsExtraTurnSequenceActive { get; }
         int ExtraTurnMovesMade { get; }
         void SetExtraTurnSequenceActive(bool isActive);

@@ -25,6 +25,8 @@
         }
 
         <div class="content-area d-flex">
+
+
             <article class="content px-4 flex-grow-1">
                 <CascadingValue Value="this" Name="MyMainLayout">
                     @Body
@@ -33,6 +35,8 @@
         </div>
     </div>
 </div>
+
+<GlobalAnimation />
 
 <RightSideDrawer @ref="rightSideDrawerInstance"
                  CurrentGameId="@ActiveGameIdForDrawer"

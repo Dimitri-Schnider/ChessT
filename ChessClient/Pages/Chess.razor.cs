@@ -1,4 +1,5 @@
 ﻿using Chess.Logging;
+using ChessClient.Configuration;
 using ChessClient.Layout;
 using ChessClient.Models;
 using ChessClient.Services;
@@ -25,11 +26,26 @@ namespace ChessClient.Pages
 
     public partial class Chess : IAsyncDisposable
     {
-        [Inject] private IConfiguration Configuration { get; set; } = default!;
+        [Inject]
+        private IConfiguration Configuration
+        {
+            get;
+            set;
+        } = default!;
         [Inject] private IGameSession Game { get; set; } = default!;
-        [Inject] private NavigationManager NavManager { get; set; } = default!;
+        [Inject]
+        private NavigationManager NavManager
+        {
+            get;
+            set;
+        } = default!;
         [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-        [Inject] private ModalService ModalService { get; set; } = default!;
+        [Inject]
+        private ModalService ModalService
+        {
+            get;
+            set;
+        } = default!;
         [CascadingParameter(Name = "MyMainLayout")] private MainLayout MyMainLayout { get; set; } = default!;
         [Inject] private IUiState UiState { get; set; } = default!;
         [Inject] private IModalState ModalState { get; set; } = default!;
@@ -41,7 +57,6 @@ namespace ChessClient.Pages
         [Inject] private HubSubscriptionService HubSubscriptionService { get; set; } = default!;
         [Inject] private IChessLogger Logger { get; set; } = default!;
         [Inject] private TourService TourService { get; set; } = default!;
-
         private bool _showMobilePlayedCardsHistory;
         private bool _isGameActiveForLeaveWarning;
         private string InviteLink => GameCoreState.GameId == Guid.Empty ? "" : $"{NavManager.BaseUri}chess?gameId={GameCoreState.GameId}";
@@ -58,8 +73,34 @@ namespace ChessClient.Pages
             HubSubscriptionService.Initialize();
             ModalService.ShowCreateGameModalRequested += () => ModalState.OpenCreateGameModal();
             ModalService.ShowJoinGameModalRequested += () => ModalState.OpenJoinGameModal(GameCoreState.GameIdFromQueryString);
-            TourService.TourRequested += StartTutorialAsync; 
+            GameCoreState.StateChanged += OnGameCoreStateChanged; // NEU: Auf State-Änderungen reagieren
+            TourService.TourRequested += StartTutorialAsync;
             await InitializePageBasedOnUrlAsync();
+        }
+
+        // Diese Methode reagiert auf Änderungen im GameCoreState
+        private void OnGameCoreStateChanged()
+        {
+            // Prüfen, ob eine Endspiel-Nachricht neu gesetzt wurde
+            if (!string.IsNullOrEmpty(GameCoreState.EndGameMessage))
+            {
+                if (GameCoreState.EndGameMessage.Contains("gewonnen", StringComparison.OrdinalIgnoreCase))
+                {
+                    UiState.TriggerWinAnimation();
+                }
+                else
+                {
+                    UiState.TriggerLossAnimation();
+                }
+            }
+            else
+            {
+                // Wenn eine neue Partie gestartet wird, Animationen ausblenden
+                UiState.HideEndGameAnimations();
+            }
+
+            // Muss StateHasChanged aufrufen, da dies ausserhalb des normalen Render-Zyklus passieren kann
+            StateHasChanged();
         }
 
         protected override void OnAfterRender(bool firstRender)
@@ -86,20 +127,19 @@ namespace ChessClient.Pages
                     GameCoreState.ResetForNewGame();
                     var board1 = new BoardDto(new PieceDto?[8][] { new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8] });
                     var createResult = new CreateGameResultDto { GameId = Guid.NewGuid(), PlayerId = Guid.NewGuid(), Color = Player.White, Board = board1 };
-
                     // HIER IST DIE KORREKTUR:
-                    // Erstelle ein CreateGameParameters-Objekt für den Tour-Kontext.
+                    // Erstelle ein CreateGameParameters-Objekt für den Tour-Kontext. 
                     var tourGameParams = new CreateGameParameters
                     {
                         Name = "Du",
                         Color = Player.White,
+
                         TimeMinutes = 5,
                         OpponentType = OpponentType.Computer, // Der Tour-Gegner ist simuliert
                         ComputerDifficulty = ComputerDifficulty.Medium
                     };
                     // Rufe die Methode mit der neuen, korrekten Signatur auf.
                     GameCoreState.InitializeNewGame(createResult, tourGameParams);
-
                     if (GameCoreState.BoardDto != null)
                     {
                         GameCoreState.BoardDto.Squares[6][4] = PieceDto.WhitePawn;
@@ -115,14 +155,16 @@ namespace ChessClient.Pages
                     HighlightState.SetHighlights("e2", "e4", false);
                     if (GameCoreState.BoardDto != null)
                     {
-                        GameCoreState.BoardDto.Squares[6][4] = null; GameCoreState.BoardDto.Squares[4][4] = PieceDto.WhitePawn;
+                        GameCoreState.BoardDto.Squares[6][4] = null;
+                        GameCoreState.BoardDto.Squares[4][4] = PieceDto.WhitePawn;
                     }
                     break;
                 case "Karten erhalten":
                     HighlightState.SetHighlights("e7", "e5", false);
                     if (GameCoreState.BoardDto != null)
                     {
-                        GameCoreState.BoardDto.Squares[1][4] = null; GameCoreState.BoardDto.Squares[3][4] = PieceDto.BlackPawn;
+                        GameCoreState.BoardDto.Squares[1][4] = null;
+                        GameCoreState.BoardDto.Squares[3][4] = PieceDto.BlackPawn;
                     }
                     CardState.AddReceivedCardToHand(new CardDto { InstanceId = Guid.NewGuid(), Id = "ExtraZug", Name = "Extra-Zug", Description = "Spiele einen zweiten Zug direkt nach diesem.", ImageUrl = "img/cards/art/1-Extrazug_Art.png" }, 9);
                     break;
@@ -140,20 +182,22 @@ namespace ChessClient.Pages
                     HighlightState.SetHighlights("g1", "f3", false);
                     if (GameCoreState.BoardDto != null)
                     {
-                        GameCoreState.BoardDto.Squares[7][6] = null; GameCoreState.BoardDto.Squares[5][5] = PieceDto.WhiteKnight;
+                        GameCoreState.BoardDto.Squares[7][6] = null;
+                        GameCoreState.BoardDto.Squares[5][5] = PieceDto.WhiteKnight;
                     }
                     break;
                 case "Zug ausnutzen":
                     HighlightState.SetHighlights("f3", "e5", true);
                     if (GameCoreState.BoardDto != null)
                     {
-                        GameCoreState.BoardDto.Squares[5][5] = null; GameCoreState.BoardDto.Squares[3][4] = PieceDto.WhiteKnight;
+                        GameCoreState.BoardDto.Squares[5][5] = null;
+                        GameCoreState.BoardDto.Squares[3][4] = PieceDto.WhiteKnight;
                     }
                     break;
             }
             StateHasChanged(); ;
             // KORREKTUR: Diese Verzögerung gibt dem Blazor-Renderer Zeit, die UI zu aktualisieren,
-            // bevor die Kontrolle an JavaScript zurückgegeben wird.
+            // bevor die Kontrolle an JavaScript zurückgegeben wird. 
             await Task.Delay(20);
         }
 
@@ -313,9 +357,28 @@ namespace ChessClient.Pages
         }
         private bool IsBoardInCardSelectionMode() => CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection != null && CardState.ActiveCardForBoardSelection.Id is CardConstants.Teleport or CardConstants.Positionstausch or CardConstants.Wiedergeburt or CardConstants.SacrificeEffect;
         private Player? GetPlayerColorForCardPieceSelection() => (CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection?.Id is CardConstants.Teleport or CardConstants.Positionstausch && string.IsNullOrEmpty(CardState.FirstSquareSelectedForTeleportOrSwap)) ? GameCoreState.MyColor : null;
-        private string? GetFirstSelectedSquareForCardEffect() => CardState.FirstSquareSelectedForTeleportOrSwap;
+        private string?
+ GetFirstSelectedSquareForCardEffect() => CardState.FirstSquareSelectedForTeleportOrSwap;
         private void ToggleMobilePlayedCardsHistory() => _showMobilePlayedCardsHistory = !_showMobilePlayedCardsHistory;
-        private void StartNewGameFromEndGame() => NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
+        private void StartNewGameFromEndGame()
+        {
+            // Alle relevanten Spielzustände zurücksetzen
+            GameCoreState.ResetForNewGame();
+            HighlightState.ClearAllActionHighlights();
+            CardState.SetInitialHand(new InitialHandDto(new(), 0));
+
+            // Das Hauptlayout aktualisieren, um anzuzeigen, dass kein Spiel aktiv ist
+            if (MyMainLayout != null)
+            {
+                MyMainLayout.UpdateActiveGameId(Guid.Empty);
+            }
+
+            // Das Modal zum Erstellen eines neuen Spiels anfordern
+            ModalService.RequestShowCreateGameModal();
+
+            // UI-Update sicherstellen
+            StateHasChanged();
+        }
         private new void StateHasChanged() => InvokeAsync(base.StateHasChanged);
         private void SubscribeToStateChanges()
         {
@@ -342,6 +405,27 @@ namespace ChessClient.Pages
             _isGameActiveForLeaveWarning = isActive;
             await JSRuntime.InvokeVoidAsync("navigationInterop.setGameActiveState", isActive);
         }
+
+        private async Task DownloadGameHistory()
+        {
+            if (GameCoreState.GameId != Guid.Empty)
+            {
+                string? serverBaseUrlFromConfig = Configuration.GetValue<string>("ServerBaseUrl");
+                string serverBaseUrl = ClientConstants.DefaultServerBaseUrl;
+
+                if (!string.IsNullOrEmpty(serverBaseUrlFromConfig))
+                {
+                    serverBaseUrl = serverBaseUrlFromConfig;
+                }
+
+                var downloadUrl = $"{serverBaseUrl.TrimEnd('/')}/api/games/{GameCoreState.GameId}/downloadhistory";
+                if (JSRuntime != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("window.open", downloadUrl, "_blank");
+                }
+            }
+        }
+
         public async ValueTask DisposeAsync()
         {
             await UpdateGameActiveStateForLeaveWarning(false);
@@ -354,9 +438,10 @@ namespace ChessClient.Pages
             {
                 await disposable.DisposeAsync();
             }
+            GameCoreState.StateChanged -= OnGameCoreStateChanged;
             ModalService.ShowCreateGameModalRequested -= ModalState.OpenCreateGameModal;
             ModalService.ShowJoinGameModalRequested -= () => ModalState.OpenJoinGameModal(GameCoreState.GameIdFromQueryString);
-            TourService.TourRequested -= StartTutorialAsync; 
+            TourService.TourRequested -= StartTutorialAsync;
             _dotNetHelperForTour?.Dispose();
             GC.SuppressFinalize(this);
         }

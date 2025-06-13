@@ -68,10 +68,7 @@
                     <InfoBox Message="@(UiState.IsConnecting ? "Verbinde mit SignalR Hub..." : string.Empty)" AutoHide="false" />
                 }
 
-                @if (GameCoreState != null)
-                {
-                    <EndGamePopup Message="@GameCoreState.EndGameMessage" OnNewGameClicked="@StartNewGameFromEndGame" />
-                }
+                @* GELÖSCHT: Die alte EndGamePopup Komponente wird nicht mehr benötigt. *@
                 
                 <div class="chessboard-container">
                     @if (GameCoreState != null && GameCoreState.BoardDto != null && GameCoreState.CurrentPlayerInfo != null && CardState != null && HighlightState != null)
@@ -204,4 +201,14 @@ Choices="@(ModalState.PieceSelectionModalChoices ?? new List<PieceSelectionChoic
         IsVisible="@ModalState.ShowErrorModal"
         ErrorMessage="@ModalState.ErrorModalMessage"
         OnClose="@ModalState.CloseErrorModal" />
+
+    @* HINZUGEFÜGT: Das neue WinLossModal wird hier instanziiert *@
+    @if(GameCoreState != null)
+    {
+        <WinLossModal 
+            IsVisible="!string.IsNullOrEmpty(GameCoreState.EndGameMessage)"
+            Message="@GameCoreState.EndGameMessage"
+            OnNewGameClicked="StartNewGameFromEndGame"
+            OnDownloadHistoryClicked="DownloadGameHistory" />
+    }
 }

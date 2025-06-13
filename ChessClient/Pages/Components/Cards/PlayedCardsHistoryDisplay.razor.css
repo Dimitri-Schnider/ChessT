@@ -1,5 +1,4 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Components/Cards/PlayedCardsHistoryDisplay.razor.css */
-.played-cards-history-panel {
+﻿.played-cards-history-panel {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -71,8 +70,8 @@
 }
 
 .played-card-history-name {
-    font-size: 0.85em;
-    color: #E0E0E0;
+    font-size: 0.9em; /* Leicht vergrössert für Lesbarkeit */
+    color: #E0E0E0; /* Heller Text für hohen Kontrast */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

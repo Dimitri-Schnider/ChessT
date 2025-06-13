@@ -20,16 +20,19 @@
 }
 
 .content { /* Dieser Container beinhaltet @Body, also die Chess.razor Seite */
-    padding-top: calc(1.1rem + 45px); /* F�r globalen Burger-Button etc. */
+    padding-top: calc(1.1rem + 45px);
+    /* F�r globalen Burger-Button etc. */
     padding-left: 1rem !important;
     padding-right: 1rem !important;
-    overflow-y: hidden; /* WICHTIG: Verhindert Scrollen im Hauptinhaltsbereich */
+    overflow-y: hidden;
+    /* WICHTIG: Verhindert Scrollen im Hauptinhaltsbereich */
     flex-grow: 1;
-    display: flex; /* Macht .content zum Flex-Container */
-    flex-direction: column; /* Ordnet Kinder (global-timers-mobile, chess-page-container) untereinander an */
+    display: flex;
+    /* Macht .content zum Flex-Container */
+    flex-direction: column;
+    /* Ordnet Kinder (global-timers-mobile, chess-page-container) untereinander an */
 }
 
-/* Restliche Stile bleiben wie in deinem letzten Stand oder vorherigen Vorschl�gen */
 .global-burger-button {
     position: fixed;
     top: 10px;

@@ -1,0 +1,20 @@
+﻿@if (IsVisible)
+{
+    <div class="modal-backdrop show"></div>
+    <div class="modal show win-loss-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="message-content">
+                        <h2>@Title</h2>
+                        <p>@Message</p>
+                        <div class="end-game-buttons">
+                            <button class="btn btn-primary btn-lg mt-3" @onclick="HandleNewGameClicked">Neues Spiel</button>
+                            <button class="btn btn-outline-secondary btn-lg mt-3" @onclick="HandleDownloadHistoryClicked">Spielverlauf herunterladen</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

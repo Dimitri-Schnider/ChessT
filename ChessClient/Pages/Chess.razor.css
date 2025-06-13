@@ -1,5 +1,4 @@
-﻿/* --- GRUNDSTILE (DESKTOP-FIRST ANSATZ für die betroffenen Elemente) --- */
-.global-timers-mobile {
+﻿.global-timers-mobile {
     display: none !important;
 }
 
@@ -61,7 +60,28 @@
         padding: 8px;
         background-color: #2C2C2C;
         flex-shrink: 1;
+        scrollbar-width: thin;
+        scrollbar-color: #A55B4B #2C2C2C;
     }
+
+        .game-side-panel .played-cards-history-display-wrapper::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .game-side-panel .played-cards-history-display-wrapper::-webkit-scrollbar-track {
+            background: #2C2C2C;
+            border-radius: 10px;
+        }
+
+        .game-side-panel .played-cards-history-display-wrapper::-webkit-scrollbar-thumb {
+            background: #444444;
+            border-radius: 10px;
+            border: 2px solid #2C2C2C;
+        }
+
+            .game-side-panel .played-cards-history-display-wrapper::-webkit-scrollbar-thumb:hover {
+                background: #A55B4B;
+            }
 
     .game-side-panel .bottom-game-elements {
         display: flex;
@@ -183,36 +203,6 @@
     }
 }
 
-.endgame-popup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #2C2C2C;
-    color: #E0E0E0;
-    padding: 1.5rem 2rem;
-    border: 2px solid #444444;
-    border-radius: 8px;
-    font-size: 1.25rem;
-    z-index: 1050;
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    text-align: center;
-}
-
-.card-animation-placeholder {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 20px 40px;
-    background-color: rgba(103, 125, 106, 0.8);
-    color: white;
-    font-size: 1.5em;
-    border-radius: 8px;
-    z-index: 1100;
-    box-shadow: 0 0 15px rgba(0,0,0,0.5);
-}
-
 .welcome-container-fullpage {
     width: 100%;
     height: 100%;
@@ -290,7 +280,7 @@
     font-weight: bold;
     color: #C2A169;
     text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
-    font-family: "Varela", sans-serif; 
+    font-family: "Varela", sans-serif;
     font-weight: 900;
 }
 
@@ -313,7 +303,8 @@
 
     .chessboard-column {
         /* Stellt sicher, dass das Brett nicht breiter wird als der verfügbare vertikale Platz es erlaubt */
-        /* Dies hilft, das Seitenverhältnis 1:1 zu wahren, ohne Clipping zu verursachen. */
+        /* Dies hilft, das Seitenverhältnis 1:1 zu wahren, ohne Clipping zu verursachen.
+ */
         max-width: calc(100vh - 80px); /* 80px Puffer für Padding etc. */
     }
 }

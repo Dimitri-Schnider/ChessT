@@ -9,8 +9,6 @@ namespace ChessClient.State
         public event Action? StateChanged;
         protected virtual void OnStateChanged() => StateChanged?.Invoke();
 
-        // ErrorMessage und zugehörige Methoden wurden entfernt
-
         public string CurrentInfoMessageForBox { get; private set; } = "";
         public bool IsConnecting { get; private set; }
         public bool IsCountdownVisible { get; private set; }
@@ -20,7 +18,29 @@ namespace ChessClient.State
         public string InfoBoxActionButtonText { get; private set; } = "Abbrechen";
         public EventCallback InfoBoxOnActionButtonClicked { get; private set; }
 
+        public bool ShowWinAnimation { get; private set; }
+        public bool ShowLossAnimation { get; private set; }
+
         public UiState() { }
+
+        public void TriggerWinAnimation()
+        {
+            ShowWinAnimation = true;
+            OnStateChanged();
+        }
+
+        public void TriggerLossAnimation()
+        {
+            ShowLossAnimation = true;
+            OnStateChanged();
+        }
+
+        public void HideEndGameAnimations()
+        {
+            ShowWinAnimation = false;
+            ShowLossAnimation = false;
+            OnStateChanged();
+        }
 
         public Task SetCurrentInfoMessageForBoxAsync(string message, bool autoClear = false, int durationMs = 5000, bool showActionButton = false, string actionButtonText = "Abbrechen", EventCallback? onActionButtonClicked = null)
         {
@@ -29,7 +49,6 @@ namespace ChessClient.State
             InfoBoxActionButtonText = actionButtonText;
             InfoBoxOnActionButtonClicked = onActionButtonClicked ?? new EventCallback();
             OnStateChanged();
-
             if (string.IsNullOrEmpty(message) && !showActionButton)
             {
                 ClearCurrentInfoMessageForBox();

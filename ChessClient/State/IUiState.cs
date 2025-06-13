@@ -17,6 +17,12 @@ namespace ChessClient.State
         string InfoBoxActionButtonText { get; }
         EventCallback InfoBoxOnActionButtonClicked { get; }
 
+        bool ShowWinAnimation { get; }
+        bool ShowLossAnimation { get; }
+        void TriggerWinAnimation();
+        void TriggerLossAnimation();
+        void HideEndGameAnimations();
+
         Task SetCurrentInfoMessageForBoxAsync(string message, bool autoClear = false, int durationMs = 5000, bool showActionButton = false, string actionButtonText = "Abbrechen", EventCallback? onActionButtonClicked = null);
         void ClearCurrentInfoMessageForBox();
         void SetIsConnecting(bool isConnecting);

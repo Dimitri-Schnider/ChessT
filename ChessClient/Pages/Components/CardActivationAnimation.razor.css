@@ -160,14 +160,11 @@
 }
 
 .card-title-text-animated {
-    font-size: 1em;
+    font-size: 1.1em;
     font-weight: bold;
     color: #E0E0E0;
     margin: 0;
-    text-shadow: 1px 1px 1px #1A1A1D;
-    background-color: rgba(44, 44, 44, 0.7);
-    padding: 2px 5px;
-    border-radius: 3px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 .card-animation-container.glow-animation-active .card-flipper .card-face.card-front {

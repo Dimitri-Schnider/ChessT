@@ -17,7 +17,7 @@
                     <p>Dein Spiel wurde erstellt! Teile diesen Link mit deinem Gegner, damit er beitreten kann:</p>
                     <div class="input-group mt-1 mb-3">
                         <input id="inviteLinkInput" type="text" class="form-control" value="@InviteLink" readonly @ref="inviteLinkInputRef" />
-                        <button class="btn btn-outline-primary" type="button" @onclick="CopyToClipboard">
+                        <button class="btn btn-primary" type="button" @onclick="CopyToClipboard">
                             <i class="bi bi-clipboard me-1"></i> Link kopieren
                         </button>
                     </div>
@@ -26,8 +26,9 @@
                         <div class="alert alert-success alert-sm py-1 px-2 mt-2" role="alert" style="font-size: 0.85em;">
                             @CopyMessage
                         </div>
+
                     }
-                    <p class="mt-3 mb-0 text-muted"><small>Das Spiel beginnt, sobald dein Gegner beigetreten ist.</small></p>
+                    <p class="mt-3 mb-0"><small>Das Spiel beginnt, sobald dein Gegner beigetreten ist.</small></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseModal">Schliessen</button>
@@ -49,7 +50,6 @@
     private string CopyMessage = "";
     // Referenz zum Eingabefeld für den Einladungslink
     private ElementReference inviteLinkInputRef;
-
     // Methode zum Schliessen des Modals
     private async Task CloseModal()
     {
@@ -94,6 +94,7 @@
     {
         if (!IsVisible)
         {
+
             CopyMessage = "";
         }
     }

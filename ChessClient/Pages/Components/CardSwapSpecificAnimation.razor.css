@@ -1,5 +1,4 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Components/CardSwapSpecificAnimation.razor.css */
-.card-swap-specific-overlay {
+﻿.card-swap-specific-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -105,12 +104,12 @@
         bottom: 22%;
         left: 10%;
         width: 80%;
-        font-size: 0.85em;
+        font-size: 0.9em;
         font-weight: bold;
-        color: #1A1A1D;
+        color: #E0E0E0;
         text-align: center;
         z-index: 3;
-        background-color: rgba(176, 176, 176, 0.75);
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
         padding: 2px 4px;
         border-radius: 3px;
     }
@@ -143,7 +142,6 @@
 
     to {
         transform: translateY(0px) translateX(70px) scale(1);
-        opacity: 1;
     }
 }
 

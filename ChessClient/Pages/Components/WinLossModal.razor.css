@@ -1,0 +1,66 @@
+﻿
+@keyframes modalBackdropFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.85;
+    }
+}
+
+@keyframes modalContentPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+:global(.modal-backdrop.show) {
+    animation: modalBackdropFadeIn 0.3s ease-out forwards !important;
+}
+
+.win-loss-modal .modal-content {
+    background-color: rgba(44, 44, 44, 0.85);
+    backdrop-filter: blur(5px);
+    border: 1px solid #A55B4B;
+    text-align: center;
+    opacity: 0;
+    animation: modalContentPopIn 0.3s ease-out 0.1s forwards;
+}
+
+.win-loss-modal .modal-body {
+    padding: 2.5rem 2rem;
+    position: relative;
+}
+
+.message-content {
+    position: relative;
+    z-index: 10;
+}
+
+    .message-content h2 {
+        font-family: "Varela", sans-serif;
+        font-weight: 900;
+        font-size: 3rem;
+        color: #C2A169;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+    }
+
+    .message-content p {
+        font-size: 1.2rem;
+        color: #E0E0E0;
+    }
+
+.end-game-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}

@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\ChessClient\State\GameCoreState.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using ChessLogic;

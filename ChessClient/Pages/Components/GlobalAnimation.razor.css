@@ -1,0 +1,52 @@
+﻿.global-animation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 10000; 
+}
+
+.confetti {
+    --start-x: 50vw;
+    --delay: 0s;
+    --duration: 5s;
+    --rotation: 0deg;
+    --color: #fff;
+    position: absolute;
+    top: -20px; /* Startet ausserhalb des Bildschirms */
+    left: var(--start-x);
+    width: 10px;
+    height: 20px;
+    background-color: var(--color);
+    opacity: 0;
+    animation: fall var(--duration) var(--delay) linear forwards;
+}
+
+@keyframes fall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotateZ(0deg);
+    }
+
+    100% {
+        opacity: 0.5;
+        transform: translateY(105vh) rotateZ(var(--rotation)); /* Fällt komplett durch den Bildschirm */
+    }
+}
+
+.loss-overlay {
+    background-color: rgba(30, 10, 10, 0.2);
+    animation: fadeInLoss 1s ease;
+}
+
+@keyframes fadeInLoss {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

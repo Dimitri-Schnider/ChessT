@@ -162,9 +162,9 @@
         background-color: rgba(224, 224, 224, 0.3);
     }
 
-.card-info-panel-content.preview-only-mode .card-visual-representation .card-title-text,
-.card-info-panel-content.preview-only-mode .card-visual-representation .card-description-text {
-    color: #B0B0B0;
+.card-info-panel-content.preview-only-mode .card-title-text,
+.card-info-panel-content.preview-only-mode .card-description-text {
+    color: #d8d8d8; /* Text für Vorschau aufgehellt */
 }
 
 .card-info-panel-content.preview-only-mode .text-muted small {
