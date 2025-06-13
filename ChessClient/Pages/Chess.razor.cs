@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\ChessClient\Pages\Chess.razor.cs
-using Chess.Logging;
+﻿using Chess.Logging;
 using ChessClient.Configuration;
 using ChessClient.Layout;
 using ChessClient.Models;
@@ -375,6 +374,12 @@ namespace ChessClient.Pages
             var state = CurrentBoardState;
             return state is BoardInteractivityState.MyTurn or BoardInteractivityState.AwaitingCardSelection;
         }
+
+        private void CloseWinLossModal()
+        {
+            GameCoreState.ClearEndGameMessage();
+        }
+
         private bool IsBoardInCardSelectionMode() => CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection != null && CardState.ActiveCardForBoardSelection.Id is CardConstants.Teleport or CardConstants.Positionstausch or CardConstants.Wiedergeburt or CardConstants.SacrificeEffect;
         private Player? GetPlayerColorForCardPieceSelection() => (CardState.IsCardActivationPending && CardState.ActiveCardForBoardSelection?.Id is CardConstants.Teleport or CardConstants.Positionstausch && string.IsNullOrEmpty(CardState.FirstSquareSelectedForTeleportOrSwap)) ? GameCoreState.MyColor : null;
         private string? GetFirstSelectedSquareForCardEffect() => CardState.FirstSquareSelectedForTeleportOrSwap;

@@ -6,10 +6,13 @@
                 <div class="modal-body">
                     <div class="message-content">
                         <h2>@Title</h2>
-                        <p>@Message</p>
+   
+                         <p>@Message</p>
                         <div class="end-game-buttons">
                             <button class="btn btn-primary btn-lg mt-3" @onclick="HandleNewGameClicked">Neues Spiel</button>
-                            <button class="btn btn-outline-secondary btn-lg mt-3" @onclick="HandleDownloadHistoryClicked">Spielverlauf herunterladen</button>
+                    
+         <button class="btn btn-outline-secondary btn-lg mt-3" @onclick="HandleDownloadHistoryClicked">Spielverlauf herunterladen</button>
+                            <button class="btn btn-secondary btn-lg mt-3" @onclick="HandleCloseClicked">Schliessen</button>
                         </div>
                     </div>
                 </div>

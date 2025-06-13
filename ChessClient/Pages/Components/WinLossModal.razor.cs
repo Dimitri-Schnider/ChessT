@@ -10,6 +10,7 @@ namespace ChessClient.Pages.Components
         [Parameter] public string Message { get; set; } = "";
         [Parameter] public EventCallback OnNewGameClicked { get; set; }
         [Parameter] public EventCallback OnDownloadHistoryClicked { get; set; }
+        [Parameter] public EventCallback OnClose { get; set; }
 
         protected bool IsWin => !string.IsNullOrEmpty(Message) && Message.Contains("gewonnen", StringComparison.OrdinalIgnoreCase);
         protected string Title => IsWin ? "Sieg!" : "Niederlage";
@@ -28,6 +29,14 @@ namespace ChessClient.Pages.Components
             if (OnDownloadHistoryClicked.HasDelegate)
             {
                 await OnDownloadHistoryClicked.InvokeAsync();
+            }
+        }
+
+        private async Task HandleCloseClicked()
+        {
+            if (OnClose.HasDelegate)
+            {
+                await OnClose.InvokeAsync();
             }
         }
     }
