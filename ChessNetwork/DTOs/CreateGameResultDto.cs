@@ -9,7 +9,6 @@ namespace ChessNetwork.DTOs
         public Guid GameId { get; set; }                // Die eindeutige ID des neu erstellten Spiels.
         public Guid PlayerId { get; set; }              // Die eindeutige ID des erstellenden Spielers.
         public Player Color { get; set; }               // Die tatsächlich zugewiesene Farbe des erstellenden Spielers.
-        public required BoardDto Board { get; set; }    // Der anfängliche Zustand des Schachbretts.
-
+        public BoardDto Board { get; set; } = default!; // Der anfängliche Zustand des Schachbretts.
     }
 }

@@ -1,6 +1,6 @@
-﻿using System; 
+﻿using System;
 using System.Collections.Generic;
-using ChessNetwork.DTOs; 
+using ChessNetwork.DTOs;
 
 namespace ChessNetwork.DTOs
 {
@@ -22,7 +22,7 @@ namespace ChessNetwork.DTOs
     {
         public bool IsValid { get; init; }                                  // Gibt an, ob der Zug gültig war.
         public string? ErrorMessage { get; init; }                          // Fehlermeldung, falls Zug ungültig.
-        public required BoardDto NewBoard { get; init; }                    // Neuer Brettzustand nach dem Zug.
+        public BoardDto NewBoard { get; init; } = default!;                 // Neuer Brettzustand nach dem Zug.
         public bool IsYourTurn { get; init; }                               // Gibt an, ob der anfragende Spieler am Zug ist.
         public GameStatusDto Status { get; init; }                          // Spielstatus aus Sicht des ziehenden Spielers.
         public Guid? PlayerIdToSignalCardDraw { get; init; }                // ID des Spielers, der eine Karte ziehen darf.

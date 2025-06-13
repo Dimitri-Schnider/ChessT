@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 namespace ChessNetwork.DTOs
 {
     // DTO, das das detaillierte Ergebnis einer Kartenaktivierung vom Server meldet.
@@ -8,7 +7,7 @@ namespace ChessNetwork.DTOs
     {
         public bool Success { get; set; }                                       // Gibt an, ob die Aktivierung erfolgreich war.
         public string? ErrorMessage { get; set; }                               // Fehlermeldung, falls die Aktivierung fehlschlug.
-        public required string CardId { get; set; }                             // Die ID der aktivierten Karte.
+        public string CardId { get; set; } = string.Empty;                      // Die ID der aktivierten Karte.
         public List<AffectedSquareInfo>? AffectedSquaresByCard { get; set; }    // Liste der Felder, die durch den Effekt visuell hervorgehoben werden sollen.
         public bool EndsPlayerTurn { get; set; } = true;                        // Gibt an, ob der Zug des Spielers nach dem Effekt beendet ist.
         public bool BoardUpdatedByCardEffect { get; set; }                      // Gibt an, ob der Effekt das Brett verändert hat.
