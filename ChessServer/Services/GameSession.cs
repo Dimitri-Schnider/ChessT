@@ -524,7 +524,8 @@ namespace ChessServer.Services
                 var finalTimeUpdate = TimerService.GetCurrentTimeUpdateDto();
                 Task.Run(async () =>
                 {
-                    await SendOnTurnChangedNotification(currentBoardDto, winner, GameStatusDto.TimeOut, null, null, null);
+                    // Sende den Spieler 'p' (den Verlierer), nicht den 'winner'.
+                    await SendOnTurnChangedNotification(currentBoardDto, p, GameStatusDto.TimeOut, null, null, null);
                     await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", finalTimeUpdate);
                 });
             }

@@ -310,7 +310,7 @@ namespace ChessClient.Services
                 string message = status switch
                 {
                     GameStatusDto.Checkmate => _gameCoreState.MyColor == nextPlayer ? "Schachmatt! Du hast verloren." : "Schachmatt! Du hast gewonnen!",
-                    GameStatusDto.TimeOut => _gameCoreState.MyColor == nextPlayer.Opponent() ? "Zeit abgelaufen! Du hast verloren." : "Zeit abgelaufen! Du hast gewonnen!",
+                    GameStatusDto.TimeOut => _gameCoreState.MyColor == nextPlayer ? "Zeit abgelaufen! Du hast verloren." : "Zeit abgelaufen! Du hast gewonnen!",
                     GameStatusDto.Stalemate => "Patt! Unentschieden.",
                     GameStatusDto.Draw50MoveRule or GameStatusDto.DrawInsufficientMaterial or GameStatusDto.DrawThreefoldRepetition => "Unentschieden!",
                     _ => string.Empty

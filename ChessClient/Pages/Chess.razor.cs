@@ -238,6 +238,26 @@ namespace ChessClient.Pages
         }
         private async Task SubmitCreateGame(CreateGameParameters args)
         {
+
+            // 1. Prüfen, ob bereits ein Spiel aktiv war
+            if (GameCoreState.GameId != Guid.Empty)
+            {
+                // 2. Bestehende SignalR-Verbindung und zugehörige Events sauber trennen
+                if (HubSubscriptionService is IAsyncDisposable disposable)
+                {
+                    await disposable.DisposeAsync();
+                }
+
+                // 3. Den gesamten Client-Zustand explizit zurücksetzen
+                GameCoreState.ResetForNewGame();
+                HighlightState.ClearAllActionHighlights();
+                CardState.SetInitialHand(new InitialHandDto(new(), 0)); // Leere Hand setzen
+
+                // 4. Hub-Events neu initialisieren für das kommende Spiel
+                HubSubscriptionService.Initialize();
+            }
+
+
             ModalState.CloseCreateGameModal();
             UiState.SetIsCreatingGame(true);
             try
