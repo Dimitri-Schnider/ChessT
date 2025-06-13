@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace ChessClient.Pages.Components
 {
-    public partial class GlobalAnimation : ComponentBase, IDisposable
+    public partial class GlobalEffectsOverlay : ComponentBase, IDisposable
     {
         [Inject]
         private IUiState UiState { get; set; } = default!;
