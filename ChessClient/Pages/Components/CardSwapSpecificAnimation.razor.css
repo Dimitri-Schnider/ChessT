@@ -44,6 +44,8 @@
         transition: transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
         transform-style: preserve-3d;
         position: relative;
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
     }
 
         .swapping-card .card-flipper.is-flipped {
