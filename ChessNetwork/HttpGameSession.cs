@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace ChessNetwork
@@ -16,16 +17,15 @@ namespace ChessNetwork
         // Der HttpClient für die Kommunikation mit dem Server.
         private readonly HttpClient _http;
 
-        // Wiederverwendbare JsonSerializerOptions für die Deserialisierung.
-        private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+        // Wiederverwendbare JsonSerializerOptions, die jetzt überall verwendet werden.
+        private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() } // Stellt sicher, dass Enums als Text behandelt werden
+        };
 
         // Konstruktor, der den HttpClient per Dependency Injection erhält.
         public HttpGameSession(HttpClient http) => _http = http;
-
-        // Eine private Hilfsmethode, um HTTP-Antworten zentral und konsistent zu behandeln.
-        // Wenn die Antwort keinen Erfolgsstatus-Code hat (z.B. 400 Bad Request),
-        // wird der Fehlerinhalt aus dem Body der Antwort ausgelesen und eine aussagekräftige
-        // HttpRequestException mit der spezifischen Server-Nachricht geworfen.
         private static async Task HandleResponseErrors(HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
@@ -33,8 +33,6 @@ namespace ChessNetwork
                 var contentType = response.Content.Headers.ContentType?.MediaType;
                 if (contentType != "application/json")
                 {
-                    // Wenn die Antwort kein JSON ist, handelt es sich wahrscheinlich um eine Infrastruktur-Fehlerseite (z.B. 503 HTML).
-                    // Wir geben eine benutzerfreundliche, generische Meldung aus.
                     throw new HttpRequestException($"Der Server ist derzeit nicht verfügbar oder startet gerade (Status: {response.StatusCode}). Bitte versuche es in einem Moment erneut.", null, response.StatusCode);
                 }
 
@@ -46,7 +44,7 @@ namespace ChessNetwork
         // Sendet eine Anfrage zur Erstellung eines neuen Spiels an den Server.
         public async Task<CreateGameResultDto> CreateGameAsync(CreateGameDto createGameParameters)
         {
-            var resp = await _http.PostAsJsonAsync("api/games", createGameParameters);
+            var resp = await _http.PostAsJsonAsync("api/games", createGameParameters, _jsonSerializerOptions);
             await HandleResponseErrors(resp);
             var result = await resp.Content.ReadFromJsonAsync<CreateGameResultDto>(_jsonSerializerOptions);
             if (result is null)
@@ -58,7 +56,7 @@ namespace ChessNetwork
         public async Task<JoinGameResultDto> JoinGameAsync(Guid gameId, string playerName)
         {
             var dto = new JoinDto(playerName);
-            var resp = await _http.PostAsJsonAsync($"api/games/{gameId}/join", dto);
+            var resp = await _http.PostAsJsonAsync($"api/games/{gameId}/join", dto, _jsonSerializerOptions);
             await HandleResponseErrors(resp);
             var result = await resp.Content.ReadFromJsonAsync<JoinGameResultDto>(_jsonSerializerOptions);
             if (result is null)
@@ -80,7 +78,7 @@ namespace ChessNetwork
         // Sendet einen Zug an den Server zur Verarbeitung.
         public async Task<MoveResultDto> SendMoveAsync(Guid gameId, MoveDto move)
         {
-            var resp = await _http.PostAsJsonAsync($"api/games/{gameId}/move", move);
+            var resp = await _http.PostAsJsonAsync($"api/games/{gameId}/move", move, _jsonSerializerOptions);
             await HandleResponseErrors(resp);
             var result = await resp.Content.ReadFromJsonAsync<MoveResultDto>(_jsonSerializerOptions);
             if (result is null)
@@ -140,7 +138,7 @@ namespace ChessNetwork
         // Sendet eine Anfrage zur Aktivierung einer Karte an den Server.
         public async Task<ServerCardActivationResultDto> ActivateCardAsync(Guid gameId, Guid playerId, ActivateCardRequestDto cardActivationRequest)
         {
-            var resp = await _http.PostAsJsonAsync($"api/games/{gameId}/player/{playerId}/activatecard", cardActivationRequest);
+            var resp = await _http.PostAsJsonAsync($"api/games/{gameId}/player/{playerId}/activatecard", cardActivationRequest, _jsonSerializerOptions);
             await HandleResponseErrors(resp);
             var result = await resp.Content.ReadFromJsonAsync<ServerCardActivationResultDto>(_jsonSerializerOptions);
             if (result is null)
@@ -162,13 +160,11 @@ namespace ChessNetwork
         {
             var resp = await _http.GetAsync($"api/games/{gameId}/player/{playerId}/opponentinfo");
 
-            // Ein 404 Not Found ist hier ein erwartetes Szenario (wenn kein Gegner beigetreten ist) und kein Fehler.
             if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 return null;
             }
 
-            // Für alle anderen Fehler wird die Standardbehandlung verwendet.
             await HandleResponseErrors(resp);
             return await resp.Content.ReadFromJsonAsync<OpponentInfoDto?>(_jsonSerializerOptions);
         }
