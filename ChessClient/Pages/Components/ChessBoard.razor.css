@@ -12,8 +12,6 @@
     aspect-ratio: 1 / 1; /* Erzwingt Quadratischsein, passt sich an die kleinere Dimension des .chessboard-container an */
 
     margin: 0;
-    background: url('/img/Board.png') no-repeat center center;
-    background-size: cover;
 }
 
 /* Restliche Stile für .square, .rank-label, .file-label, Highlights etc. bleiben unverändert */
