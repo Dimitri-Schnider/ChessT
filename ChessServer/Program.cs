@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +35,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+     {
+         // Diese Zeile sorgt dafür, dass Enums als Text statt als Zahlen behandelt werden.
+         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+     });
 builder.Services.AddSignalR();
 
 // Registriert den GameManager als Singleton (eine Instanz für die gesamte Anwendung).
