@@ -1,12 +1,12 @@
 ﻿.square {
+    position: relative;
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
     box-sizing: border-box;
-    background-color: #eeeed4;
+    background-color: #ebecd0;
 }
 
     .square img {
@@ -17,25 +17,24 @@
         touch-action: none;
         position: relative;
         z-index: 10;
-        transition: transform 0.15s ease-out, opacity 0.15s ease-out;
-        -webkit-touch-callout: none;
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
     }
 
+    .square.dark {
+        background-color: #779556;
+    }
+
     .square:not(.board-disabled) {
         cursor: default;
     }
 
-    .square.board-disabled {
+    .square.board-disabled,
+    .square.board-disabled img {
         cursor: not-allowed !important;
     }
-
-        .square.board-disabled img {
-            cursor: not-allowed !important;
-        }
 
     .square:not(.board-disabled) img:not(.piece-not-interactive) {
         cursor: grab !important;
@@ -49,125 +48,70 @@
         cursor: default !important;
     }
 
-    /* --- FINALE KORREKTUR: Umstellung auf Pseudo-Elemente für pixelgenaues Highlighting --- */
+    /* --- HIGHLIGHT-STILE --- */
 
-    /* Basis-Stil für alle Highlight-Pseudo-Elemente */
-    .square.highlight::before,
-    .square.highlight-card-first-selection::before,
-    .square.highlight-card-piece-selection::before,
-    .square.highlight-card-actionable-target::before,
-    .square.highlight-card-rebirth::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none; /* Macht das Element nicht klickbar */
-        z-index: 5; /* Positioniert das Highlight unter der Figur (z-index: 10) */
-        box-sizing: border-box; /* Stellt sicher, dass der Rahmen innerhalb der Dimensionen bleibt */
-    }
-
-    /* Individuelle Rahmen für jeden Highlight-Typ */
-    .square.highlight::before {
-        border: 3px solid rgba(165, 91, 75, 0.8);
-    }
-
-    .square.highlight-card-first-selection::before {
-        /* HINWEIS: Dies ist die Farbe, die in deinem Snippet grün war. Wir behalten sie vorerst bei,
-       da deine Hauptkritik die "letzten Züge" betraf. Falls dies auch geändert werden soll, sag Bescheid! */
-        border: 3px solid rgba(103, 125, 106, 0.8);
-    }
-
-    .square.highlight-card-piece-selection::before {
-        border: 2px dashed rgba(165, 91, 75, 0.7);
-    }
-
-    .square.highlight-card-actionable-target::before {
-        /* HINWEIS: Dies war auch grün. */
-        border: 2px solid rgba(103, 125, 106, 0.6);
-    }
-
-    .square.highlight-card-rebirth::before {
-        border: 2px dashed rgba(60, 179, 113, 0.7);
-    }
-
-
-    /* Hintergrundfarben für Highlights */
+    /* Normaler Zug oder Drag-Over (Rotbraun) */
+    .square.highlight,
     .square.drag-over-target-js {
-        background-color: rgba(165, 91, 75, 0.4); /* Geändert zu Braunton */
+        background-image: linear-gradient(rgba(165, 91, 75, 0.4), rgba(165, 91, 75, 0.4));
     }
 
-    .square.highlight-card-first-selection {
-        background-color: rgba(103, 125, 106, 0.1);
-    }
-
-        .square.highlight-card-first-selection img {
-            box-shadow: 0 0 8px 3px rgba(103, 125, 106, 0.7);
-        }
-
-    .square.highlight-card-piece-selection {
-        background-color: rgba(165, 91, 75, 0.3);
-        cursor: pointer !important;
-    }
-
-    .square.highlight-card-actionable-target {
-        background-color: rgba(103, 125, 106, 0.25);
-        cursor: pointer !important;
-    }
-
-    /* --- Restliche Stile bleiben unverändert --- */
-
-    .square img.piece-being-dragged-original {
-        opacity: 0.3;
-    }
-
-    .square img.dragging-active-piece {
-        z-index: 1000;
-        box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
-        opacity: 0.9;
-        transition: none;
-    }
-
-    .square.highlight-card-piece-selection img,
-    .square.highlight-card-actionable-target img {
-        cursor: pointer !important;
-    }
-
-    /* === FARBEN FÜR LETZTEN ZUG ANGEPASST === */
-    .square.highlight-last-move-to-strong {
-        background-color: rgba(165, 91, 75, 0.5); /* von grün zu braun */
-    }
-
-    .square.highlight-last-move-from-strong {
-        background-color: rgba(165, 91, 75, 0.4); /* von grün zu braun */
-    }
-
-    .square.highlight-last-move-to-weaker {
-        background-color: rgba(165, 91, 75, 0.35); /* von grün zu braun */
-    }
-
-    .square.highlight-last-move-from-weaker {
-        background-color: rgba(165, 91, 75, 0.25); /* von grün zu braun */
-    }
-
-    .square.highlight-card-teleport-from {
-        background-color: rgba(0, 191, 255, 0.3);
-    }
-
-    .square.highlight-card-teleport-to {
-        background-color: rgba(0, 191, 255, 0.6);
-    }
-
+    /* Letzter Zug UND Karteneffekte (Gelblich) */
+    .square.highlight-last-move-to-strong,
+    .square.highlight-card-teleport-to,
     .square.highlight-card-swap-1,
     .square.highlight-card-swap-2 {
-        background-color: rgba(173, 216, 230, 0.5);
+        background-image: linear-gradient(rgba(205, 209, 102, 0.55), rgba(205, 209, 102, 0.55));
     }
 
+    .square.highlight-last-move-from-strong,
+    .square.highlight-card-teleport-from {
+        background-image: linear-gradient(rgba(205, 209, 102, 0.4), rgba(205, 209, 102, 0.4));
+    }
+
+    /* --- ANDERE KARTENEFFEKT-STILE --- */
+
+    /* KORRIGIERT: Auswahl eines Zielfeldes oder einer Figur für einen Karteneffekt (jetzt Rotbraun statt Blau) */
+    .square.highlight-card-actionable-target {
+        background-image: linear-gradient(rgba(165, 91, 75, 0.5), rgba(165, 91, 75, 0.5));
+        outline: 2px solid rgba(165, 91, 75, 0.8);
+        outline-offset: -2px;
+        cursor: pointer !important;
+    }
+
+    /* Auswahl einer Figur mit gestricheltem Rand */
+    .square.highlight-card-piece-selection {
+        background-image: linear-gradient(rgba(165, 91, 75, 0.3), rgba(165, 91, 75, 0.3));
+        cursor: pointer !important;
+    }
+
+        .square.highlight-card-piece-selection::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px dashed rgba(165, 91, 75, 0.9);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+    /* Erstes ausgewähltes Feld bei mehrstufigen Karteneffekten (bleibt blau zur Unterscheidung) */
+    .square.highlight-card-first-selection {
+        outline: 3px solid rgba(0, 128, 255, 0.8);
+        outline-offset: -3px;
+        background-color: rgba(0, 128, 255, 0.1);
+    }
+
+    /* Wiedergeburts-Effekt (bleibt grünlich) */
     .square.highlight-card-rebirth {
         background-color: rgba(152, 251, 152, 0.5);
+        outline: 2px dashed rgba(60, 179, 113, 0.7);
+        outline-offset: -2px;
     }
 
+    /* --- RANK & FILE LABELS --- */
     .square .rank-label,
     .square .file-label {
         position: absolute;
@@ -175,31 +119,24 @@
         font-weight: bold;
         color: #B0B0B0;
         pointer-events: none;
-        z-index: 1;
-        padding: 1px;
-        line-height: 1;
+        z-index: 11;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    .square.dark .rank-label,
+    .square.dark .file-label {
+        color: rgba(235, 236, 208, 0.8);
     }
 
     .square .rank-label {
-        top: 0;
-        left: 0;
-        margin-top: 3px;
-        margin-left: 3px;
+        top: 2px;
+        left: 2px;
     }
 
     .square .file-label {
-        bottom: 0;
-        right: 0;
-        margin-bottom: 3px;
-        margin-right: 3px;
-    }
-
-    .square.dark {
-        background-color: #7d945c;
-    }
-
-    /* Diese Regel sorgt dafür, dass die Labels auf den dunklen Feldern lesbar bleiben */
-    .square.dark .rank-label,
-    .square.dark .file-label {
-        color: rgba(235, 236, 208, 0.8); /* Helle Schrift auf dunklem Grund */
+        bottom: 2px;
+        right: 2px;
     }
