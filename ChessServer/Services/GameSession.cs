@@ -33,13 +33,13 @@ namespace ChessServer.Services
 
         private readonly IPlayerManager _playerManager;
         private readonly HistoryManager _historyManager;
-        public virtual ICardManager CardManager { get; }
+        internal virtual ICardManager CardManager { get; }
         #endregion
 
         #region Public Properties
         public virtual Guid GameId => _gameIdInternal;
-        public virtual GameState CurrentGameState => _state;
-        public virtual GameTimerService TimerService => _timerServiceInternal; // "virtual" erlaubt das Überschreiben der Eigenschaft durch Moq.
+        internal virtual GameState CurrentGameState => _state;
+        internal virtual GameTimerService TimerService => _timerServiceInternal;
         public bool HasOpponent => _playerManager.HasOpponent;
         public Guid FirstPlayerId => _playerManager.FirstPlayerId;
         public Player FirstPlayerColor => _playerManager.FirstPlayerColor;

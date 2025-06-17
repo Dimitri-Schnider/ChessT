@@ -68,7 +68,9 @@ namespace ChessLogic.Tests
             Position blackActualCapturePos = new Position(3, 4);
             board[whitePawnPos] = new Pawn(Player.White);
             board[blackActualCapturePos] = new Pawn(Player.Black);
-            board.SetPawnSkipPosition(Player.Black, blackSkippedPos);
+            // nutze DoublePawn, um Skip-Position automatisch zu setzen
+            board[new Position(1, 4)] = new Pawn(Player.Black);
+            new DoublePawn(new Position(1, 4), new Position(3, 4)).Execute(board);
             Move move = new EnPassant(whitePawnPos, blackSkippedPos);
             // Act & Assert
             Assert.True(move.Execute(board));

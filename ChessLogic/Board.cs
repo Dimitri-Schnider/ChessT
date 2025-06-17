@@ -40,7 +40,7 @@ namespace ChessLogic
         }
 
         // Setzt die für En Passant relevante Sprungposition, nachdem ein Bauer einen Doppelschritt gemacht hat.
-        public void SetPawnSkipPosition(Player player, Position? pos)
+        internal void SetPawnSkipPosition(Player player, Position? pos)
         {
             pawnSkipPositions[player] = pos;
         }
