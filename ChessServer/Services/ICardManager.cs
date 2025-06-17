@@ -19,7 +19,8 @@ namespace ChessServer.Services
         void AddCapturedPiece(Player ownerColor, PieceType pieceType);
         bool IsCardUsableGlobal(Guid playerId, string cardTypeId);
         void SetPendingCardEffectForNextMove(Guid playerId, string cardTypeId);
-        string? GetAndClearPendingCardEffect(Guid playerId);
+        string? PeekPendingCardEffect(Guid playerId);
+        void ClearPendingCardEffect(Guid playerId);
         bool RemoveCardFromPlayerHand(Guid playerId, Guid cardInstanceIdToRemove);
         void MarkCardAsUsedGlobal(Guid playerId, string cardTypeId);
         void AddCardToPlayerHand(Guid playerId, CardDto cardToAdd);

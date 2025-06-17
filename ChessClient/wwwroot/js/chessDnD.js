@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]/ChessClient/wwwroot/js/chessDnD.js
-window.chessDnD = {
+﻿window.chessDnD = {
     interactables: {},
     // Dieses Flag wird im 'drop'-Event gesetzt, basierend auf der .highlight-Klasse des Ziels.
     _wasDropOnHighlightedSquare: false,
@@ -60,41 +59,24 @@ window.chessDnD = {
                     end(event) {
                         const originalElement = event.target;
                         const currentPieceCoord = originalElement.getAttribute('data-piece-coord-original');
-                        const initialRect = originalElement._initialRect;
 
                         originalElement.classList.remove('dragging-active-piece');
                         originalElement.style.zIndex = "10";
 
-                        // Entscheidung basiert jetzt direkt auf dem Flag, das im 'drop'-Event gesetzt wurde
-                        const droppedOnHighlightedSquare = window.chessDnD._wasDropOnHighlightedSquare;
-                        const targetSquareElementForCentering = window.chessDnD._lastDropzoneElement;
-
-                        console.log(`%c[DnD END ${currentPieceCoord}] JS check: Dropped on .highlight square? ${droppedOnHighlightedSquare}`, droppedOnHighlightedSquare ? "color: green;" : "color: red;", "font-weight: bold;");
-
-                        if (droppedOnHighlightedSquare && targetSquareElementForCentering && initialRect) {
-                            // JA, auf .highlight Feld gedroppt -> Zentrieren (deine Logik)
-                            const targetSquareRect = targetSquareElementForCentering.getBoundingClientRect();
-                            const pieceWidth = initialRect.width;
-                            const pieceHeight = initialRect.height;
-                            const desiredViewportX = targetSquareRect.left + (targetSquareRect.width - pieceWidth) / 2;
-                            const desiredViewportY = targetSquareRect.top + (targetSquareRect.height - pieceHeight) / 2;
-                            const newTranslateX = desiredViewportX - initialRect.left;
-                            const newTranslateY = desiredViewportY - initialRect.top;
-
-                            console.log(`[DnD END ${currentPieceCoord}] => Centering on target. JS transform: translate(${newTranslateX}px, ${newTranslateY}px) scale(1)`);
-                            originalElement.style.transform = `translate(${newTranslateX}px, ${newTranslateY}px) scale(1)`;
-                        } else {
-                            // NEIN, nicht auf .highlight Feld gedroppt (oder kein Zielquadrat gemerkt) -> Zurücksetzen
-                            console.log(`%c[DnD END ${currentPieceCoord}] => Not on .highlight square or no target. Reverting. JS transform: translate(0px, 0px) scale(1)`, "color: red; font-weight: bold;");
-                            originalElement.style.transform = 'translate(0px, 0px) scale(1)';
-                        }
+                        // KORREKTUR: Immer zur Ausgangsposition zurückkehren.
+                        // Die finale Position wird bei einem ERFOLGREICHEN Zug durch das Blazor-Rendering bestimmt.
+                        // Bei einem FEHLGESCHLAGENEN Zug ist dies die korrekte Endposition.
+                        // Dies löst das Desynchronisationsproblem.
+                        originalElement.style.transform = 'translate(0px, 0px) scale(1)';
 
                         originalElement.removeAttribute('data-drag-x');
                         originalElement.removeAttribute('data-drag-y');
                         if (originalElement._initialRect) delete originalElement._initialRect;
 
-                        // Informiere .NET über das Ende des Drags. Der boolean hier reflektiert die JS-Entscheidung.
-                        // C# wird immer noch seine eigene Logik für den Spielzug ausführen.
+                        // Wir müssen dem .NET-Code immer noch mitteilen, ob der Drop auf einem (visuell) gültigen Feld war,
+                        // damit der Move-Request ausgelöst werden kann. Die Logik hierfür bleibt gleich.
+                        const droppedOnHighlightedSquare = window.chessDnD._wasDropOnHighlightedSquare;
+
                         if (currentPieceCoord) {
                             dotNetHelper.invokeMethodAsync('JsOnDragEnd', currentPieceCoord, droppedOnHighlightedSquare)
                                 .then(() => console.log(`[DnD END ${currentPieceCoord}] .NET JsOnDragEnd call finished.`))

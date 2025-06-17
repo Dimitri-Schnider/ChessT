@@ -6,6 +6,7 @@ using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
 using ChessServer.Hubs;
 using ChessServer.Services.CardEffects;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
@@ -83,7 +84,6 @@ namespace ChessServer.Services
         public IEnumerable<string> GetLegalMoves(string fromAlg) => _state.LegalMovesForPiece(ParsePos(fromAlg)).Select(m => PieceHelper.ToAlgebraic(m.ToPos));
         public GameStatusDto GetStatus(Guid playerId) => GetStatusForPlayer(GetPlayerColor(playerId));
         public GameStatusDto GetStatusForOpponentOf(Guid lastPlayerId) => GetStatusForPlayer(GetPlayerColor(lastPlayerId).Opponent());
-
         public Task<ServerCardActivationResultDto> ActivateCard(Guid playerId, ActivateCardRequestDto dto) => CardManager.ActivateCard(playerId, dto);
         public void StartTheGameAndTimer()
         {
@@ -111,10 +111,12 @@ namespace ChessServer.Services
                 var playerColor = GetPlayerColor(playerIdCalling);
                 if (playerColor != _state.CurrentPlayer)
                     return new MoveResultDto { IsValid = false, ErrorMessage = "Nicht dein Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
+
+                var extraTurn = CardManager.PeekPendingCardEffect(playerIdCalling) == CardConstants.ExtraZug;
+
                 var fromPos = ParsePos(dto.From);
                 var toPos = ParsePos(dto.To);
                 Move? legalMove = null;
-                // KORREKTUR: Spezialbehandlung für Umwandlung nach Karteneffekt
                 if (fromPos == toPos && dto.PromotionTo.HasValue)
                 {
                     var piece = _state.Board[fromPos];
@@ -137,8 +139,6 @@ namespace ChessServer.Services
                 {
                     if (_state.Board.IsInCheck(playerColor))
                     {
-
-                        // Spezifischere Fehlermeldung für fehlgeschlagene Umwandlung
                         if (fromPos == toPos && dto.PromotionTo.HasValue)
                         {
                             _logger.LogPlayerTriedMoveThatDidNotResolveCheck(GameId, playerIdCalling, playerColor, dto.From, dto.To);
@@ -149,7 +149,6 @@ namespace ChessServer.Services
                     return new MoveResultDto { IsValid = false, ErrorMessage = "Ungültiger Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
                 }
 
-                var extraTurn = CardManager.GetAndClearPendingCardEffect(playerIdCalling) == CardConstants.ExtraZug;
                 if (extraTurn)
                 {
                     Board boardCopy = _state.Board.Copy();
@@ -169,10 +168,14 @@ namespace ChessServer.Services
                     return new MoveResultDto { IsValid = false, ErrorMessage = "Dieser Zug ist ungültig, da du danach immer noch im Schach stehst.", NewBoard = ToBoardDto(), IsYourTurn = true, Status = GameStatusDto.Check };
                 }
 
+                if (extraTurn)
+                {
+                    CardManager.ClearPendingCardEffect(playerIdCalling);
+                }
+
                 return ExecuteAndFinalizeMove(legalMove, dto, playerIdCalling, playerColor, extraTurn);
             }
         }
-
 
         public async Task<ServerCardActivationResultDto> HandleCardActivationResult(CardActivationResult effectResult, Guid playerId, CardDto playedCard, string cardTypeId, bool timerWasPaused)
         {
@@ -260,11 +263,22 @@ namespace ChessServer.Services
             Position? promotionSquareAfterCard = null;
             if (effectResult.BoardUpdatedByCardEffect)
             {
-                promotionSquareAfterCard = CheckForPawnPromotion(activatingPlayerColor);
-                if (promotionSquareAfterCard != null)
+                // KORREKTUR: Hier prüfen wir auf Spielende
+                _state.CheckForGameOver();
+                if (_state.IsGameOver())
                 {
-                    effectResult = effectResult with { EndsPlayerTurn = false };
-                    _logger.LogPawnPromotionPendingAfterCard(GameId, activatingPlayerColor, PieceHelper.ToAlgebraic(promotionSquareAfterCard), cardTypeId);
+                    _historyManager.UpdateOnGameOver(_state.Result!);
+                    NotifyTimerGameOver();
+                }
+                else
+                {
+                    // Nur auf Umwandlung prüfen, wenn das Spiel nicht schon vorbei ist
+                    promotionSquareAfterCard = CheckForPawnPromotion(activatingPlayerColor);
+                    if (promotionSquareAfterCard != null)
+                    {
+                        effectResult = effectResult with { EndsPlayerTurn = false };
+                        _logger.LogPawnPromotionPendingAfterCard(GameId, activatingPlayerColor, PieceHelper.ToAlgebraic(promotionSquareAfterCard), cardTypeId);
+                    }
                 }
             }
 
@@ -278,10 +292,19 @@ namespace ChessServer.Services
                 if (effectResult.EndsPlayerTurn) _state.UpdateStateAfterMove(false, false, null);
                 else if (effectResult.BoardUpdatedByCardEffect) _state.RecordCurrentStateForRepetition(null);
 
-                _state.CheckForGameOver();
+                // KORREKTUR: Wir rufen CheckForGameOver hier nochmals auf, falls der Zug nicht brettverändernd war, aber z.B. eine Zeitkarte zum Sieg führte
+                // oder um den Zustand nach UpdateStateAfterMove zu finalisieren.
+                if (!_state.IsGameOver())
+                {
+                    _state.CheckForGameOver();
+                }
+
                 if (_state.IsGameOver())
                 {
-                    _historyManager.UpdateOnGameOver(_state.Result!);
+                    if (!_historyManager.GetGameHistory(_playerManager).DateTimeEndedUtc.HasValue)
+                    {
+                        _historyManager.UpdateOnGameOver(_state.Result!);
+                    }
                     NotifyTimerGameOver();
                 }
                 else
@@ -316,9 +339,11 @@ namespace ChessServer.Services
                 BoardUpdatedByCardEffect = effectResult.BoardUpdatedByCardEffect,
                 CardGivenByPlayerForSwap = effectResult.CardGivenByPlayerForSwapEffect,
                 CardReceivedByPlayerForSwap = effectResult.CardReceivedByPlayerForSwapEffect,
-                PawnPromotionPendingAt = promotionSquareAfterCard != null ? new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) : null
+                PawnPromotionPendingAt = promotionSquareAfterCard != null ?
+                    new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) : null
             };
         }
+
         public bool PauseTimerForAction()
         {
             lock (_sessionLock)
@@ -412,6 +437,18 @@ namespace ChessServer.Services
             }
 
             return moveResultDto;
+        }
+
+        private bool IsCardBoardAltering(string cardTypeId)
+        {
+            return cardTypeId switch
+            {
+                CardConstants.Teleport => true,
+                CardConstants.Positionstausch => true,
+                CardConstants.Wiedergeburt => true,
+                CardConstants.SacrificeEffect => true,
+                _ => false
+            };
         }
 
         private Move? FindLegalMove(MoveDto dto, Position from, Position to)

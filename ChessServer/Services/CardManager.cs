@@ -100,10 +100,26 @@ namespace ChessServer.Services
                     _logger.LogSessionCardActivationFailed(_session.GameId, playerId, dto.CardTypeId, "Spieler ist nicht am Zug.");
                     return new ServerCardActivationResultDto { Success = false, ErrorMessage = "Nicht dein Zug.", CardId = dto.CardTypeId };
                 }
+
+                // NEU: Validierung bei Schach
+                bool isInCheck = _session.CurrentGameState.Board.IsInCheck(activatingPlayerColor);
+                if (isInCheck && !IsCardBoardAltering(dto.CardTypeId))
+                {
+                    _logger.LogSessionCardActivationFailed(_session.GameId, playerId, dto.CardTypeId, "Spieler ist im Schach und die Karte hebt das Schach nicht auf.");
+                    return new ServerCardActivationResultDto
+                    {
+                        Success = false,
+                        ErrorMessage = "Du stehst im Schach! Nur Karten, die Figuren bewegen, sind jetzt erlaubt.",
+                        CardId = dto.CardTypeId
+                    };
+                }
+                // ENDE NEU
+
                 CardDto? playedCardInstance;
                 lock (_sessionLock)
                 {
-                    playedCardInstance = _playerHands.TryGetValue(playerId, out var hand) ? hand.FirstOrDefault(c => c.InstanceId == dto.CardInstanceId) : null;
+                    playedCardInstance = _playerHands.TryGetValue(playerId, out var hand) ?
+                        hand.FirstOrDefault(c => c.InstanceId == dto.CardInstanceId) : null;
                 }
                 if (playedCardInstance == null || playedCardInstance.Id != dto.CardTypeId)
                 {
@@ -117,7 +133,6 @@ namespace ChessServer.Services
                 }
 
                 var timerWasPaused = _session.PauseTimerForAction();
-
                 string? param1ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.PieceTypeToRevive?.ToString() : (dto.CardTypeId == CardConstants.CardSwap) ? dto.CardInstanceIdToSwapFromHand?.ToString() : dto.FromSquare;
                 string? param2ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.TargetRevivalSquare : dto.ToSquare;
                 var effectResult = effect.Execute(_session, playerId, activatingPlayerColor, _historyManager, dto.CardTypeId, param1ForEffect, param2ForEffect);
@@ -248,16 +263,19 @@ namespace ChessServer.Services
             }
         }
 
-        public string? GetAndClearPendingCardEffect(Guid playerId)
+        public string? PeekPendingCardEffect(Guid playerId)
         {
             lock (_sessionLock)
             {
-                if (_pendingCardEffectForNextMove.TryGetValue(playerId, out var effect))
-                {
-                    _pendingCardEffectForNextMove.Remove(playerId);
-                    return effect;
-                }
-                return null;
+                _pendingCardEffectForNextMove.TryGetValue(playerId, out var effect);
+                return effect;
+            }
+        }
+        public void ClearPendingCardEffect(Guid playerId)
+        {
+            lock (_sessionLock)
+            {
+                _pendingCardEffectForNextMove.Remove(playerId);
             }
         }
 
@@ -385,6 +403,18 @@ namespace ChessServer.Services
             { CardConstants.CardSwap, new CardSwapEffect(new ChessLogger<CardSwapEffect>(loggerFactory.CreateLogger<CardSwapEffect>())) },
             { CardConstants.SacrificeEffect, new SacrificeEffect(new ChessLogger<SacrificeEffect>(loggerFactory.CreateLogger<SacrificeEffect>())) }
         };
+
+        private bool IsCardBoardAltering(string cardTypeId)
+        {
+            return cardTypeId switch
+            {
+                CardConstants.Teleport => true,
+                CardConstants.Positionstausch => true,
+                CardConstants.Wiedergeburt => true,
+                CardConstants.SacrificeEffect => true,
+                _ => false
+            };
+        }
         public void Dispose()
         {
             _activateCardSemaphore.Dispose();
