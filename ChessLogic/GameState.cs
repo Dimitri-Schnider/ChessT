@@ -90,17 +90,23 @@ namespace ChessLogic
             }
         }
 
-        // Überschreibt den aktuellen Spieler (z.B. für Karteneffekte wie "Extrazug").
-        public void SetCurrentPlayerOverride(Player player)
+        // Überschreibt den aktuellen Spieler für Karteneffekte "Extrazug".
+        public void GrantExtraMove(Player player)
         {
+            if (Result != null)
+                throw new InvalidOperationException("Spiel ist beendet; kein Extrazug mehr möglich.");
             CurrentPlayer = player;
             lastMoveForHistory = null;
         }
 
-        // Setzt das Spielergebnis.
-        public void SetResult(Result result)
+        // Wird aufgerufen, wenn einem Spieler die Zeit ausgeht.
+        public void Timeout(Player loser)
         {
-            Result = result;
+            if (Result != null)
+                throw new InvalidOperationException("Spiel ist bereits beendet.");
+
+            // Gewinner ist der Gegner von Loser
+            Result = Result.Win(loser.Opponent(), EndReason.TimeOut);
         }
 
         // Gibt alle legalen Züge für den angegebenen Spieler zurück.

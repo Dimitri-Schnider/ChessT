@@ -404,7 +404,7 @@ namespace ChessServer.Services
             captureOrPawn = legalMove.Execute(_state.Board);
             if (isExtraTurn)
             {
-                _state.SetCurrentPlayerOverride(playerColor);
+                _state.GrantExtraMove(playerColor);
                 _logger.LogExtraTurnEffectApplied(GameId, playerId, CardConstants.ExtraZug);
             }
             else
@@ -561,7 +561,7 @@ namespace ChessServer.Services
             lock (_sessionLock)
             {
                 if (_state.IsGameOver()) return;
-                _state.SetResult(Result.Win(p.Opponent(), EndReason.TimeOut));
+                _state.Timeout(p);
                 _historyManager.UpdateOnGameOver(_state.Result);
                 var currentBoardDto = ToBoardDto();
                 var winner = p.Opponent();
