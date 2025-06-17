@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace ChessServer.Services
 {
-    public sealed class GameSession : IDisposable
+    public class GameSession : IDisposable
     {
         #region Fields
         private readonly Guid _gameIdInternal;
@@ -32,14 +32,14 @@ namespace ChessServer.Services
         private Move? lastMoveForHistory;
 
         private readonly IPlayerManager _playerManager;
-        public ICardManager CardManager { get; }
         private readonly HistoryManager _historyManager;
+        public virtual ICardManager CardManager { get; }
         #endregion
 
         #region Public Properties
-        public Guid GameId => _gameIdInternal;
-        public GameState CurrentGameState => _state;
-        public GameTimerService TimerService => _timerServiceInternal;
+        public virtual Guid GameId => _gameIdInternal;
+        public virtual GameState CurrentGameState => _state;
+        public virtual GameTimerService TimerService => _timerServiceInternal; // "virtual" erlaubt das Überschreiben der Eigenschaft durch Moq.
         public bool HasOpponent => _playerManager.HasOpponent;
         public Guid FirstPlayerId => _playerManager.FirstPlayerId;
         public Player FirstPlayerColor => _playerManager.FirstPlayerColor;
@@ -75,9 +75,11 @@ namespace ChessServer.Services
             return (playerId, assignedColor);
         }
 
+        // Dieser parameterlose Konstruktor wird für Moq benötigt.
+        public GameSession() { }
         public bool IsGameReallyOver() { lock (_sessionLock) { return _state.IsGameOver(); } }
-        public Player GetPlayerColor(Guid playerId) => _playerManager.GetPlayerColor(playerId);
-        public Guid? GetPlayerIdByColor(Player color) => _playerManager.GetPlayerIdByColor(color);
+        public virtual Player GetPlayerColor(Guid playerId) => _playerManager.GetPlayerColor(playerId);
+        public virtual Guid? GetPlayerIdByColor(Player color) => _playerManager.GetPlayerIdByColor(color);
         public string? GetPlayerName(Guid playerId) => _playerManager.GetPlayerName(playerId);
         public OpponentInfoDto? GetOpponentDetails(Guid currentPlayerId) => _playerManager.GetOpponentDetails(currentPlayerId);
         public GameHistoryDto GetGameHistory() => _historyManager.GetGameHistory(_playerManager);

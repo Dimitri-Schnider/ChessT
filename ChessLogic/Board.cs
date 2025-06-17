@@ -114,7 +114,7 @@ namespace ChessLogic
         }
 
         // Prüft, ob der König des angegebenen Spielers im Schach steht.
-        public bool IsInCheck(Player player)
+        public virtual bool IsInCheck(Player player)
         {
             // Iteriert über alle Figuren des Gegners und prüft, ob eine davon den König des Spielers bedroht.
             return PiecePositionsFor(player.Opponent()).Any(pos =>

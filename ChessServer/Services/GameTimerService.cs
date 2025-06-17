@@ -220,7 +220,7 @@ namespace ChessServer.Services
         #region Public Time Manipulation Methods
 
         // Fügt einem Spieler Zeit hinzu.
-        public bool AddTime(Player player, TimeSpan timeToAdd)
+        public virtual bool AddTime(Player player, TimeSpan timeToAdd)
         {
             lock (_lock)
             {
@@ -240,7 +240,7 @@ namespace ChessServer.Services
         }
 
         // Zieht einem Spieler Zeit ab.
-        public bool SubtractTime(Player player, TimeSpan timeToSubtract)
+        public virtual bool SubtractTime(Player player, TimeSpan timeToSubtract)
         {
             lock (_lock)
             {
@@ -317,7 +317,7 @@ namespace ChessServer.Services
         }
 
         // Gibt die aktuelle Zeit für einen Spieler zurück.
-        public TimeSpan GetCurrentTimeForPlayer(Player player)
+        public virtual TimeSpan GetCurrentTimeForPlayer(Player player)
         {
             lock (_lock)
             {

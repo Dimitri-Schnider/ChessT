@@ -8,14 +8,17 @@ namespace ChessLogic
     // Verwaltet den dynamischen Zustand einer laufenden Schachpartie.
     public class GameState
     {
-        public Board Board { get; }                                     // Das aktuelle Schachbrett mit den Figurenpositionen.
-        public Player CurrentPlayer { get; private set; }               // Der Spieler, der aktuell am Zug ist.
+        public virtual Board Board { get; }                             // Das aktuelle Schachbrett mit den Figurenpositionen.
+        public virtual Player CurrentPlayer { get; private set; }       // Der Spieler, der aktuell am Zug ist.
         public Result? Result { get; private set; }                     // Das Ergebnis des Spiels (null, wenn das Spiel noch läuft).
         public int NoCaptureOrPawnMoves => noCaptureOrPawnMoves;        // Öffentlicher Getter für den 50-Züge-Zähler.
 
         private int noCaptureOrPawnMoves;                               // Zähler für die 50-Züge-Regel.
         private readonly Dictionary<string, int> stateHistory = new();  // Speichert die Häufigkeit jeder Brettstellung.
         private Move? lastMoveForHistory;                               // Der letzte ausgeführte Zug für die FEN-Generierung.
+
+        // Parameterloser Konstruktor für das Mocking in Tests.
+        public GameState() { }
 
         // Initialisiert einen neuen Spielzustand.
         public GameState(Player firstPlayerToMove, Board board)
