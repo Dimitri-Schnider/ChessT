@@ -87,15 +87,12 @@ namespace ChessServer.Services
         public Task<ServerCardActivationResultDto> ActivateCard(Guid playerId, ActivateCardRequestDto dto) => CardManager.ActivateCard(playerId, dto);
         public void StartTheGameAndTimer()
         {
-            TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
             lock (_sessionLock)
             {
                 if (_playerManager.OpponentType == "Computer" &&
                     _playerManager.ComputerPlayerId.HasValue &&
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) == Player.White &&
                     _state.CurrentPlayer == Player.White)
-
-
                 {
                     var computerColor = _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value);
                     _logger.LogComputerStartingInitialMove(GameId, computerColor, _state.CurrentPlayer);

@@ -44,6 +44,7 @@ namespace ChessClient.State
             CardForAnimation = card;
             IsOwnCardForAnimation = isOwnCard;
             IsCardActivationAnimating = true;
+            LastAnimatedCard = card;
             OnStateChanged();
         }
 

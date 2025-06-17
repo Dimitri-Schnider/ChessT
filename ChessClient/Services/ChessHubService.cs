@@ -34,6 +34,18 @@ namespace ChessClient.Services
         // Leerer Konstruktor. Die NavigationManager-Injection wurde entfernt, da sie nicht verwendet wurde.
         public ChessHubService(NavigationManager navManager) { }
 
+        // Methode, um eine Spiel-Gruppe auf dem Hub zu verlassen.
+        public Task LeaveGameGroupAsync(Guid gameId)
+        {
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                // Ruft die "LeaveGame" Methode auf dem Server-Hub auf.
+                return _hubConnection.InvokeAsync("LeaveGame", gameId.ToString());
+            }
+            Console.WriteLine("WARNUNG: Versuch, eine Gruppe zu verlassen, während Hub nicht verbunden ist.");
+            return Task.CompletedTask;
+        }
+
         // Registriert den Spieler bei einem spezifischen Spiel auf dem Hub.
         public Task RegisterPlayerWithHubAsync(Guid gameId, Guid playerId)
         {

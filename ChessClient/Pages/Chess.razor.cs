@@ -40,6 +40,9 @@ namespace ChessClient.Pages
         [Inject] private ModalService ModalService { get; set; } = default!;                                    // Zur Anforderung globaler Modals.
         [CascadingParameter(Name = "MyMainLayout")] private MainLayout MyMainLayout { get; set; } = default!;   // Referenz auf das Hauptlayout.
 
+        // ChessHubService direkt injizieren, um Gruppen verlassen zu können.
+        [Inject] private ChessHubService HubService { get; set; } = default!;
+
         // State-Container
         [Inject] private IUiState UiState { get; set; } = default!;
         [Inject] private IModalState ModalState { get; set; } = default!;
@@ -266,6 +269,13 @@ namespace ChessClient.Pages
             // Wenn bereits ein Spiel aktiv war, wird alles sauber zurückgesetzt.
             if (GameCoreState.GameId != Guid.Empty)
             {
+                // Explizit die SignalR-Gruppe des alten Spiels verlassen.
+                var oldGameId = GameCoreState.GameId;
+                if (HubService.IsConnected)
+                {
+                    await HubService.LeaveGameGroupAsync(oldGameId);
+                }
+
                 if (HubSubscriptionService is IAsyncDisposable disposable)
                 {
                     await disposable.DisposeAsync(); // Trennt die alte SignalR-Verbindung.
