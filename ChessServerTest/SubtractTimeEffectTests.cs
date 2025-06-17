@@ -84,7 +84,7 @@ namespace ChessServer.Tests
             Assert.NotNull(result.ErrorMessage);
             Assert.Contains("wenn der Gegner 3 Minuten oder mehr Zeit hat", result.ErrorMessage);
 
-            // 2. Sicherstellen, dass die Zeit NICHT abgezogen wurde.
+            // 2. Sicherstellen, dass die Zeit NICHT abgezogen wurde. 
             mockTimerService.Verify(t => t.SubtractTime(It.IsAny<Player>(), It.IsAny<TimeSpan>()), Times.Never());
         }
     }
