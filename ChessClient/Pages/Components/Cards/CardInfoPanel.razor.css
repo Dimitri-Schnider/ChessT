@@ -1,4 +1,5 @@
-﻿.card-info-panel-content {
+﻿/* Styling für den Inhaltsbereich des Modals. */
+.card-info-panel-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -9,10 +10,12 @@
     border-radius: 0.5rem;
 }
 
+/* Definiert eine maximale Breite für das Modal. */
 .card-info-modal .modal-dialog {
     max-width: 450px;
 }
 
+/* Basis-Styling für den Modal-Inhalt im Dark-Theme. */
 .card-info-modal .modal-content {
     background-color: #2C2C2C;
     border: 1px solid #444444;
@@ -25,54 +28,63 @@
         color: #B0B0B0 !important;
     }
 
+/* Definiert die Grösse und das Seitenverhältnis der vergrösserten Karte. */
 .card-visual-representation {
     position: relative;
     width: 280px;
-    height: calc(280px * 1050 / 750);
+    height: calc(280px * 1050 / 750); /* Berechnet die Höhe basierend auf dem Seitenverhältnis der Original-Bilddateien (750x1050). */
     background-color: transparent;
     border: none;
     box-sizing: border-box;
-    margin: 0 auto 20px auto;
+    margin: 0 auto 20px auto; /* Zentriert die Karte und schafft Abstand nach unten. */
 }
 
+/* --- Layer-Styling für den Aufbau der Karte --- */
+
+/* Die Ebene für die eigentliche Kartenkunst. */
 .card-art-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    z-index: 1; /* Unterste Ebene */
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
+/* Das Bild der Kartenkunst selbst. */
 .card-art-actual-image {
-    width: 68%;
-    margin-top: -40%;
+    width: 68%; /* Nimmt nicht die volle Breite ein, um in den Rahmen zu passen. */
+    margin-top: -40%; /* Verschiebt das Bild nach oben in den Kunst-Bereich des Templates. */
     object-fit: cover;
     border-radius: 8px;
 }
 
+/* Die Ebene für den Kartenrahmen (das Template-Bild). */
 .card-frame-image {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 2;
-    pointer-events: none;
+    z-index: 2; /* Liegt über der Kartenkunst. */
+    pointer-events: none; /* Lässt Klicks durch die Ebene hindurch. */
 }
 
+/* Die Ebene für die Textinhalte. */
 .card-content-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 3;
+    z-index: 3; /* Liegt über dem Rahmen, um den Text anzuzeigen. */
     pointer-events: none;
 }
+
+/* --- Positionierung der Text-Elemente auf der Karte --- */
 
 .card-title-section {
     position: absolute;
@@ -84,7 +96,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    pointer-events: auto;
+    pointer-events: auto; /* Erlaubt Textauswahl, falls nötig. */
 }
 
 .card-title-text {
@@ -92,7 +104,7 @@
     font-weight: bold;
     color: #E0E0E0;
     margin: 0;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7); /* Verbessert die Lesbarkeit auf dem komplexen Hintergrund. */
 }
 
 .card-description-section {
@@ -104,7 +116,7 @@
     color: #E0E0E0;
     font-size: 0.85em;
     line-height: 1.3;
-    overflow-y: auto;
+    overflow-y: auto; /* Fügt eine Scrollbar hinzu, falls die Beschreibung zu lang ist. */
     padding: 2% 3%;
     box-sizing: border-box;
     text-align: center;
@@ -117,12 +129,13 @@
 .card-description-text {
     font-size: inherit;
     color: inherit;
-    white-space: pre-wrap;
-    word-break: break-word;
+    white-space: pre-wrap; /* Erhält Zeilenumbrüche im Beschreibungstext. */
+    word-break: break-word; /* Bricht lange Wörter um. */
     margin: 0;
     max-height: 100%;
 }
 
+/* Styling für die Aktions-Buttons unter der Karte. */
 .action-buttons-cip {
     display: flex;
     gap: 15px;
@@ -138,6 +151,7 @@
         font-size: 0.95rem;
     }
 
+/* Styling für den 'X'-Button zum Schliessen oben rechts. */
 .close-modal-button-cip {
     position: absolute;
     top: 15px;
@@ -161,12 +175,3 @@
         opacity: 1;
         background-color: rgba(224, 224, 224, 0.3);
     }
-
-.card-info-panel-content.preview-only-mode .card-title-text,
-.card-info-panel-content.preview-only-mode .card-description-text {
-    color: #d8d8d8; /* Text für Vorschau aufgehellt */
-}
-
-.card-info-panel-content.preview-only-mode .text-muted small {
-    color: #B0B0B0 !important;
-}

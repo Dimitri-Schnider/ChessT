@@ -1,10 +1,10 @@
-﻿// File: [SolutionDir]/ChessClient/State/HighlightState.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq; // Nötig für .Any() falls es doch verwendet wird, oder .Count > 0
+using System.Linq;
 
 namespace ChessClient.State
 {
+    // Implementiert die IHighlightState-Schnittstelle.
     public class HighlightState : IHighlightState
     {
         public event Action? StateChanged;
@@ -16,15 +16,14 @@ namespace ChessClient.State
         public string? PenultimateMoveTo { get; private set; }
         public bool IsThirdMoveOfSequence { get; private set; }
         public List<(string Square, string Type)> HighlightCardEffectSquares { get; private set; } = new();
-
         public List<string> CardTargetSquaresForSelection { get; private set; } = new();
 
-        public HighlightState()
-        {
-        }
+        public HighlightState() { }
 
+        // Setzt die Highlights für einen normalen oder einen Extrazug.
         public void SetHighlights(string? currentFrom, string? currentTo, bool isPartOfSequenceContinuing, bool isCurrentMoveTheThirdInSequence = false)
         {
+            // Wenn der Zug Teil einer Sequenz ist (Extrazug), wird der vorherige Zug als "vorletzter" gespeichert.
             if (isPartOfSequenceContinuing)
             {
                 PenultimateMoveFrom = MostRecentMoveFrom;
@@ -40,6 +39,7 @@ namespace ChessClient.State
             MostRecentMoveTo = currentTo;
             IsThirdMoveOfSequence = isPartOfSequenceContinuing && isCurrentMoveTheThirdInSequence;
 
+            // Löscht andere Highlight-Typen, wenn ein Zug-Highlight gesetzt wird.
             if (currentFrom != null || currentTo != null)
             {
                 if (HighlightCardEffectSquares.Count > 0) HighlightCardEffectSquares.Clear();
@@ -48,18 +48,16 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
+        // Setzt die Highlights, die durch einen Karteneffekt verursacht werden.
         public void SetHighlightForCardEffect(List<(string Square, string Type)> cardSquares)
         {
-            MostRecentMoveFrom = null;
-            MostRecentMoveTo = null;
-            PenultimateMoveFrom = null;
-            PenultimateMoveTo = null;
-            IsThirdMoveOfSequence = false;
-            if (CardTargetSquaresForSelection.Count > 0) CardTargetSquaresForSelection.Clear();
+            // Löscht alle anderen Highlights, um Konflikte zu vermeiden.
+            ClearAllActionHighlights();
             HighlightCardEffectSquares = new List<(string Square, string Type)>(cardSquares);
             OnStateChanged();
         }
 
+        // Entfernt alle Aktions-Highlights vom Brett.
         public void ClearAllActionHighlights()
         {
             MostRecentMoveFrom = null;
@@ -67,11 +65,12 @@ namespace ChessClient.State
             PenultimateMoveFrom = null;
             PenultimateMoveTo = null;
             IsThirdMoveOfSequence = false;
-            if (HighlightCardEffectSquares.Count > 0) HighlightCardEffectSquares.Clear(); 
-            if (CardTargetSquaresForSelection.Count > 0) CardTargetSquaresForSelection.Clear(); 
+            if (HighlightCardEffectSquares.Count > 0) HighlightCardEffectSquares.Clear();
+            if (CardTargetSquaresForSelection.Count > 0) CardTargetSquaresForSelection.Clear();
             OnStateChanged();
         }
 
+        // Setzt die Felder, die als gültige Ziele für eine Kartenaktion zur Auswahl stehen.
         public void SetCardTargetSquaresForSelection(List<string> squares)
         {
             ClearAllActionHighlights();
@@ -79,6 +78,7 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
+        // Entfernt die speziellen Highlights für die Kartenziel-Auswahl.
         public void ClearCardTargetSquaresForSelection()
         {
             if (CardTargetSquaresForSelection.Count > 0)

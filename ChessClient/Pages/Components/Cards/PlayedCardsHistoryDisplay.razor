@@ -1,7 +1,8 @@
 ﻿@using ChessClient.Models
 @using ChessNetwork.DTOs
 
-@* Panel zur Anzeige der Historie gespielter Karten. *@
+@* Diese Komponente ist für die Anzeige der Historie aller bereits gespielten Karten zuständig. *@
+@* Sie ist in zwei Bereiche unterteilt: einen für die eigenen und einen für die vom Gegner gespielten Karten. *@
 <div class="played-cards-history-panel">
     @* Abschnitt für vom Gegner gespielte Karten. *@
     <div class="history-section opponent-history">
@@ -9,9 +10,10 @@
         @if (OpponentPlayedCards != null && OpponentPlayedCards.Any())
         {
             <div class="cards-list">
-                @* Zeigt Karten in umgekehrter Reihenfolge an (neueste zuerst).*@
+                @* Zeigt Karten in umgekehrter Reihenfolge an (neueste zuerst), indem die Liste vor der Iteration umgedreht wird. *@
                 @foreach (var playedInfo in OpponentPlayedCards.Reverse<PlayedCardInfo>())
                 {
+                    @* Jeder Eintrag ist klickbar, um das CardInfoPanel im Vorschau-Modus zu öffnen. *@
                     <div class="played-card-entry" @onclick="() => SelectCard(playedInfo.CardDefinition)" title="@playedInfo.CardDefinition.Name: @playedInfo.CardDefinition.Description">
                         <img src="@playedInfo.CardDefinition.ImageUrl" alt="@playedInfo.CardDefinition.Name" class="played-card-history-image" />
                         <span class="played-card-history-name">@playedInfo.CardDefinition.Name</span>
@@ -21,6 +23,7 @@
         }
         else
         {
+            @* Text, der angezeigt wird, wenn noch keine Karten vom Gegner gespielt wurden. *@
             <div class="no-cards-played-text">Noch keine Karten vom Gegner gespielt.</div>
         }
     </div>
@@ -48,11 +51,12 @@
 </div>
 
 @code {
-    [Parameter] public List<PlayedCardInfo> MyPlayedCards { get; set; } = new List<PlayedCardInfo>(); // Liste meiner gespielten Karten.
-    [Parameter] public List<PlayedCardInfo> OpponentPlayedCards { get; set; } = new List<PlayedCardInfo>(); // Liste der vom Gegner gespielten Karten.
-    [Parameter] public EventCallback<CardDto> OnPlayedCardSelected { get; set; } // Event-Callback, wenn eine gespielte Karte ausgewählt wird.
+    [Parameter] public List<PlayedCardInfo> MyPlayedCards { get; set; } = new List<PlayedCardInfo>();       // Empfängt die Liste meiner gespielten Karten.
+    [Parameter] public List<PlayedCardInfo> OpponentPlayedCards { get; set; } = new List<PlayedCardInfo>(); // Empfängt die Liste der vom Gegner gespielten Karten.
+    [Parameter] public EventCallback<CardDto> OnPlayedCardSelected { get; set; }                            // Event-Callback, der ausgelöst wird, wenn eine Karte in der Historie angeklickt wird.
 
-    // Löst das Event aus, wenn eine Karte aus der Historie ausgewählt wird.
+    // Löst das Event aus, um der übergeordneten Komponente mitzuteilen,
+    // dass eine Karte zur Ansicht ausgewählt wurde.
     private async Task SelectCard(CardDto card)
     {
         await OnPlayedCardSelected.InvokeAsync(card);

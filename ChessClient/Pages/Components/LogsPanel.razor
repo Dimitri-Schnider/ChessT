@@ -1,16 +1,19 @@
 ﻿@inject ChessClient.Services.LoggingService Logger
 
-@* Container für das API-Log-Panel *@
+@* Diese Komponente stellt ein Panel zur Anzeige von API-Logs für Debugging-Zwecke dar. *@
+@* Sie wird typischerweise innerhalb des RightSideDrawer angezeigt. *@
 <div class="logs-panel">
+    @* Kopfzeile des Panels mit Titel und interaktiven Buttons. *@
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h5>API-Logs</h5>
+        @* Button, um das Logging zu pausieren oder fortzusetzen. Der Text des Buttons ändert sich je nach Zustand. *@
         <button class="btn btn-sm btn-outline-secondary"
                 @onclick="Logger.TogglePause">
             @(Logger.IsPaused ? "Resume" : "Pause")
         </button>
     </div>
 
-    @* Checkbox zum Filtern von Polling-Requests *@
+    @* Checkbox, um wiederholte Polling-Requests (z.B. Status-Abfragen) aus den Logs auszufiltern. *@
     <div class="form-check mb-2">
         <input class="form-check-input" type="checkbox"
                id="pollingFilter"
@@ -21,17 +24,19 @@
         </label>
     </div>
 
-    @* Button zum Leeren der Logs *@
+    @* Button, um alle bisher gesammelten Log-Einträge zu löschen. *@
     <button class="btn btn-sm btn-outline-danger mb-2" @onclick="Logger.Clear">
         Clear
     </button>
 
-    @* Bereich zur Anzeige der Log-Einträge *@
+    @* Container, der die einzelnen Log-Einträge enthält. *@
     <div class="entries">
+        @* Iteriert durch alle Einträge im LoggingService und zeigt sie an (neueste zuerst, da sie vorne eingefügt werden). *@
         @foreach (var e in Logger.Entries)
         {
             <div class="entry">
                 <small>@e.Timestamp.ToLongTimeString()</small>
+                @* <pre> sorgt für die korrekte Darstellung von formatiertem Text und Zeilenumbrüchen. *@
                 <pre>@e.RequestInfo</pre>
                 <pre>@e.ResponseInfo</pre>
             </div>
@@ -40,15 +45,20 @@
 </div>
 
 @code {
-    // Abonniert das OnChange-Ereignis des Loggers bei Initialisierung
+    // Lifecycle-Methode: Wird aufgerufen, wenn die Komponente initialisiert wird.
     protected override void OnInitialized()
     {
+        // Abonniert das OnChange-Event des LoggingService.
+        // Immer wenn der Service seine Daten ändert (Log hinzugefügt, gelöscht etc.),
+        // wird StateHasChanged aufgerufen, um die UI dieser Komponente neu zu rendern.
+        // Dies ist das Schlüsselprinzip für die Live-Aktualisierung der Logs.
         Logger.OnChange += StateHasChanged;
     }
 
-    // Wird aufgerufen, wenn der Polling-Filter geändert wird
+    // Wird aufgerufen, wenn der Zustand der Polling-Filter-Checkbox geändert wird.
     private void OnPollingFilterChanged(ChangeEventArgs e)
     {
+        // Ruft die entsprechende Methode im Service auf, um den Filter umzuschalten.
         Logger.TogglePolling();
     }
 }

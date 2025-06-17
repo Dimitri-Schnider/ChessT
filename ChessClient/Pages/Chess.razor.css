@@ -1,24 +1,28 @@
-﻿.global-timers-mobile {
+﻿/* Styling für die Anordnung der Timer auf mobilen Geräten (standardmässig ausgeblendet). */
+.global-timers-mobile {
     display: none !important;
 }
 
+/* Styling für die Anordnung der Timer auf dem Desktop (standardmässig sichtbar). */
 .timers-desktop-only {
     display: block !important;
     margin-bottom: 15px;
     flex-shrink: 0;
 }
 
+/* Haupt-Container der Spielseite. Verwendet Flexbox für das zweispaltige Layout. */
 .chess-page-container {
     display: flex;
-    flex-direction: row;
+    flex-direction: row; /* Ordnet Brett und Seitenpanel nebeneinander an. */
     gap: 20px;
     box-sizing: border-box;
-    overflow: hidden;
-    flex-grow: 1;
-    min-height: 0;
-    align-items: stretch;
+    overflow: hidden; /* Verhindert unerwünschtes Scrollen. */
+    flex-grow: 1; /* Nimmt den maximal verfügbaren Platz im übergeordneten Container ein. */
+    min-height: 0; /* Wichtiger Flexbox-Fix zur Verhinderung von Überlauf. */
+    align-items: stretch; /* Dehnt die Spalten auf die gleiche Höhe. */
 }
 
+/* Die linke Spalte, die das Schachbrett enthält. */
 .chessboard-column {
     display: flex;
     align-items: center;
@@ -30,15 +34,17 @@
     padding: 10px;
 }
 
+/* Der direkte Wrapper um die ChessBoard-Komponente. */
 .chessboard-container {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
     width: auto;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 1 / 1; /* Stellt sicher, dass der Container immer quadratisch ist. */
 }
 
+/* Die rechte Spalte (Seiten-Panel) für Timer, Historie und Handkarten. */
 .game-side-panel {
     display: flex;
     flex-direction: column;
@@ -47,10 +53,11 @@
     box-sizing: border-box;
     overflow: hidden;
     flex-grow: 1;
-    min-width: 380px;
+    min-width: 380px; /* Mindestbreite, um das Layout auf Desktop zu gewährleisten. */
     flex-shrink: 1;
 }
 
+    /* Styling für den scrollbaren Bereich der Kartenhistorie. */
     .game-side-panel .played-cards-history-display-wrapper {
         overflow-y: auto;
         min-height: 80px;
@@ -60,10 +67,12 @@
         padding: 8px;
         background-color: #2C2C2C;
         flex-shrink: 1;
+        /* Benutzerdefinierte Scrollbar. */
         scrollbar-width: thin;
         scrollbar-color: #A55B4B #2C2C2C;
     }
 
+        /* Benutzerdefinierte Scrollbar für Webkit-Browser. */
         .game-side-panel .played-cards-history-display-wrapper::-webkit-scrollbar {
             width: 10px;
         }
@@ -83,6 +92,7 @@
                 background: #A55B4B;
             }
 
+    /* Container für die unteren Elemente (Handkarten und Nachziehstapel). */
     .game-side-panel .bottom-game-elements {
         display: flex;
         flex-direction: row;
@@ -93,6 +103,7 @@
         min-height: 120px;
     }
 
+/* Stellt sicher, dass die Handkarten den meisten Platz im unteren Bereich einnehmen. */
 .bottom-game-elements > :first-child {
     flex-grow: 1;
     min-width: 0;
@@ -103,7 +114,7 @@
     flex-shrink: 0;
 }
 
-/* STILE FÜR DAS LADE-OVERLAY */
+/* Styling für das Lade-Overlay beim Erstellen eines Spiels. */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -119,8 +130,9 @@
     color: #E0E0E0;
 }
 
-/* --- Mobile Layout Anpassungen (sollten so bleiben wie im letzten funktionierenden Stand) --- */
+/* --- MOBILE LAYOUT ANPASSUNGEN --- */
 @media (max-width: 992px) {
+    /* Zeigt die mobilen Timer an. */
     .global-timers-mobile {
         display: flex !important;
         width: 100%;
@@ -128,8 +140,17 @@
         flex-shrink: 0;
     }
 
+    /* Versteckt die Desktop-Timer. */
     .timers-desktop-only {
         display: none !important;
+    }
+
+    /* Ordnet das Layout in einer einzigen Spalte an. */
+    .chess-page-container {
+        flex-direction: column;
+        padding: 0;
+        gap: 5px;
+        align-items: normal;
     }
 
     .chessboard-column {
@@ -145,13 +166,6 @@
         aspect-ratio: unset !important;
     }
 
-    .chess-page-container {
-        flex-direction: column;
-        padding: 0;
-        gap: 5px;
-        align-items: normal;
-    }
-
     .chessboard-container {
         width: 100%;
         max-width: 100vw;
@@ -161,6 +175,7 @@
         aspect-ratio: unset !important;
     }
 
+    /* Passt das Seiten-Panel für die mobile Ansicht an. */
     .game-side-panel {
         min-width: unset;
         width: 100%;
@@ -181,6 +196,7 @@
             display: block;
         }
 
+            /* Klasse, um die Historie auf Mobilgeräten standardmässig auszublenden. */
             .game-side-panel .played-cards-history-display-wrapper.hidden-on-mobile {
                 display: none !important;
             }
@@ -193,6 +209,7 @@
     }
 }
 
+/* Weitere Anpassungen für sehr schmale Bildschirme. */
 @media (max-width: 420px) {
     .bottom-game-elements {
         min-height: 90px;
@@ -203,6 +220,7 @@
     }
 }
 
+/* Styling für den Willkommens-Bildschirm. */
 .welcome-container-fullpage {
     width: 100%;
     height: 100%;
@@ -212,7 +230,7 @@
     justify-content: center;
 }
 
-/* Keyframes für die neuen Text-Animationen */
+/* --- Keyframes für Animationen auf dem Willkommens-Bildschirm --- */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -226,7 +244,7 @@
 @keyframes fadeInAndSlideUp {
     from {
         opacity: 0;
-        transform: translateY(20px); /* Startet 20px weiter unten */
+        transform: translateY(20px);
     }
 
     to {
@@ -234,7 +252,6 @@
         transform: translateY(0);
     }
 }
-
 
 .static-cards-container {
     position: relative;
@@ -244,7 +261,6 @@
     opacity: 0;
     animation: fadeIn 1s ease-out 0.2s forwards;
 }
-
 
 .static-card-wrapper {
     position: absolute;
@@ -274,7 +290,7 @@
         transform: translateX(55px) rotateZ(15deg);
     }
 
-
+/* Styling für Titel und Untertitel auf dem Willkommens-Bildschirm. */
 .logo-text-title {
     font-size: 4rem;
     font-weight: bold;
@@ -292,19 +308,18 @@
     font-weight: 400;
 }
 
+/* Anpassungen für mittelgrosse Bildschirme, um den Platz besser zu nutzen. */
 @media (min-width: 992px) and (max-width: 1400px) {
     .chess-page-container {
-        gap: 10px; /* Reduziert den Abstand zwischen Brett und Seitenpanel */
+        gap: 10px; /* Reduziert den Abstand zwischen Brett und Seitenpanel. */
     }
 
     .game-side-panel {
-        min-width: 320px; /* Reduziert die Mindestbreite des Seitenpanels */
+        min-width: 320px; /* Reduziert die Mindestbreite des Seitenpanels. */
     }
 
     .chessboard-column {
-        /* Stellt sicher, dass das Brett nicht breiter wird als der verfügbare vertikale Platz es erlaubt */
-        /* Dies hilft, das Seitenverhältnis 1:1 zu wahren, ohne Clipping zu verursachen.
- */
+        /* Stellt sicher, dass das Brett nicht breiter wird als der verfügbare vertikale Platz es erlaubt. */
         max-width: calc(100vh - 80px); /* 80px Puffer für Padding etc. */
     }
 }

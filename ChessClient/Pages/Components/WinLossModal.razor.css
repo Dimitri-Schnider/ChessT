@@ -1,59 +1,63 @@
-﻿// File: [SolutionDir]\ChessClient\Pages\Components\WinLossModal.razor.css
-
+﻿/* Definiert die Keyframe-Animation für das Einblenden des Modal-Hintergrunds. */
 @keyframes modalBackdropFadeIn {
-    from
+    from {
+        opacity: 0;
+    }
 
-{
-    opacity: 0;
+    to {
+        opacity: 0.85; /* Ein stärkeres Abdunkeln als bei Standard-Modals. */
+    }
 }
 
-to {
-    opacity: 0.85;
-}
-
-}
-
+/* Definiert die Keyframe-Animation für das "Hineinpoppen" des Modal-Inhalts. */
 @keyframes modalContentPopIn {
     from {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.95); /* Startet leicht verkleinert. */
     }
 
     to {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1); /* Endet in Originalgrösse. */
     }
 }
 
+/* :global() ist eine spezielle Blazor-Syntax, um ein Element ausserhalb des Komponenten-Scopes zu stylen. */
+/* Hier wird die Einblend-Animation auf den globalen Bootstrap-Backdrop angewendet. */
 :global(.modal-backdrop.show) {
     animation: modalBackdropFadeIn 0.3s ease-out forwards !important;
 }
 
+/* Styling für den Inhalt des Win/Loss-Modals. */
 .win-loss-modal .modal-content {
+    /* Erzeugt einen "Glas"-Effekt, indem der Hintergrund unscharf gezeichnet wird. */
     background-color: rgba(44, 44, 44, 0.85);
     backdrop-filter: blur(5px);
-    border: 1px solid #A55B4B;
+    border: 1px solid #A55B4B; /* Akzent-Rahmen. */
     text-align: center;
-    opacity: 0;
+    opacity: 0; /* Startet unsichtbar. */
+    /* Wendet die Pop-In-Animation mit einer leichten Verzögerung an. */
     animation: modalContentPopIn 0.3s ease-out 0.1s forwards;
 }
 
 .win-loss-modal .modal-body {
     padding: 2.5rem 2rem;
     position: relative;
-    overflow: hidden;
+    overflow: hidden; /* Verhindert, dass animierte Elemente (wie Konfetti) aus dem Modal "ausbrechen". */
 }
 
+/* Container für den Text, um ihn über eventuelle Hintergrund-Animationen zu legen. */
 .message-content {
     position: relative;
-    z-index: 10; /* Text ist GANZ oben */
+    z-index: 10;
 }
 
+    /* Grosser, auffälliger Titel für Sieg oder Niederlage. */
     .message-content h2 {
         font-family: "Varela", sans-serif;
         font-weight: 900;
         font-size: 3rem;
-        color: #C2A169;
+        color: #C2A169; /* Goldener Farbton für den Titel. */
         text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
     }
 
@@ -62,14 +66,17 @@ to {
         color: #E0E0E0;
     }
 
+/* Flex-Container für die Anordnung der Buttons. */
 .end-game-buttons {
     display: flex;
     justify-content: center;
     gap: 1rem;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* Erlaubt Umbruch auf kleineren Bildschirmen. */
     margin-top: 1.5rem;
 }
 
+/* Die folgenden Konfetti-Stile sind hier definiert, werden aber durch das GlobalEffectsOverlay gerendert. */
+/* Sie könnten für eine zukünftige Version gedacht sein, bei der das Konfetti nur innerhalb des Modals fällt. */
 .confetti-container {
     position: absolute;
     top: 0;
@@ -104,6 +111,7 @@ to {
 
     100% {
         opacity: 0.5;
+        /* Lässt das Konfetti bis zum unteren Rand des Containers fallen. */
         transform: translateY(calc(100% + 50px)) rotateZ(var(--rotation));
     }
 }

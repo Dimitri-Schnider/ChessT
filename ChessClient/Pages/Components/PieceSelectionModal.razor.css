@@ -1,38 +1,44 @@
-﻿.piece-selection-modal .modal-dialog { /* Stellt sicher, dass der Selektor passt */
+﻿/* Definiert die maximale Breite des Modals für die Figurenauswahl. */
+.piece-selection-modal .modal-dialog {
     max-width: 500px;
 }
 
+/* Flex-Container für die Anordnung der Auswahlmöglichkeiten. */
 .piece-choices {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-around; /* Verteilt den Platz gleichmässig. */
     align-items: center;
     padding: 10px 0;
-    flex-wrap: wrap; /* Erlaubt Umbruch bei vielen Optionen */
+    flex-wrap: wrap; /* Erlaubt den Umbruch in die nächste Zeile bei vielen Optionen. */
 }
 
+/* Styling für eine einzelne Auswahloption. */
 .piece-choice {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Bild und Text untereinander. */
     align-items: center;
     padding: 10px;
     border: 2px solid transparent;
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
-    min-width: 80px; /* Mindestbreite für bessere Klickbarkeit */
+    min-width: 80px; /* Mindestbreite für eine gute Klickfläche. */
     margin: 5px;
 }
 
+    /* Visuelles Feedback beim Überfahren mit der Maus. */
     .piece-choice:hover {
         background-color: #f0f0f0;
         border-color: #ddd;
     }
 
+    /* Hebt die aktuell ausgewählte Option hervor. */
     .piece-choice.selected {
         background-color: #e0e0ff;
         border-color: #007bff;
     }
 
+    /* Styling für das Bild der Figur. */
     .piece-choice img {
         width: 64px;
         height: 64px;
@@ -43,18 +49,21 @@
         font-size: 0.9em;
     }
 
+    /* Wichtiges Styling, um eine deaktivierte Option klar zu kennzeichnen. */
     .piece-choice.disabled-choice {
-        opacity: 0.5;
-        cursor: not-allowed;
-        background-color: #f8f9fa; /* Heller Hintergrund, um Deaktivierung zu signalisieren */
+        opacity: 0.5; /* Macht die Option halbtransparent. */
+        cursor: not-allowed; /* Zeigt an, dass die Option nicht klickbar ist. */
+        background-color: #f8f9fa;
         border-color: #e9ecef;
     }
 
+        /* Deaktiviert den Hover-Effekt für deaktivierte Optionen. */
         .piece-choice.disabled-choice:hover {
-            background-color: #f8f9fa; /* Kein Hover-Effekt für deaktivierte */
+            background-color: #f8f9fa;
             border-color: #e9ecef;
         }
 
+        /* Stellt die Figur in Graustufen dar, um die Deaktivierung weiter zu verdeutlichen. */
         .piece-choice.disabled-choice img {
             filter: grayscale(80%);
         }

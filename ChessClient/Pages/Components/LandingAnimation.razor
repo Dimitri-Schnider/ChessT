@@ -1,12 +1,15 @@
 ﻿@using System.Threading.Tasks
 @inject IJSRuntime JSRuntime
 
+@* Diese Komponente realisiert die Startanimation der Anwendung. *@
+@* Sie wird einmal beim Laden der Seite angezeigt und benachrichtigt die App.razor, wenn sie abgeschlossen ist. *@
 @if (IsVisible)
 {
+    @* Das Overlay, das den gesamten Bildschirm einnimmt. Die 'fade-out'-Klasse steuert das abschliessende Ausblenden. *@
     <div class="landing-overlay @(isFadingOut ? "fade-out" : "")">
         <div class="animation-canvas">
-            
-            @* Karten-Container *@
+
+            @* Container für die Karten. Die CSS-Klasse für die Animationsschritte wird dynamisch vom Code gesetzt. *@
             <div class="cards-container @animationStepClass">
                 <div class="card-wrapper card-1">
                     <img src="img/cards/templateback.png" alt="Kartenrücken 1" />
@@ -19,7 +22,7 @@
                 </div>
             </div>
 
-            @* Text-Container *@
+            @* Container für den Text. Die 'visible'-Klasse löst die Einblend-Animation des Textes aus. *@
             <div class="text-container @(showText ? "visible" : "")">
                 <div class="title-text">SchachT</div>
                 <div class="subtitle-text">Schach mit Twist</div>
@@ -30,38 +33,43 @@
 }
 
 @code {
-    [Parameter]
-    public bool IsVisible { get; set; } = true;
+    [Parameter] public bool IsVisible { get; set; } = true;             // Steuert die generelle Sichtbarkeit der Komponente von aussen.
+    [Parameter] public EventCallback OnAnimationFinished { get; set; }  // Event-Callback, der aufgerufen wird, wenn die gesamte Animation abgeschlossen ist.
 
-    [Parameter]
-    public EventCallback OnAnimationFinished { get; set; }
+    private string animationStepClass = ""; // Speichert die aktuelle CSS-Klasse für die Karten-Animationsphase.
+    private bool showText = false;          // Steuert die Sichtbarkeit des Titels und Untertitels.
+    private bool isFadingOut = false;       // Steuert die finale Ausblend-Animation des gesamten Overlays.
 
-    private string animationStepClass = "";
-    private bool showText = false; // NEU: Steuert die Sichtbarkeit des Textes
-    private bool isFadingOut = false;
-
+    // Lifecycle-Methode, die nach dem ersten Rendern der Komponente aufgerufen wird, um die Animation zu starten.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && IsVisible)
         {
-            // Start der Karten-Animation
+            // Schritt 1: Karten fliegen von unten ins Bild.
             animationStepClass = "step-1-fly-in";
-            StateHasChanged();
+            StateHasChanged(); // UI-Update anstossen, um die Animation zu starten.
 
-            await Task.Delay(1200); // Warte bis die erste Karte da ist
+            // Wartezeit, bis die Karten ihre zentrale Position erreicht haben.
+            await Task.Delay(1200);
+
+            // Schritt 2: Karten fächern sich auf.
             animationStepClass = "step-2-fan-out";
             StateHasChanged();
 
-            // NEU: Warte, bis die Karten aufgefächert sind, DANN starte die Text-Animation
+            // Schritt 3: Nachdem die Karten aufgefächert sind, wird der Text eingeblendet.
             await Task.Delay(500);
             showText = true;
             StateHasChanged();
 
-            await Task.Delay(2500); // Gesamtdauer der Animation auf dem Schirm
-            isFadingOut = true;
+            // Schritt 4: Gesamtdauer, die die Animation sichtbar bleibt.
+            await Task.Delay(2500);
+            isFadingOut = true; // Löst die Ausblend-Animation aus.
             StateHasChanged();
 
-            await Task.Delay(500); // Dauer des Fade-Outs
+            // Schritt 5: Wartezeit, bis die Ausblend-Animation abgeschlossen ist.
+            await Task.Delay(500);
+
+            // Benachrichtigt die übergeordnete Komponente (App.razor), dass die Animation beendet ist.
             if (OnAnimationFinished.HasDelegate)
             {
                 await OnAnimationFinished.InvokeAsync();

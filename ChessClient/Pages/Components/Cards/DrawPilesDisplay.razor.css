@@ -1,22 +1,22 @@
-﻿/* File: [SolutionDir]/ChessClient/Pages/Components/Cards/DrawPilesDisplay.razor.css */
-/* (-und spezifische Media Queries) */
+﻿/* Haupt-Wrapper für die Nachziehstapel. */
 .draw-piles-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     margin-left: 0;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Verhindert, dass das Element in einem Flex-Layout schrumpft. */
     height: 100%;
     justify-content: center;
     box-sizing: border-box;
 }
 
+/* Styling für den sichtbaren Stapel. */
 .draw-pile {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    cursor: default;
+    cursor: default; /* Zeigt an, dass der Stapel nicht klickbar ist. */
     border-radius: 6px;
     width: 85px;
     height: 100%;
@@ -24,6 +24,7 @@
     box-sizing: border-box;
 }
 
+/* Das Bild der Kartenrückseite. */
 .draw-pile-image {
     max-width: 90%;
     height: 100px;
@@ -33,10 +34,12 @@
     border-radius: 4px;
 }
 
+/* Styling für die Textanzeige der Kartenanzahl. */
 .draw-pile span {
     font-weight: bold;
     font-size: 0.85em;
     color: white;
+    /* Ein halbtransparenter Hintergrund sorgt für Lesbarkeit, auch wenn der Text über dem Bild liegt. */
     background-color: rgba(0, 0, 0, 0.65);
     padding: 1px 6px;
     border-radius: 10px;
@@ -47,10 +50,12 @@
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Für Mobile-Ansichten (bis 992px), wo die Höhe durch .bottom-game-elements bestimmt wird */
+/* --- RESPONSIVE ANPASSUNGEN --- */
+
+/* Für Mobile-Ansichten (bis 992px), wo die Höhe durch .bottom-game-elements bestimmt wird. */
 @media (max-width: 992px) {
     .draw-piles-wrapper {
-        height: auto; /* Passt sich an die Höhe von .bottom-game-elements an, falls diese fix ist, oder an den Inhalt */
+        height: auto;
     }
 
     .draw-pile {
@@ -68,7 +73,7 @@
     }
 }
 
-/* Spezifische Anpassungen für sehr kleine Mobile-Screens */
+/* Spezifische Anpassungen für sehr kleine Mobile-Screens. */
 @media (max-width: 420px) {
     .draw-pile {
         width: 60px; /* Nachziehstapel noch schmaler */
@@ -85,7 +90,7 @@
     }
 }
 
-/* Für Screens zwischen 421px und 992px (Standard Mobile) */
+/* Für Screens zwischen 421px und 992px (Standard Mobile). */
 @media (min-width: 421px) and (max-width: 992px) {
     .draw-pile {
         width: 75px;

@@ -1,17 +1,21 @@
-﻿@if (IsVisible)
+﻿@* Diese Komponente stellt einen aufwändiger gestalteten Modal-Dialog dar, der am Ende eines Spiels angezeigt wird. *@
+@* Er informiert den Spieler über Sieg oder Niederlage und bietet Aktionen wie "Neues Spiel" oder "Verlauf herunterladen" an. *@
+@if (IsVisible)
 {
+    @* Der Hauptcontainer des Modals mit einer spezifischen Klasse für das Styling. *@
     <div class="modal show win-loss-modal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-body">
                     <div class="message-content">
+                        @* Der Titel wird dynamisch basierend auf dem Spielergebnis ("Sieg!" oder "Niederlage") gesetzt. *@
                         <h2>@Title</h2>
-   
-                         <p>@Message</p>
+                        @* Zeigt die spezifische Endspiel-Nachricht an (z.B. "Schachmatt! Du hast gewonnen."). *@
+                        <p>@Message</p>
+                        @* Container für die Aktions-Buttons am Spielende. *@
                         <div class="end-game-buttons">
                             <button class="btn btn-primary btn-lg mt-3" @onclick="HandleNewGameClicked">Neues Spiel</button>
-                    
-         <button class="btn btn-outline-secondary btn-lg mt-3" @onclick="HandleDownloadHistoryClicked">Spielverlauf herunterladen</button>
+                            <button class="btn btn-outline-secondary btn-lg mt-3" @onclick="HandleDownloadHistoryClicked">Spielverlauf herunterladen</button>
                             <button class="btn btn-secondary btn-lg mt-3" @onclick="HandleCloseClicked">Schliessen</button>
                         </div>
                     </div>

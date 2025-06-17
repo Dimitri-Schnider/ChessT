@@ -11,57 +11,71 @@ using System.Threading.Tasks;
 
 namespace ChessClient.Pages.Components
 {
+    // Die Code-Behind-Klasse für die SquareComponent.
+    // Diese Klasse ist von entscheidender Bedeutung, da sie die gesamte Logik für ein einzelnes Feld verwaltet,
+    // einschliesslich der komplexen Interaktion mit JavaScript für Drag-and-Drop (DnD) und der dynamischen Anzeige von Highlights.
     public partial class SquareComponent : ComponentBase, IAsyncDisposable
     {
-        [Parameter] public BoardDto Board { get; set; } = null!;
-        [Parameter] public int Rank { get; set; }
-        [Parameter] public int File { get; set; }
-        [Parameter] public bool IsHighlightedInternal { get; set; } // Für legale Züge
-        [Parameter] public bool IsHighlightedForCardPieceSelection { get; set; } // Für Karteneffekt: Auswahl einer Figur
-        [Parameter] public bool IsHighlightedForCardTargetSelection { get; set; } // NEU: Für Karteneffekt: Auswahl eines leeren Zielfeldes (z.B. Rebirth)
-        [Parameter] public bool IsFirstSelectedForCardEffect { get; set; }
-        [Parameter] public EventCallback<string> OnClick { get; set; }
-        [Parameter] public EventCallback<string> OnClickForCard { get; set; }
-        [Parameter] public bool IsSquareSelectionModeActiveForCard { get; set; }
-        [Parameter] public EventCallback<string> OnPieceDragStartInternal { get; set; }
-        [Parameter] public EventCallback<string> OnSquareDropInternal { get; set; }
-        [Parameter] public EventCallback<(string pieceCoord, bool droppedOnTarget)> OnPieceDragEndInternal { get; set; }
-        [Parameter] public bool IsBeingDraggedOriginal { get; set; }
-        [Parameter] public bool IsBoardEnabledOverall { get; set; }
-        [Parameter] public bool CanThisPieceBeDragged { get; set; }
+        #region Parameter
+        // Von der übergeordneten Komponente (ChessBoard) bereitgestellte Parameter
 
-        [Parameter] public string? CardEffectHighlightType { get; set; } // Für Teleport, Swap (direkte Effekte)
-        [Parameter] public string? CurrentStrongMoveFrom { get; set; }
-        [Parameter] public string? CurrentStrongMoveTo { get; set; }
-        [Parameter] public string? PreviousSequenceMoveFrom { get; set; }
-        [Parameter] public string? PreviousSequenceMoveTo { get; set; }
-        [Parameter] public bool IsCurrentMoveTheThirdInSequence { get; set; }
-        [Parameter] public bool ShowRankLabel { get; set; }
-        [Parameter] public bool ShowFileLabel { get; set; }
+        [Parameter] public BoardDto Board { get; set; } = null!;    // Das gesamte Brett-Datenobjekt.
+        [Parameter] public int Rank { get; set; }                   // Der 0-basierte Zeilen-Index des Feldes (0-7).
+        [Parameter] public int File { get; set; }                   // Der 0-basierte Spalten-Index des Feldes (0-7).
 
-        [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+        // Highlight-Parameter
+        [Parameter] public bool IsHighlightedInternal { get; set; }                     // Für normale legale Züge.
+        [Parameter] public bool IsHighlightedForCardPieceSelection { get; set; }        // Für die Auswahl einer Figur bei einem Karteneffekt.
+        [Parameter] public bool IsHighlightedForCardTargetSelection { get; set; }       // Für die Auswahl eines leeren Zielfeldes bei einem Karteneffekt (z.B. Wiedergeburt).
+        [Parameter] public bool IsFirstSelectedForCardEffect { get; set; }              // Hebt das erste Feld bei einer mehrstufigen Kartenaktion hervor.
+        [Parameter] public string? CardEffectHighlightType { get; set; }                // Für direkte Karteneffekte wie Teleport oder Tausch.
+        [Parameter] public string? CurrentStrongMoveFrom { get; set; }                  // Startfeld des letzten Zugs (starke Hervorhebung).
+        [Parameter] public string? CurrentStrongMoveTo { get; set; }                    // Zielfeld des letzten Zugs (starke Hervorhebung).
+        [Parameter] public string? PreviousSequenceMoveFrom { get; set; }               // Startfeld des vorletzten Zugs (für Extrazug-Sequenzen).
+        [Parameter] public string? PreviousSequenceMoveTo { get; set; }                 // Zielfeld des vorletzten Zugs (für Extrazug-Sequenzen).
+        [Parameter] public bool IsCurrentMoveTheThirdInSequence { get; set; }           // Spezialflag für den zweiten Zug eines "Extrazugs".
 
-        private DotNetObjectReference<SquareComponent>? dotNetHelper;
-        private ElementReference pieceImageElementRef;
-        private ElementReference squareElementRef;
-        private string Coord => PositionHelper.ToAlgebraic(Rank, File);
-        private bool _isPiecePresentLastRender;
-        private bool _draggableInitialized;
-        private bool _droppableInitialized;
-        private ElementReference _lastInitializedPieceImageRef;
-        private string RankDisplay => (8 - Rank).ToString(CultureInfo.InvariantCulture);
-        private string FileDisplay => ((char)('a' + File)).ToString(CultureInfo.InvariantCulture);
-        private bool IsDarkSquare() => (Rank + File) % 2 != 0; 
+        // Interaktions-Parameter
+        [Parameter] public EventCallback<string> OnClick { get; set; }                  // Callback für einen normalen Klick (Zugauswahl).
+        [Parameter] public EventCallback<string> OnClickForCard { get; set; }           // Callback für einen Klick im Karten-Auswahlmodus.
+        [Parameter] public EventCallback<string> OnPieceDragStartInternal { get; set; } // Callback, wenn ein Drag-Vorgang beginnt.
+        [Parameter] public EventCallback<string> OnSquareDropInternal { get; set; }     // Callback, wenn eine Figur auf diesem Feld fallengelassen wird.
+        [Parameter] public EventCallback<(string pieceCoord, bool droppedOnTarget)> OnPieceDragEndInternal { get; set; } // Callback, wenn ein Drag-Vorgang endet.
 
+        // Zustands-Parameter
+        [Parameter] public bool IsBeingDraggedOriginal { get; set; }                    // True, wenn die Figur auf DIESEM Feld gerade gezogen wird.
+        [Parameter] public bool IsBoardEnabledOverall { get; set; }                     // Gibt an, ob das Brett insgesamt interaktiv ist.
+        [Parameter] public bool CanThisPieceBeDragged { get; set; }                     // Gibt an, ob die spezifische Figur auf diesem Feld ziehbar ist.
+        [Parameter] public bool IsSquareSelectionModeActiveForCard { get; set; }        // Zeigt an, ob auf eine Feldauswahl für eine Karte gewartet wird.
 
+        // UI-Parameter
+        [Parameter] public bool ShowRankLabel { get; set; }                             // True, um die Rank-Beschriftung (1-8) anzuzeigen.
+        [Parameter] public bool ShowFileLabel { get; set; }                             // True, um die File-Beschriftung (a-h) anzuzeigen.
 
+        #endregion
+
+        [Inject] private IJSRuntime JSRuntime { get; set; } = null!;    // Dienst für die Interaktion mit JavaScript.
+
+        // Private Felder
+        private DotNetObjectReference<SquareComponent>? dotNetHelper;   // Eine Referenz auf diese C#-Instanz, die an JavaScript übergeben wird.
+        private ElementReference pieceImageElementRef;                  // Referenz auf das <img>-Element der Figur.
+        private ElementReference squareElementRef;                      // Referenz auf das <div>-Element des Feldes.
+        private bool _isPiecePresentLastRender;                         // Merker, ob beim letzten Render eine Figur vorhanden war, um Änderungen zu erkennen.
+        private bool _draggableInitialized;                             // Merker, ob die DnD-Funktionalität für die Figur initialisiert wurde.
+        private bool _droppableInitialized;                             // Merker, ob die DnD-Funktionalität für das Feld initialisiert wurde.
+        private ElementReference _lastInitializedPieceImageRef;         // Speichert die Referenz des letzten Bildes, das "draggable" gemacht wurde.
+
+        // Berechnete Eigenschaften
+        private string Coord => PositionHelper.ToAlgebraic(Rank, File);                             // Gibt die Koordinate des Feldes als String zurück (z.B. "e4").
+        private string RankDisplay => (8 - Rank).ToString(CultureInfo.InvariantCulture);            // Die anzuzeigende Zahl (1-8).
+        private string FileDisplay => ((char)('a' + File)).ToString(CultureInfo.InvariantCulture);  // Der anzuzeigende Buchstabe (a-h).
+        private bool IsDarkSquare() => (Rank + File) % 2 != 0;                                      // Bestimmt, ob das Feld dunkel oder hell ist.
+
+        // Stellt die korrekte CSS-Klasse für die Hervorhebung basierend auf einer Prioritätenliste zusammen.
         protected string GetHighlightClass()
         {
             if (IsHighlightedForCardTargetSelection) return "highlight-card-actionable-target";
-            if (!string.IsNullOrEmpty(CardEffectHighlightType))
-            {
-                return $"highlight-{CardEffectHighlightType.ToLowerInvariant()}";
-            }
+            if (!string.IsNullOrEmpty(CardEffectHighlightType)) return $"highlight-{CardEffectHighlightType.ToLowerInvariant()}";
             if (IsCurrentMoveTheThirdInSequence)
             {
                 if (CurrentStrongMoveTo == Coord) return "highlight-last-move-to-weaker";
@@ -79,7 +93,8 @@ namespace ChessClient.Pages.Components
             if (IsHighlightedInternal) return "highlight";
             return "";
         }
-        // ... Rest der Klasse bleibt gleich
+
+        // Initialisiert die .NET-Referenz für die JavaScript-Interop.
         protected override void OnInitialized()
         {
             dotNetHelper = DotNetObjectReference.Create(this);
@@ -89,11 +104,15 @@ namespace ChessClient.Pages.Components
             }
         }
 
+        // Drag-and-Drop Lifecycle Management (JS-Interop) 
+
+        // Nach dem Rendern wird die DnD-Funktionalität mit JavaScript initialisiert oder aktualisiert.
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (Board?.Squares == null || JSRuntime == null) return;
             bool currentPiecePresent = Board.Squares[Rank][File].HasValue;
 
+            // Initialisiert das Feld als "droppable" (ein Ort, wo man Figuren ablegen kann).
             if (squareElementRef.Context != null && (firstRender || !_droppableInitialized))
             {
                 try
@@ -104,8 +123,10 @@ namespace ChessClient.Pages.Components
                 catch (JSException ex) { Console.WriteLine($"Error init droppable for {Coord}: {ex.Message}"); }
             }
 
+            // Wenn eine Figur vorhanden ist, wird sie als "draggable" initialisiert.
             if (currentPiecePresent && pieceImageElementRef.Context != null)
             {
+                // Komplizierte Logik, um sicherzustellen, dass JS-Listener korrekt entfernt und neu hinzugefügt werden, wenn sich die Figur ändert.
                 if (_draggableInitialized && _lastInitializedPieceImageRef.Id != default && _lastInitializedPieceImageRef.Id != pieceImageElementRef.Id)
                 {
                     if (_lastInitializedPieceImageRef.Context != null)
@@ -127,9 +148,11 @@ namespace ChessClient.Pages.Components
                 }
                 if (_draggableInitialized)
                 {
+                    // Stellt sicher, dass der 'draggable'-Zustand in JS immer mit dem C#-Zustand übereinstimmt.
                     await JSRuntime.InvokeVoidAsync("chessDnD.setPieceDraggableState", pieceImageElementRef, CanThisPieceBeDragged && IsBoardEnabledOverall);
                 }
             }
+            // Wenn keine Figur mehr da ist, werden alte DnD-Listener entfernt.
             else if (!currentPiecePresent && _draggableInitialized)
             {
                 if (_lastInitializedPieceImageRef.Context != null)
@@ -143,6 +166,7 @@ namespace ChessClient.Pages.Components
             _isPiecePresentLastRender = currentPiecePresent;
         }
 
+        // Diese Methode wird ebenfalls kontinuierlich aufgerufen und sorgt dafür, dass der JS-Zustand aktuell bleibt.
         protected override async Task OnParametersSetAsync()
         {
             if (Board?.Squares == null || JSRuntime == null) return;
@@ -150,25 +174,26 @@ namespace ChessClient.Pages.Components
             {
                 try
                 {
-                    // Die Droppable Visual State Logik muss die neue IsHighlightedForCardTargetSelection berücksichtigen.
-                    // Wenn ein Feld ein explizites Ziel für eine Karte ist (z.B. Rebirth), sollte es nicht als normales Drop-Ziel erscheinen,
-                    // es sei denn, die Logik für das Droppen ist dieselbe (Klick).
+                    // Aktualisiert, ob auf diesem Feld visuell ein Drop erlaubt ist.
                     bool allowDropHighlight = IsHighlightedInternal && !IsSquareSelectionModeActiveForCard && !IsHighlightedForCardTargetSelection;
                     await JSRuntime.InvokeVoidAsync("chessDnD.setSquareDroppableVisualState", squareElementRef, allowDropHighlight);
                 }
                 catch (JSException ex) { Console.WriteLine($"Error in OnParametersSetAsync (setSquareDroppableVisualState) for {Coord}: {ex.Message}"); }
             }
 
+            // Die Logik hier ist sehr ähnlich zu OnAfterRenderAsync, um auf Parameter-Änderungen zwischen Render-Zyklen zu reagieren.
             bool currentPiecePresent = Board.Squares[Rank][File].HasValue;
             if (currentPiecePresent && pieceImageElementRef.Context != null)
             {
                 if (CanThisPieceBeDragged && IsBoardEnabledOverall && !_draggableInitialized)
                 {
+                    // Aufräumen alter Listener, falls nötig
                     if (_lastInitializedPieceImageRef.Id != default && _lastInitializedPieceImageRef.Id != pieceImageElementRef.Id && _lastInitializedPieceImageRef.Context != null)
                     {
                         try { await JSRuntime.InvokeVoidAsync("chessDnD.disposeInteractable", _lastInitializedPieceImageRef, Coord, "drag"); }
                         catch (Exception ex) { Console.WriteLine($"Error disposing old draggable in OnParamsSet (before new init) for {Coord}: {ex.Message}"); }
                     }
+                    // Neu initialisieren
                     try
                     {
                         await JSRuntime.InvokeVoidAsync("chessDnD.initDraggable", pieceImageElementRef, Coord, dotNetHelper);
@@ -201,10 +226,12 @@ namespace ChessClient.Pages.Components
             }
         }
 
+        // JSInvokable Methoden (von JavaScript aufgerufen)
+
         [JSInvokable]
         public async Task JsOnDragStart(string pieceCoord)
         {
-            if (pieceCoord == Coord && !IsSquareSelectionModeActiveForCard) // Dragging nur wenn kein Kartenauswahlmodus aktiv
+            if (pieceCoord == Coord && !IsSquareSelectionModeActiveForCard)
             {
                 await OnPieceDragStartInternal.InvokeAsync(pieceCoord);
             }
@@ -228,19 +255,23 @@ namespace ChessClient.Pages.Components
             }
         }
 
+        // Allgemeiner Klick-Handler
+
+        // Dieser Handler entscheidet, welcher übergeordnete Callback ausgelöst wird,
+        // basierend darauf, ob das Brett im normalen Modus oder im Karten-Auswahlmodus ist.
         private async Task HandleGeneralClick()
         {
-            // Wenn ein Kartenauswahlmodus aktiv ist (egal ob Figurenauswahl oder Zielfeldauswahl)
             if (IsSquareSelectionModeActiveForCard)
             {
                 await OnClickForCard.InvokeAsync(Coord);
             }
-            else // Normaler Spielzug-Klick
+            else
             {
                 await OnClick.InvokeAsync(Coord);
             }
         }
 
+        // Räumt alle JS-Interop-Ressourcen und Listener sauber auf, wenn die Komponente zerstört wird.
         public async ValueTask DisposeAsync()
         {
             if (dotNetHelper != null)
@@ -249,18 +280,12 @@ namespace ChessClient.Pages.Components
                 {
                     if (_draggableInitialized && _lastInitializedPieceImageRef.Context != null)
                     {
-                        try
-                        {
-                            await JSRuntime.InvokeVoidAsync("chessDnD.disposeInteractable", _lastInitializedPieceImageRef, Coord, "drag");
-                        }
+                        try { await JSRuntime.InvokeVoidAsync("chessDnD.disposeInteractable", _lastInitializedPieceImageRef, Coord, "drag"); }
                         catch (Exception ex) { Console.WriteLine($"Dispose error draggable {Coord}: {ex.Message}"); }
                     }
                     if (_droppableInitialized && squareElementRef.Context != null)
                     {
-                        try
-                        {
-                            await JSRuntime.InvokeVoidAsync("chessDnD.disposeInteractable", squareElementRef, Coord, "drop");
-                        }
+                        try { await JSRuntime.InvokeVoidAsync("chessDnD.disposeInteractable", squareElementRef, Coord, "drop"); }
                         catch (Exception ex) { Console.WriteLine($"Dispose error droppable {Coord}: {ex.Message}"); }
                     }
                 }

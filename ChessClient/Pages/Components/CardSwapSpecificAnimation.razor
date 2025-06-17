@@ -1,12 +1,16 @@
 ﻿@using ChessNetwork.DTOs
 @using ChessNetwork.Configuration
 
+@* Das Overlay wird nur angezeigt, wenn die Animation sichtbar ist und die benötigten Karten-Daten vorhanden sind. *@
 @if (IsVisible && CardGiven != null && CardReceived != null)
 {
+    @* Das Overlay dunkelt den Hintergrund ab. *@
     <div class="card-swap-specific-overlay" @onclick="TryCloseAnimation">
+
+        @* Der Hauptcontainer für die Animation. Die Klasse `AnimationStepClass` wird vom C#-Code gesteuert, um die verschiedenen Phasen zu triggern. *@
         <div class="card-swap-specific-container @AnimationStepClass" @onclick:stopPropagation>
 
-            @* Karte, die der Spieler abgibt *@
+            @* Die Karte, die der Spieler abgibt. Ihre Position und Animation wird durch die `GivenCardAnimationClass` gesteuert. *@
             <div class="swapping-card given-card @GivenCardAnimationClass">
                 <div class="card-flipper @(IsGivenCardFlipped ? "is-flipped" : "")">
                     <div class="card-face card-front">
@@ -20,7 +24,7 @@
                 </div>
             </div>
 
-            @* Karte, die der Spieler erhält *@
+            @* Die Karte, die der Spieler erhält. Ihre Position und Animation wird durch die `ReceivedCardAnimationClass` gesteuert. *@
             <div class="swapping-card received-card @ReceivedCardAnimationClass">
                 <div class="card-flipper @(IsReceivedCardFlipped ? "is-flipped" : "")">
                     <div class="card-face card-front">

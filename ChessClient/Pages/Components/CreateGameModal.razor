@@ -1,26 +1,32 @@
 ﻿@using ChessLogic
 @using ChessClient.Models
 
-@* Zeigt das Modal nur an, wenn IsVisible true ist.*@
+@* Diese Komponente stellt den Modal-Dialog zur Erstellung eines neuen Spiels dar. *@
+@* Sie sammelt alle notwendigen Parameter vom Benutzer und leitet sie zur Verarbeitung weiter. *@
 @if (IsVisible)
 {
-    @* Modal-Backdrop zum Abdunkeln des Hintergrunds.*@
+    @* Das halbtransparente Hintergrund-Overlay. Ein Klick darauf schliesst das Modal. *@
     <div class="modal-backdrop show" @onclick="CloseModal"></div>
-    @* Hauptcontainer des Modals.*@
+
+    @* Der Hauptcontainer des Modals, der zentriert auf dem Bildschirm angezeigt wird. *@
     <div class="modal show" tabindex="-1" style="display: block;" role="dialog">
         <div class="modal-dialog">
             <div class="modal-content">
+                @* Die Kopfzeile des Modals mit Titel und Schliessen-Button. *@
                 <div class="modal-header">
                     <h5 class="modal-title">Neues Spiel erstellen</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
                 </div>
+                @* Der Inhaltsbereich des Modals mit den Eingabefeldern. *@
                 <div class="modal-body">
-                    @* Eingabefeld für den Spielernamen.*@
+                    @* Eingabefeld für den Spielernamen. *@
                     <div class="mb-3">
                         <label for="playerName" class="form-label">Dein Name:</label>
+                        @* Das `@bind-value:event="oninput"` sorgt für eine sofortige Aktualisierung des Werts bei jeder Eingabe. *@
                         <input id="playerName" class="form-control" @bind-value="PlayerName" @bind-value:event="oninput" />
                     </div>
-                    @* Auswahlfeld für die Spielerfarbe.*@
+
+                    @* Auswahlfeld für die gewünschte Spielerfarbe. *@
                     <div class="mb-3">
                         <label for="playerColor" class="form-label">Deine Farbe:</label>
                         <select id="playerColor" class="form-select" @bind="SelectedColor">
@@ -28,7 +34,8 @@
                             <option value="@Player.Black">Schwarz</option>
                         </select>
                     </div>
-                    @* Auswahlfeld für die Bedenkzeit.*@
+
+                    @* Auswahlfeld für die Bedenkzeit pro Spieler. *@
                     <div class="mb-3">
                         <label for="initialTime" class="form-label">Bedenkzeit pro Spieler:</label>
                         <select id="initialTime" class="form-select" @bind="InitialTimeMinutes">
@@ -39,7 +46,7 @@
                         </select>
                     </div>
 
-                    @* NEU: Auswahl des Gegnertyps *@
+                    @* Auswahl des Gegnertyps mittels Radio-Buttons. *@
                     <div class="mb-3">
                         <label class="form-label">Gegner:</label>
                         <div class="form-check">
@@ -56,7 +63,7 @@
                         </div>
                     </div>
 
-                    @* NEU: Auswahl der Computerstärke (nur sichtbar wenn Computer ausgewählt) *@
+                    @* Bedingte Anzeige der Computerstärke, nur wenn "Computer" als Gegner ausgewählt ist. *@
                     @if (SelectedOpponentType == OpponentType.Computer)
                     {
                         <div class="mb-3">
@@ -69,14 +76,16 @@
                         </div>
                     }
 
-                    @* Anzeige für Fehlermeldungen im Modal. *@
+                    @* Container zur Anzeige von Validierungs- oder Fehlermeldungen innerhalb des Modals. *@
                     @if (!string.IsNullOrWhiteSpace(ModalErrorMessage))
                     {
                         <div class="alert alert-danger mt-2">@ModalErrorMessage</div>
                     }
                 </div>
+                @* Die Fusszeile des Modals mit den Aktions-Buttons. *@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseModal">Abbrechen</button>
+                    @* Der "Spiel erstellen"-Button ist deaktiviert, solange kein Spielername eingegeben wurde oder der Sendevorgang läuft. *@
                     <button type="button" class="btn btn-primary" @onclick="HandleCreateGame" disabled="@(_isSubmitting || string.IsNullOrWhiteSpace(PlayerName))">Spiel erstellen</button>
                 </div>
             </div>

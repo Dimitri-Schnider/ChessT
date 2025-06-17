@@ -14,6 +14,12 @@
 @using ChessNetwork.Configuration
 @using ChessClient.State
 
+@* Diese Komponente ist das Herzstück und die Hauptseite der Client-Anwendung. *@
+@* Sie fungiert als Orchestrator, der alle untergeordneten Spiel-Komponenten (Schachbrett, Karten, Timer etc.) zusammenfügt, *@
+@* deren Zustände verwaltet und die Interaktion mit den Backend-Diensten steuert. *@
+
+@* --- Lade-Overlay --- *@
+@* Wird angezeigt, während ein neues Spiel auf dem Server erstellt wird. *@
 @if (UiState != null && UiState.IsCreatingGame)
 {
     <div class="loading-overlay">
@@ -27,37 +33,39 @@
     </div>
 }
 
+@* --- Spielstart-Countdown-Overlay --- *@
+@* Wird angezeigt, nachdem der zweite Spieler beigetreten ist, um den Spielbeginn zu signalisieren. *@
 @if (UiState != null && UiState.IsCountdownVisible)
 {
     <div class="game-start-countdown-overlay">
         <div class="countdown-content">
             @UiState.CountdownMessage
-      
-  </div>
+        </div>
     </div>
 }
 
+@* --- Mobile-Ansicht der Timer --- *@
+@* Diese Timer werden nur auf kleineren Bildschirmen über dem Schachbrett angezeigt. *@
 @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo != null && GameCoreState.BoardDto != null)
 {
     <div class="timers-section-wrapper global-timers-mobile">
         <TimersDisplay WhiteTimeDisplay="@GameCoreState.WhiteTimeDisplay"
-  
                        BlackTimeDisplay="@GameCoreState.BlackTimeDisplay"
                        CurrentTurnPlayer="@GameCoreState.CurrentTurnPlayer"
-                      
- PlayerNames="@GameCoreState.PlayerNames"
+                       PlayerNames="@GameCoreState.PlayerNames"
                        EndGameMessage="@GameCoreState.EndGameMessage" />
     </div>
 }
 
-
-
+@* Hauptcontainer für die Spielansicht. *@
 <div class="chess-page-container">
 
-    
- @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo != null)
+    @* --- AKTIVES SPIEL-LAYOUT --- *@
+    @* Dieser Block wird gerendert, sobald ein Spieler ein Spiel erstellt oder einem Spiel beigetreten ist. *@
+    @if (GameCoreState != null && GameCoreState.CurrentPlayerInfo != null)
     {
         <CascadingValue Value="GameCoreState">
+            @* Linke Spalte: Enthält die InfoBox und das Schachbrett. *@
             <div class="chessboard-column">
                 @if (UiState != null)
                 {
@@ -65,68 +73,62 @@
                              AutoHide="@(!UiState.InfoBoxShowActionButton)"
                              ShowActionButton="@UiState.InfoBoxShowActionButton"
                              ActionButtonText="@UiState.InfoBoxActionButtonText"
-             
-                 OnActionButtonClicked="@UiState.InfoBoxOnActionButtonClicked" />
+                             OnActionButtonClicked="@UiState.InfoBoxOnActionButtonClicked" />
 
                     <InfoBox Message="@(UiState.IsConnecting ? "Verbinde mit SignalR Hub..." : string.Empty)" AutoHide="false" />
-                }           
-    
+                }
+
                 <div class="chessboard-container">
                     @if (GameCoreState != null && GameCoreState.BoardDto != null && GameCoreState.CurrentPlayerInfo != null && CardState != null && HighlightState != null)
                     {
-                   
-         <ChessBoard GameId="@GameCoreState.GameId"
+                        @* Die zentrale Schachbrett-Komponente. Sie erhält alle relevanten Zustände und Event-Callbacks für die Interaktion. *@
+                        <ChessBoard GameId="@GameCoreState.GameId"
                                     Board="@GameCoreState.BoardDto"
                                     OnMove="@HandlePlayerMove"
-                      
-               OnSquareClickForCard="@HandleSquareClickForCard"
+                                    OnSquareClickForCard="@HandleSquareClickForCard"
                                     IsSquareSelectionModeActiveForCard="@IsBoardInCardSelectionMode()"
                                     PlayerColorForCardPieceSelection="@GetPlayerColorForCardPieceSelection()"
-              
-                       FirstSelectedSquareForCard="@GetFirstSelectedSquareForCardEffect()"
+                                    FirstSelectedSquareForCard="@GetFirstSelectedSquareForCardEffect()"
                                     FlipBoard="@(GameCoreState.MyColor == Player.Black)"
                                     PlayerId="@GameCoreState.CurrentPlayerInfo.Id"
-    
-                                 MyPlayerColor="@GameCoreState.MyColor"
+                                    MyPlayerColor="@GameCoreState.MyColor"
                                     IsEnabled="@(IsChessboardEnabled())"
-                                
-     HighlightedCardTargetSquaresForSelection="@HighlightState.CardTargetSquaresForSelection" />
+                                    HighlightedCardTargetSquaresForSelection="@HighlightState.CardTargetSquaresForSelection" />
                     }
                 </div>
             </div>
 
+            @* Rechte Spalte (Seiten-Panel): Enthält Timer (Desktop), Kartenhistorie und Handkarten. *@
             @if (GameCoreState != null
                         && GameCoreState.CurrentPlayerInfo != null
-     
-                     && GameCoreState.BoardDto != null
+                        && GameCoreState.BoardDto != null
                         && CardState != null && ModalState != null)
             {
                 <div class="game-side-panel">
-                  
-   <div class="timers-desktop-only">
+                    @* Die Timer-Anzeige für die Desktop-Ansicht. *@
+                    <div class="timers-desktop-only">
                         <TimersDisplay WhiteTimeDisplay="@GameCoreState.WhiteTimeDisplay"
                                        BlackTimeDisplay="@GameCoreState.BlackTimeDisplay"
-                                 
-       CurrentTurnPlayer="@GameCoreState.CurrentTurnPlayer"
+                                       CurrentTurnPlayer="@GameCoreState.CurrentTurnPlayer"
                                        PlayerNames="@GameCoreState.PlayerNames"
                                        EndGameMessage="@GameCoreState.EndGameMessage" />
-               
-     </div>
+                    </div>
 
+                    @* Die Historie der gespielten Karten. *@
                     <div class="played-cards-history-display-wrapper @(!_showMobilePlayedCardsHistory ? "hidden-on-mobile" : "")">
                         <PlayedCardsHistoryDisplay MyPlayedCards="@CardState.MyPlayedCardsForHistory"
                                                    OpponentPlayedCards="@CardState.OpponentPlayedCardsForHistory"
-                      
-                              OnPlayedCardSelected="@HandlePlayedCardSelected" />
+                                                   OnPlayedCardSelected="@HandlePlayedCardSelected" />
                     </div>
-
+                    
+                    @* Unterer Bereich des Seiten-Panels. *@
                     <div class="bottom-game-elements">
+                        @* Die Anzeige der Handkarten. *@
                         <HandCardsDisplay PlayerHand="@CardState.PlayerHandCards"
-    
-                                       IsSelectionDisabled="@(CardState.IsCardActivationPending || ModalState.ShowCardInfoPanelModal || ModalState.ShowPieceSelectionModal)" />
+                                          IsSelectionDisabled="@(CardState.IsCardActivationPending || ModalState.ShowCardInfoPanelModal || ModalState.ShowPieceSelectionModal)" />
+                        @* Der Nachziehstapel. Auf Mobilgeräten kann ein Klick darauf die Historie ein-/ausblenden. *@
                         <div @onclick="ToggleMobilePlayedCardsHistory" class="draw-pile-toggle-history-mobile">
                             <DrawPilesDisplay MyDrawPileCount="@CardState.MyDrawPileCount" />
- 
                         </div>
                     </div>
                 </div>
@@ -135,23 +137,22 @@
     }
     else
     {
-        <div 
- class="welcome-container-fullpage">
+        @* --- WILLKOMMENS-BILDSCHIRM --- *@
+        @* Dieser Block wird angezeigt, wenn kein Spiel aktiv ist. Er dient als Landing-Page. *@
+        <div class="welcome-container-fullpage">
             <div class="static-cards-container">
                 <div class="static-card-wrapper static-card-1">
                     <img src="img/cards/templateback.png" alt="Kartenrücken" />
                 </div>
                 <div class="static-card-wrapper static-card-2">
-            
-         <img src="img/cards/templateback.png" alt="Kartenrücken" />
+                    <img src="img/cards/templateback.png" alt="Kartenrücken" />
                 </div>
                 <div class="static-card-wrapper static-card-3">
                     <img src="img/cards/templateback.png" alt="Kartenrücken" />
                 </div>
             </div>
 
-    
-         <div class="logo-text-title">SchachT</div>
+            <div class="logo-text-title">SchachT</div>
             <div class="logo-text-subtitle">Schach mit Twist</div>
         </div>
     }
@@ -159,21 +160,20 @@
 </div>
 
 
+@* --- GLOBALE ANIMATIONEN UND MODALS --- *@
+@* Diese Komponenten sind immer im DOM vorhanden, aber ihre Sichtbarkeit wird durch ihre internen Zustände gesteuert. *@
+
 @if (AnimationState != null)
 {
     <CardActivationAnimation IsVisible="AnimationState.IsCardActivationAnimating"
                              CardToDisplay="AnimationState.CardForAnimation"
-                           
-   IsOwnCardAnimation="AnimationState.IsOwnCardForAnimation"
-           
-                  OnAnimationFinished="HandleGenericAnimationFinished" />
+                             IsOwnCardAnimation="AnimationState.IsOwnCardForAnimation"
+                             OnAnimationFinished="HandleGenericAnimationFinished" />
 
     <CardSwapSpecificAnimation IsVisible="AnimationState.IsCardSwapAnimating"
                                CardGiven="AnimationState.CardGivenForSwap"
                                CardReceived="AnimationState.CardReceivedForSwap"
- 
-              
-                 OnSwapAnimationFinished="HandleSwapAnimationFinished" />
+                               OnSwapAnimationFinished="HandleSwapAnimationFinished" />
 }
 
 @if (ModalState != null)
@@ -182,19 +182,15 @@
     {
         <CardInfoPanel IsVisible="ModalState.ShowCardInfoPanelModal"
                        CardToDisplay="ModalState.CardForInfoPanelModal"
-                       
- IsActivatable="ModalState.IsCardInInfoPanelModalActivatable"
-             
-          IsPreviewOnly="ModalState.IsCardInInfoPanelModalPreviewOnly"
+                       IsActivatable="ModalState.IsCardInInfoPanelModalActivatable"
+                       IsPreviewOnly="ModalState.IsCardInInfoPanelModalPreviewOnly"
                        OnActivateCard="HandleActivateCardFromModal"
                        OnCancelCardSelectionOrCloseModal="HandleCloseCardInfoModal" />
     }
 
     <CreateGameModal IsVisible="ModalState.ShowCreateGameModal"
-                     
- OnClose="CloseCreateGameModal"
-             
-        OnCreateGame="@SubmitCreateGame" />
+                     OnClose="CloseCreateGameModal"
+                     OnCreateGame="@SubmitCreateGame" />
 
     <JoinGameModal IsVisible="ModalState.ShowJoinGameModal"
                    OnClose="CloseJoinGameModal"
@@ -202,38 +198,29 @@
                    InitialGameId="@ModalState.GameIdInputForJoinModal" />
 
     <InviteLinkModal IsVisible="ModalState.ShowInviteLinkModal"
-          
-            InviteLink="@InviteLink"
-  
-                   OnClose="@ModalState.CloseInviteLinkModal" />
+                     InviteLink="@InviteLink"
+                     OnClose="@ModalState.CloseInviteLinkModal" />
 
     <PieceSelectionModal IsVisible="@ModalState.ShowPieceSelectionModal"
                          Title="@ModalState.PieceSelectionModalTitle"
                          PromptMessage="@ModalState.PieceSelectionModalPrompt"
-            
-              
-Choices="@(ModalState.PieceSelectionModalChoices ?? new List<PieceSelectionChoiceInfo>())"
+                         Choices="@(ModalState.PieceSelectionModalChoices ?? new List<PieceSelectionChoiceInfo>())"
                          PlayerColor="@ModalState.PieceSelectionModalPlayerColor"
                          ShowCancelButton="@ModalState.PieceSelectionModalShowCancelButton"
                          OnPieceSelected="@HandlePieceTypeSelectedFromModal"
-                      
-  
-  OnCancelled="@HandlePieceSelectionModalCancelled" />
+                         OnCancelled="@HandlePieceSelectionModalCancelled" />
 
-    <ErrorModal 
-        IsVisible="@ModalState.ShowErrorModal"
-        ErrorMessage="@ModalState.ErrorModalMessage"
-        OnClose="@ModalState.CloseErrorModal" />
+    <ErrorModal IsVisible="@ModalState.ShowErrorModal"
+                ErrorMessage="@ModalState.ErrorModalMessage"
+                OnClose="@ModalState.CloseErrorModal" />
 
-    @* HINZUGEFÜGT: Das neue WinLossModal wird hier instanziiert *@
+    @* Das Modal für das Spielende (Sieg/Niederlage). *@
     @if(GameCoreState != null)
     {
-        <WinLossModal 
-            IsVisible="!string.IsNullOrEmpty(GameCoreState.EndGameMessage)"
-            Message="@GameCoreState.EndGameMessage"
-            OnNewGameClicked="StartNewGameFromEndGame"
- 
-           OnDownloadHistoryClicked="DownloadGameHistory"
-           OnClose="CloseWinLossModal" />
+        <WinLossModal IsVisible="!string.IsNullOrEmpty(GameCoreState.EndGameMessage)"
+                      Message="@GameCoreState.EndGameMessage"
+                      OnNewGameClicked="StartNewGameFromEndGame"
+                      OnDownloadHistoryClicked="DownloadGameHistory"
+                      OnClose="CloseWinLossModal" />
     }
 }

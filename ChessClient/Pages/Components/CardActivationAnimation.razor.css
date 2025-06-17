@@ -1,4 +1,5 @@
-﻿.card-animation-overlay {
+﻿/* Das Overlay, das den gesamten Bildschirm abdunkelt, während die Animation läuft. */
+.card-animation-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -10,24 +11,29 @@
     justify-content: center;
     z-index: 2000;
     opacity: 0;
+    /* Führt die Einblend-Animation aus. */
     animation: cardOverlayFadeIn 0.3s ease-out forwards;
 }
 
+/* Keyframe-Animation für das Einblenden des Overlays. */
 @keyframes cardOverlayFadeIn {
     to {
         opacity: 1;
     }
 }
 
+/* Der Container für die animierte Karte in der Mitte des Bildschirms. */
 .card-animation-container {
     width: 280px;
     height: 390px;
     transform: scale(0.5);
     opacity: 0;
+    /* Startet die Pop-In-Animation mit einer leichten Verzögerung. */
     animation: cardPopIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.1s forwards;
     position: relative;
 }
 
+/* Keyframe-Animation für das "Hineinpoppen" der Karte von unten mit einem leichten "Bounce"-Effekt. */
 @keyframes cardPopIn {
     0% {
         transform: scale(0.5) translateY(50px);
@@ -35,38 +41,43 @@
     }
 
     100% {
-        transform: scale(1.1);
+        transform: scale(1.1); /* Skaliert leicht über die Endgrösse hinaus. */
         opacity: 1;
     }
 }
 
+/* Ein Wrapper, der die 3D-Perspektive für den Flip-Effekt ermöglicht. */
 .class_flipper_wrapper_for_perspective {
     perspective: 1200px;
     width: 100%;
     height: 100%;
 }
 
+/* Der eigentliche Flipper, der die 3D-Rotation um die Y-Achse durchführt. */
 .card-flipper {
     width: 100%;
     height: 100%;
     transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
     transform-style: preserve-3d;
     position: relative;
+    /* Hardware-Beschleunigung für flüssigere Animationen erzwingen. */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
 }
 
+    /* Diese CSS-Klasse wird per C# gesetzt, um die Drehung um 180 Grad auszulösen. */
     .card-flipper.is-flipped {
         transform: rotateY(-180deg);
     }
 
+/* Gemeinsames Styling für die Vorder- und Rückseite der Karte. */
 .card-face {
     position: absolute;
     width: 100%;
     height: 100%;
+    /* Versteckt die Rückseite einer 3D-transformierten Fläche. */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    -webkit-transform-style: preserve-3d;
     transform-style: preserve-3d;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
@@ -83,6 +94,7 @@
     background-color: #2C2C2C;
 }
 
+/* Die Rückseite der Karte ist initial um 180 Grad gedreht. */
 .card-back {
     transform: rotateY(180deg);
     background-color: transparent;
@@ -91,16 +103,19 @@
     justify-content: center;
 }
 
+    /* Stellt sicher, dass das Bild der Kartenrückseite den Container füllt. */
     .card-back img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
         border-radius: 15px;
+        /* Fix für Rendering-Glitches in manchen Browsern. */
         -webkit-transform: translateZ(0.1px);
         transform: translateZ(0.1px);
     }
 
+/* Diese Stile definieren das Aussehen der Kartenvorderseite und sind eine Kopie aus CardInfoPanel. */
 .card-visual-representation-animated {
     position: relative;
     width: 100%;
@@ -167,10 +182,12 @@
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
 }
 
+/* Aktiviert die Leucht-Animation, wenn die entsprechende Klasse gesetzt wird. */
 .card-animation-container.glow-animation-active .card-flipper .card-face.card-front {
     animation: cardGlowEffectAnimated 0.4s ease-in-out infinite alternate;
 }
 
+/* Keyframe-Animation für den pulsierenden Leuchteffekt. */
 @keyframes cardGlowEffectAnimated {
     from {
         box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 15px #A55B4B, 0 0 25px rgba(165, 91, 75, 0.8), 0 0 35px rgba(165, 91, 75, 0.6);
@@ -181,10 +198,12 @@
     }
 }
 
+/* Löst die "Wegfliegen"-Animation aus. */
 .card-animation-container.animate-to-history {
     animation: moveToHistoryAndFade 0.25s ease-in forwards;
 }
 
+/* Keyframe-Animation für das Verkleinern und Wegbewegen der Karte. */
 @keyframes moveToHistoryAndFade {
     0% {
         transform: scale(1.1) translate(0, 0);
@@ -192,7 +211,8 @@
     }
 
     100% {
-        transform: scale(0.05) translate(35vw, 25vh);
+        /* Bewegt die Karte diagonal nach rechts oben aus dem Bild. */
+        transform: scale(0.05) translate(35vw, -25vh);
         opacity: 0;
     }
 }

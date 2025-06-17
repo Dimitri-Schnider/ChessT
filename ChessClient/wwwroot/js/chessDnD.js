@@ -63,23 +63,24 @@
                         originalElement.classList.remove('dragging-active-piece');
                         originalElement.style.zIndex = "10";
 
-                        // KORREKTUR: Immer zur Ausgangsposition zurückkehren.
-                        // Die finale Position wird bei einem ERFOLGREICHEN Zug durch das Blazor-Rendering bestimmt.
-                        // Bei einem FEHLGESCHLAGENEN Zug ist dies die korrekte Endposition.
-                        // Dies löst das Desynchronisationsproblem.
-                        originalElement.style.transform = 'translate(0px, 0px) scale(1)';
+                        // KORREKTUR: Dies ist die Logik für die Optimistic UI.
+                        // Wenn der Drop auf einem gültigen Feld war, lassen wir die Figur dort.
+                        // Ansonsten setzen wir sie auf ihren Ursprung zurück.
+                        const droppedOnHighlightedSquare = window.chessDnD._wasDropOnHighlightedSquare;
+                        if (!droppedOnHighlightedSquare) {
+                            // Nur zurücksetzen, wenn der Drop NICHT auf einem gültigen Feld war.
+                            originalElement.style.transform = 'translate(0px, 0px) scale(1)';
+                        }
+                        // Wenn der Drop gültig war, bleibt die transform-Eigenschaft bestehen,
+                        // bis Blazor die Komponente neu rendert.
 
                         originalElement.removeAttribute('data-drag-x');
                         originalElement.removeAttribute('data-drag-y');
                         if (originalElement._initialRect) delete originalElement._initialRect;
 
-                        // Wir müssen dem .NET-Code immer noch mitteilen, ob der Drop auf einem (visuell) gültigen Feld war,
-                        // damit der Move-Request ausgelöst werden kann. Die Logik hierfür bleibt gleich.
-                        const droppedOnHighlightedSquare = window.chessDnD._wasDropOnHighlightedSquare;
-
                         if (currentPieceCoord) {
+                            // Die .NET-Seite wird benachrichtigt. Sie entscheidet, ob der Zug final ist oder rückgängig gemacht wird.
                             dotNetHelper.invokeMethodAsync('JsOnDragEnd', currentPieceCoord, droppedOnHighlightedSquare)
-                                .then(() => console.log(`[DnD END ${currentPieceCoord}] .NET JsOnDragEnd call finished.`))
                                 .catch(e => console.error(`[DnD END ${currentPieceCoord}] ERROR invoking .NET JsOnDragEnd`, e));
                         }
 

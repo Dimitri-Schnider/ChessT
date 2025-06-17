@@ -4,15 +4,18 @@ using System.Linq;
 
 namespace ChessClient.Utils
 {
+    // Stellt clientseitige Hilfsmethoden für schachfigurenspezifische Logik bereit.
     public static class PieceHelperClient
     {
-        // Gibt die eindeutige(n) Standard-Startposition(en) für einen Figurentyp und eine Farbe zurück.
-        // Angepasste Version für Client-Seite.
+        // Gibt die ursprünglichen Startfelder für einen bestimmten Figurentyp und eine Farbe zurück.
+        // Dies ist besonders für den "Wiedergeburt"-Karteneffekt nützlich.
         public static List<string> GetOriginalStartSquares(PieceType pieceType, Player color)
         {
             var squares = new List<string>();
-            int rankRow = (color == Player.White) ? 7 : 0; // 0-basierter Index für das Brett-Array
+            // Bestimmt die Grundreihe basierend auf der Spielerfarbe (0 für Schwarz, 7 für Weiss).
+            int rankRow = (color == Player.White) ? 7 : 0;
 
+            // Fügt die entsprechenden Startkoordinaten basierend auf dem Figurentyp hinzu.
             switch (pieceType)
             {
                 case PieceType.King:
@@ -33,7 +36,7 @@ namespace ChessClient.Utils
                     squares.Add(PositionHelper.ToAlgebraic(rankRow, 1)); // b-Linie
                     squares.Add(PositionHelper.ToAlgebraic(rankRow, 6)); // g-Linie
                     break;
-                    // Bauern werden hier nicht behandelt
+                    // Bauern werden hier nicht berücksichtigt, da sie nicht wiederbelebt werden können.
             }
             return squares;
         }

@@ -4,14 +4,19 @@
 @using ChessNetwork.Configuration
 @inject ICardState CardStateLocal
 
+@* Diese Komponente ist für die Anzeige der Karten zuständig, die der Spieler auf der Hand hält. *@
+@* Sie unterstützt horizontales Scrollen, das Hervorheben der ausgewählten Karte und eine 3D-Flip-Animation beim Aufdecken der Karten. *@
 <div class="hand-cards-display-wrapper">
+    @* Scroll-Button nach links. Ist deaktiviert, wenn nicht weiter nach links gescrollt werden kann. *@
     <button @onclick="ScrollLeft" class="scroll-arrow left-arrow" disabled="@(!canScrollLeft)" title="Nach links scrollen">
         <i class="bi bi-arrow-left-circle"></i>
     </button>
 
+    @* Der scrollbare Container für die Karten. '@ref' und '@onscroll' sind für die JS-Interop-Logik zur Steuerung der Scroll-Buttons. *@
     <div @ref="handCardsContainerRef" class="hand-cards-container snaps-inline @(IsSelectionDisabled ? "selection-disabled" : "")" @onscroll="HandleScroll">
         @if (PlayerHand != null && PlayerHand.Any())
         {
+            @* Iteriert durch die Handkarten des Spielers. *@
             @foreach (var (card, index) in PlayerHand.Select((value, i) => (value, i)))
             {
                 <div @key="card.InstanceId"
@@ -19,9 +24,12 @@
                      @onclick="() => HandleCardClick(card)"
                      title="@(CardStateLocal.AreCardsRevealed ? $"{card.Name}: {card.Description}" : "Unbekannte Karte")">
 
+                    @* Container für die 3D-Perspektive der Flip-Animation. *@
                     <div class="hand-card-perspective">
+                        @* Der Flipper-Container, der die eigentliche Drehung ausführt. *@
+                        @* Die 'is-flipped'-Klasse wird entfernt, sobald 'AreCardsRevealed' true wird, was die Drehung zur Vorderseite auslöst. *@
                         <div class="hand-card-flipper @(CardStateLocal.AreCardsRevealed ? "" : "is-flipped")" style="@($"transition-delay: {index * 100}ms")">
-                            @* VORDERSEITE *@
+                            @* VORDERSEITE der Karte *@
                             <div class="hand-card-face card-front">
                                 <div class="card-visual-representation-hand">
                                     <div class="card-art-layer-hand">
@@ -35,7 +43,7 @@
                                     </div>
                                 </div>
                             </div>
-                            @* RÜCKSEITE *@
+                            @* RÜCKSEITE der Karte *@
                             <div class="hand-card-face card-back">
                                 <img src="@CardConstants.DefaultCardBackImageUrl" alt="Kartenrückseite" class="card-frame-image-hand" />
                             </div>
@@ -50,6 +58,7 @@
         }
     </div>
 
+    @* Scroll-Button nach rechts. *@
     <button @onclick="ScrollRight" class="scroll-arrow right-arrow" disabled="@(!canScrollRight)" title="Nach rechts scrollen">
         <i class="bi bi-arrow-right-circle"></i>
     </button>

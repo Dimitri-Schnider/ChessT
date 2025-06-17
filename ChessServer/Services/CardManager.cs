@@ -65,7 +65,7 @@ namespace ChessServer.Services
                 var otherCardsInDeck = deck.Where(c => c.Category != CardCategory.Time).ToList();
 
                 // Füge eine Zeitkarte hinzu, falls vorhanden
-                if (timeCardsInDeck.Any())
+                if (timeCardsInDeck.Count != 0)
                 {
                     var timeCardToAdd = timeCardsInDeck.First();
                     hand.Add(timeCardToAdd);

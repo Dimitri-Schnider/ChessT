@@ -1,31 +1,34 @@
-﻿// File: [SolutionDir]/ChessClient/Pages/Components/PieceSelectionModal.razor.cs
-using ChessLogic;
+﻿using ChessLogic;
 using ChessNetwork.DTOs;
 using ChessClient.Extensions;
 using Microsoft.AspNetCore.Components;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ChessClient.Models; // Hinzugefügt für PieceSelectionChoiceInfo
+using ChessClient.Models;
 
 namespace ChessClient.Pages.Components
 {
+    // Die Code-Behind-Klasse für das PieceSelectionModal. Verwaltet die Logik der Figurenauswahl.
     public partial class PieceSelectionModal : ComponentBase
     {
         [Parameter] public bool IsVisible { get; set; }
         [Parameter] public string Title { get; set; } = "Figur wählen";
         [Parameter] public string PromptMessage { get; set; } = "Wähle eine Figur:";
-        // GEÄNDERT: Typ von List<PieceType>? zu List<PieceSelectionChoiceInfo>?
+
+        // Eine Liste von 'PieceSelectionChoiceInfo'-Objekten. Diese enthalten nicht nur den Figurentyp,
+        // sondern auch die Information, ob die Auswahl gültig ist (CanBeRevivedOnBoard) und einen Tooltip.
         [Parameter] public List<PieceSelectionChoiceInfo>? Choices { get; set; }
-        [Parameter] public Player PlayerColor { get; set; }
-        [Parameter] public EventCallback<PieceType> OnPieceSelected { get; set; }
-        [Parameter] public EventCallback OnCancelled { get; set; }
-        [Parameter] public bool ShowCancelButton { get; set; } = true;
+        [Parameter] public Player PlayerColor { get; set; }                         // Die Farbe, für die die Figuren angezeigt werden sollen.
+        [Parameter] public EventCallback<PieceType> OnPieceSelected { get; set; }   // Callback, der die ausgewählte Figur zurückgibt.
+        [Parameter] public EventCallback OnCancelled { get; set; }                  // Callback, der bei einem Abbruch aufgerufen wird.
+        [Parameter] public bool ShowCancelButton { get; set; } = true;              // Steuert die Sichtbarkeit des Abbrechen-Buttons.
 
-        private PieceType? SelectedPieceType { get; set; }
-        private string ModalErrorMessage { get; set; } = "";
-        private bool _selectedChoiceIsRevivable;
+        private PieceType? SelectedPieceType { get; set; }                          // Der vom Benutzer aktuell ausgewählte Figurentyp.
+        private string ModalErrorMessage { get; set; } = "";                        // Eine eventuelle Fehlermeldung für den Benutzer.
+        private bool _selectedChoiceIsRevivable;                                    // Interner Merker, ob die ausgewählte Option gültig ist.
 
+        // Setzt den Zustand des Modals zurück, wenn es ausgeblendet wird.
         protected override void OnParametersSet()
         {
             if (!IsVisible)
@@ -36,28 +39,23 @@ namespace ChessClient.Pages.Components
             }
         }
 
-        // GEÄNDERT: Akzeptiert PieceSelectionChoiceInfo
+        // Behandelt den Klick auf eine der Figurenauswahl-Optionen.
         private void SelectPieceType(PieceSelectionChoiceInfo choiceInfo)
         {
+            // Wenn die Auswahl deaktiviert ist (z.B. weil die Startfelder besetzt sind).
             if (!choiceInfo.CanBeRevivedOnBoard)
             {
-                ModalErrorMessage = choiceInfo.TooltipMessage ?? $"{choiceInfo.Type} kann nicht wiederbelebt werden (Startfelder besetzt).";
-                // Optional: Auswahl zurücksetzen oder als ungültig markieren, wenn versucht wird, eine deaktivierte Option zu wählen
-                // SelectedPieceType = null; 
-                // _selectedChoiceIsRevivable = false;
-                // Aktuell wird der Klick nicht verhindert, aber der Bestätigen-Button würde es abfangen.
-                // Besser wäre es, den Klick im UI zu verhindern oder hier die Auswahl nicht zu setzen.
-                // Fürs Erste belassen wir es so, dass der Fehler angezeigt wird.
-                // Wenn der Benutzer dann bestätigt, greift die Logik im HandleConfirm.
-                // Um es klarer zu machen, setzen wir die Auswahl nur, wenn es geht:
-                if (SelectedPieceType == choiceInfo.Type) // Wenn die bereits ausgewählte (ungültige) Option erneut geklickt wird
+                // Zeigt dem Benutzer eine erklärende Fehlermeldung an.
+                ModalErrorMessage = choiceInfo.TooltipMessage ?? $"{choiceInfo.Type} kann nicht wiederbelebt werden.";
+                if (SelectedPieceType == choiceInfo.Type) // Hebt die Auswahl auf, wenn erneut auf die ungültige Option geklickt wird.
                 {
-                    SelectedPieceType = null; // Auswahl aufheben
+                    SelectedPieceType = null;
                     _selectedChoiceIsRevivable = false;
                 }
             }
             else
             {
+                // Wenn die Auswahl gültig ist, wird der Zustand aktualisiert und die Fehlermeldung gelöscht.
                 SelectedPieceType = choiceInfo.Type;
                 _selectedChoiceIsRevivable = true;
                 ModalErrorMessage = "";
@@ -65,33 +63,33 @@ namespace ChessClient.Pages.Components
             StateHasChanged();
         }
 
+        // Behandelt den Klick auf den "Bestätigen"-Button.
         private async Task HandleConfirm()
         {
             if (SelectedPieceType.HasValue && _selectedChoiceIsRevivable)
             {
+                // Wenn eine gültige Auswahl getroffen wurde, wird der OnPieceSelected-Callback ausgelöst.
                 await OnPieceSelected.InvokeAsync(SelectedPieceType.Value);
             }
             else if (SelectedPieceType.HasValue && !_selectedChoiceIsRevivable)
             {
-                // Diese Meldung wird bereits in SelectPieceType gesetzt, falls eine invalide Option geklickt wird.
-                // Hier stellen wir sicher, dass der Fehler auch da ist, falls der State anders zustande kam.
+                // Stellt sicher, dass eine Fehlermeldung angezeigt wird, falls der Button trotz ungültiger Auswahl geklickt wird.
                 var choice = Choices?.FirstOrDefault(c => c.Type == SelectedPieceType.Value);
-                ModalErrorMessage = choice?.TooltipMessage ?? $"{SelectedPieceType.Value} kann nicht wiederbelebt werden (Startfelder besetzt). Bitte wähle eine andere Figur oder breche ab.";
+                ModalErrorMessage = choice?.TooltipMessage ?? $"{SelectedPieceType.Value} kann nicht ausgewählt werden.";
             }
             else
             {
                 ModalErrorMessage = "Bitte wähle eine gültige Figur aus.";
             }
-            // StateHasChanged(); // Wird durch OnPieceSelected oder UI-Interaktion ausgelöst
         }
 
+        // Behandelt den Klick auf den "Abbrechen"-Button.
         private async Task HandleCancel()
         {
             await OnCancelled.InvokeAsync();
         }
 
-        // Diese Methode ist statisch und kann hier verbleiben oder in eine Helper-Klasse ausgelagert werden.
-        // Da sie spezifisch für die Anzeige in diesem Modal ist, ist sie hier gut aufgehoben.
+        // Statische Hilfsmethode, um aus Farbe und Figurentyp das passende PieceDto für die Bildanzeige zu ermitteln.
         protected internal static PieceDto? GetPieceDtoForDisplay(Player color, PieceType pieceType)
         {
             return (color, pieceType) switch
@@ -104,10 +102,7 @@ namespace ChessClient.Pages.Components
                 (Player.Black, PieceType.Rook) => PieceDto.BlackRook,
                 (Player.Black, PieceType.Bishop) => PieceDto.BlackBishop,
                 (Player.Black, PieceType.Knight) => PieceDto.BlackKnight,
-                // Bauern sind typischerweise nicht Teil der Auswahl hier, aber falls doch:
-                // (Player.White, PieceType.Pawn) => PieceDto.WhitePawn, 
-                // (Player.Black, PieceType.Pawn) => PieceDto.BlackPawn,
-                _ => null // Sollte nicht für Standard-Umwandlungs- oder Wiedergeburtsoptionen auftreten
+                _ => null // Andere Fälle wie König oder Bauer sind hier nicht relevant.
             };
         }
     }

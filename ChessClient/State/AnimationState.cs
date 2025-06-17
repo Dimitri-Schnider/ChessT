@@ -1,43 +1,44 @@
-﻿// File: [SolutionDir]\ChessClient\State\AnimationState.cs
-using System;
+﻿using System;
 using ChessNetwork.DTOs;
 
 namespace ChessClient.State
 {
+    // Implementierung der IAnimationState-Schnittstelle.
+    // Verwaltet den Zustand für alle visuellen Vollbild-Animationen.
     public class AnimationState : IAnimationState
     {
-        public event Action? StateChanged;
-        protected virtual void OnStateChanged() => StateChanged?.Invoke();
+        public event Action? StateChanged;                                                      // Event, das UI-Komponenten über Zustandsänderungen informiert.
+        protected virtual void OnStateChanged() => StateChanged?.Invoke();                      // Löst das StateChanged-Event sicher aus.
+        public bool IsCardActivationAnimating { get; private set; }                             // Gibt an, ob die generische Kartenaktivierungs-Animation läuft.
+        public CardDto? CardForAnimation { get; private set; }                                  // Die Karte, die in der generischen Animation angezeigt wird.
+        public bool IsOwnCardForAnimation { get; private set; }                                 // Gibt an, ob die Animation für die eigene Karte oder die des Gegners ist.
+        public bool IsCardSwapAnimating { get; private set; }                                   // Gibt an, ob die spezifische Kartentausch-Animation läuft.
+        public CardDto? CardGivenForSwap { get; private set; }                                  // Die Karte, die der Spieler im Tausch abgibt.
+        public CardDto? CardReceivedForSwap { get; private set; }                               // Die Karte, die der Spieler im Tausch erhält.
+        public CardDto? LastAnimatedCard { get; private set; }                                  // Speichert die zuletzt animierte Karte, um den Kontext nach der Animation zu kennen.
+        public CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; private set; }   // Speichert die Details für eine anstehende Tauschanimation, falls die generische Animation noch läuft.
+        public bool IsGenericAnimationFinishedForSwap { get; private set; }                     // Flag, um zu signalisieren, dass die generische Animation für einen Tausch beendet ist und die spezifische starten kann.
 
-        public bool IsCardActivationAnimating { get; private set; }
-        public CardDto? CardForAnimation { get; private set; }
-        public bool IsOwnCardForAnimation { get; private set; }
-        public bool IsCardSwapAnimating { get; private set; }
-        public CardDto? CardGivenForSwap { get; private set; }
-        public CardDto? CardReceivedForSwap { get; private set; }
-        public CardDto? LastAnimatedCard { get; private set; }
-        public CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; private set; }
-        public bool IsGenericAnimationFinishedForSwap { get; private set; }
-
-        public AnimationState()
-        {
-        }
-        public void SetGenericAnimationFinishedForSwap(bool isFinished) 
+        // Setzt das Flag, dass die generische Animation für den Kartentausch abgeschlossen ist.
+        public void SetGenericAnimationFinishedForSwap(bool isFinished)
         {
             IsGenericAnimationFinishedForSwap = isFinished;
-            // OnStateChanged() ist hier nicht nötig, da dies nur ein Flag für die Logik ist.
         }
 
+        // Speichert die Details für eine anstehende Tauschanimation.
         public void SetPendingSwapAnimationDetails(CardSwapAnimationDetailsDto? details)
         {
             PendingSwapAnimationDetails = details;
             OnStateChanged();
         }
+
+        // Merkt sich die zuletzt animierte Karte.
         public void SetLastAnimatedCard(CardDto card)
         {
             LastAnimatedCard = card;
         }
 
+        // Startet die generische Kartenaktivierungs-Animation.
         public void StartCardActivationAnimation(CardDto card, bool isOwnCard)
         {
             CardForAnimation = card;
@@ -46,13 +47,15 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
+        // Beendet die generische Kartenaktivierungs-Animation und setzt die zugehörigen Zustände zurück.
         public void FinishCardActivationAnimation()
         {
             IsCardActivationAnimating = false;
-            LastAnimatedCard = null; // Zurücksetzen nach Abschluss
+            LastAnimatedCard = null;
             OnStateChanged();
         }
 
+        // Startet die spezifische Kartentausch-Animation.
         public void StartCardSwapAnimation(CardDto cardGiven, CardDto cardReceived)
         {
             CardGivenForSwap = cardGiven;
@@ -61,6 +64,7 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
+        // Beendet die Kartentausch-Animation und setzt die Zustände zurück.
         public void FinishCardSwapAnimation()
         {
             IsCardSwapAnimating = false;

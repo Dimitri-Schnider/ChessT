@@ -22,11 +22,13 @@ else
 
 
 @code {
+    // Steuert die Sichtbarkeit der Landing-Animation.
     private bool showLandingAnimation = true;
 
+    // Wird aufgerufen, wenn die LandingAnimation abgeschlossen ist, und blendet sie aus.
     private void HandleAnimationFinished()
     {
         showLandingAnimation = false;
-        StateHasChanged();
+        StateHasChanged(); // Stellt sicher, dass die UI neu gerendert wird.
     }
 }

@@ -1,34 +1,42 @@
-﻿@* File: [SolutionDir]/ChessClient/Pages/Components/PieceSelectionModal.razor *@
-@using ChessLogic
+﻿@using ChessLogic
 @using ChessNetwork.DTOs
 @using ChessClient.Extensions
 @using ChessClient.Models
 
+@* Diese Komponente stellt einen wiederverwendbaren Modal-Dialog zur Auswahl einer Schachfigur dar. *@
+@* Sie wird sowohl für die Bauernumwandlung als auch für den "Wiedergeburt"-Karteneffekt verwendet. *@
 @if (IsVisible)
 {
-    // Modal-Überlagerung
+    @* Das Hintergrund-Overlay. Ein Klick darauf bricht den Vorgang ab (ruft HandleCancel auf). *@
     <div class="modal-backdrop show" @onclick="HandleCancel"></div>
-    // Hauptcontainer des Modals
+
+    @* Hauptcontainer des Modals. *@
     <div class="modal show piece-selection-modal" tabindex="-1" style="display: block;" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
+                    @* Der Titel wird dynamisch gesetzt (z.B. "Figur umwandeln" oder "Figur wiederbeleben"). *@
                     <h5 class="modal-title">@Title</h5>
-                    @* Kein Schliessen-Button im Header, um Auswahl zu erzwingen oder definierten Abbruch-Pfad zu nutzen *@
                 </div>
                 <div class="modal-body">
+                    @* Die Aufforderung an den Benutzer wird ebenfalls dynamisch gesetzt. *@
                     <p>@PromptMessage</p>
                     @if (Choices != null && Choices.Any())
                     {
                         <div class="piece-choices">
-                            @foreach (var choiceInfo in Choices) @* Iteriert nun über PieceSelectionChoiceInfo *@
+                            @* Iteriert über die Liste der Auswahlmöglichkeiten (PieceSelectionChoiceInfo-Objekte). *@
+                            @foreach (var choiceInfo in Choices)
                             {
+                                @* Ermittelt das korrekte DTO, um das Bild der Figur basierend auf Typ und Farbe anzuzeigen. *@
                                 var pieceDtoToDisplay = GetPieceDtoForDisplay(PlayerColor, choiceInfo.Type);
                                 if (pieceDtoToDisplay.HasValue)
                                 {
+                                    @* Container für eine einzelne Auswahloption. Die CSS-Klassen werden dynamisch basierend auf dem Zustand gesetzt. *@
                                     <div class="piece-choice @(SelectedPieceType == choiceInfo.Type ? "selected" : "") @(!choiceInfo.CanBeRevivedOnBoard ? "disabled-choice" : "")"
                                          @onclick="() => SelectPieceType(choiceInfo)"
                                          title="@(choiceInfo.TooltipMessage ?? choiceInfo.Type.ToString())">
+                                        @* Zeigt eine hilfreiche Tooltip-Nachricht an. *@
+
                                         <img src="@pieceDtoToDisplay.Value.ToImagePath()" alt="@choiceInfo.Type.ToString()" />
                                         <span>@choiceInfo.Type.ToString()</span>
                                     </div>
@@ -40,17 +48,19 @@
                     {
                         <p class="text-muted">Keine gültigen Optionen verfügbar.</p>
                     }
+                    @* Zeigt eine Validierungs-Fehlermeldung an, wenn eine ungültige Auswahl getroffen wird. *@
                     @if (!string.IsNullOrWhiteSpace(ModalErrorMessage))
                     {
                         <div class="alert alert-warning mt-2">@ModalErrorMessage</div>
                     }
                 </div>
                 <div class="modal-footer">
+                    @* Der Abbrechen-Button wird nur angezeigt, wenn es die Logik erlaubt (z.B. bei Wiedergeburt, aber nicht bei Bauernumwandlung). *@
                     @if (ShowCancelButton)
                     {
                         <button type="button" class="btn btn-secondary" @onclick="HandleCancel">Abbrechen</button>
                     }
-                    @* Bestätigen-Button ist deaktiviert, wenn nichts ausgewählt oder das Ausgewählte nicht wiederbelebt werden kann *@
+                    @* Der Bestätigen-Button ist deaktiviert, wenn keine Figur ausgewählt wurde oder die ausgewählte Option nicht gültig ist. *@
                     <button type="button" class="btn btn-primary" @onclick="HandleConfirm"
                             disabled="@(SelectedPieceType == null || (Choices != null && Choices.FirstOrDefault(c => c.Type == SelectedPieceType)?.CanBeRevivedOnBoard == false))">
                         Bestätigen

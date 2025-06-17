@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]/ChessClient/State/IModalState.cs
-using System;
+﻿using System;
 using ChessLogic;
 using ChessNetwork.DTOs;
 using System.Collections.Generic;
@@ -7,39 +6,42 @@ using ChessClient.Models;
 
 namespace ChessClient.State
 {
+    // Definiert den Vertrag für den State-Container, der alle Modal-Dialoge verwaltet.
     public interface IModalState
     {
+        // Event zur Benachrichtigung über Zustandsänderungen.
         event Action? StateChanged;
+
+        // --- Properties für die verschiedenen Modals ---
         bool ShowCreateGameModal { get; }
+        bool ShowJoinGameModal { get; }
+        bool ShowInviteLinkModal { get; }
+        bool ShowPieceSelectionModal { get; }
+        bool ShowPawnPromotionModalSpecifically { get; }
+        bool ShowCardInfoPanelModal { get; }
+        bool ShowErrorModal { get; }
+
+        // --- Daten, die von den Modals benötigt werden ---
         string PlayerNameForCreateModal { get; }
         Player SelectedColorForCreateModal { get; }
         int SelectedInitialTimeMinutesForCreateModal { get; }
-        bool ShowJoinGameModal { get; }
         string PlayerNameForJoinModal { get; }
         string GameIdInputForJoinModal { get; }
-        bool ShowInviteLinkModal { get; }
         string InviteLink { get; }
-
-        bool ShowPieceSelectionModal { get; }
         string PieceSelectionModalTitle { get; }
         string PieceSelectionModalPrompt { get; }
         List<PieceSelectionChoiceInfo>? PieceSelectionModalChoices { get; }
         Player PieceSelectionModalPlayerColor { get; }
         bool PieceSelectionModalShowCancelButton { get; }
-
-        bool ShowPawnPromotionModalSpecifically { get; }
         MoveDto? PendingPromotionMove { get; }
-
-        // NEU: Für CardInfoPanel-Modal
-        bool ShowCardInfoPanelModal { get; }
         CardDto? CardForInfoPanelModal { get; }
         bool IsCardInInfoPanelModalActivatable { get; }
         bool IsCardInInfoPanelModalPreviewOnly { get; }
-        bool ShowErrorModal { get; }
         string ErrorModalMessage { get; }
+
+        // --- Methoden zur Steuerung der Modals ---
         void OpenErrorModal(string message, bool closeOtherModals = true);
         void CloseErrorModal();
-
         void OpenCreateGameModal();
         void CloseCreateGameModal();
         void UpdateCreateGameModalArgs(string name, Player color, int timeMinutes);
@@ -50,12 +52,9 @@ namespace ChessClient.State
         void CloseInviteLinkModal();
         void OpenPieceSelectionModal(string title, string prompt, List<PieceSelectionChoiceInfo> choices, Player playerColor, bool showCancelButton = true);
         void ClosePieceSelectionModal();
-
         void OpenPawnPromotionModal(MoveDto pendingMove, Player myColor);
         void ClosePawnPromotionModal();
         void ClearPendingPromotionMove();
-
-        // NEU: Methoden für CardInfoPanel-Modal
         void OpenCardInfoPanelModal(CardDto card, bool isActivatable, bool isPreviewOnly);
         void CloseCardInfoPanelModal();
     }

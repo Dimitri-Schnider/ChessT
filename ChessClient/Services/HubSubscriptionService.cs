@@ -11,8 +11,11 @@ using System.Threading.Tasks;
 
 namespace ChessClient.Services
 {
+    // Dieser Dienst ist verantwortlich für das Abonnieren und Behandeln von Echtzeit-Nachrichten vom SignalR Hub.
+    // Er agiert als Brücke zwischen dem Hub und den clientseitigen State-Containern.
     public class HubSubscriptionService : IAsyncDisposable
     {
+        // Alle benötigten Dienste und State-Container.
         private readonly ChessHubService _hubService;
         private readonly IGameCoreState _gameCoreState;
         private readonly ICardState _cardState;
@@ -22,6 +25,7 @@ namespace ChessClient.Services
         private readonly IModalState _modalState;
         private readonly IChessLogger _logger;
 
+        // Konstruktor zur Initialisierung der Dienste.
         public HubSubscriptionService(
             ChessHubService hubService,
             IGameCoreState gameCoreState,
@@ -42,12 +46,14 @@ namespace ChessClient.Services
             _logger = logger;
         }
 
+        // Initialisiert den Dienst, indem die Hub-Events abonniert werden.
         public void Initialize()
         {
-            UnsubscribeFromHubEvents();
+            UnsubscribeFromHubEvents(); // Stellt sicher, dass keine alten Abonnements bestehen.
             SubscribeToHubEvents();
         }
 
+        // Abonniert alle relevanten Events vom ChessHubService.
         private void SubscribeToHubEvents()
         {
             _hubService.OnTurnChanged += HandleHubTurnChangedAsyncWrapper;
@@ -64,6 +70,7 @@ namespace ChessClient.Services
             _hubService.OnCardPlayed += HandleCardPlayedNotificationClient;
         }
 
+        // Entfernt alle Abonnements, um Memory Leaks zu vermeiden.
         private void UnsubscribeFromHubEvents()
         {
             _hubService.OnTurnChanged -= HandleHubTurnChangedAsyncWrapper;
@@ -80,28 +87,40 @@ namespace ChessClient.Services
             _hubService.OnCardPlayed -= HandleCardPlayedNotificationClient;
         }
 
+        // Wrapper-Methode, um die asynchrone Behandlung des OnTurnChanged-Events sicher aufzurufen.
         private void HandleHubTurnChangedAsyncWrapper(BoardDto newBoard, Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, List<AffectedSquareInfo>? cardEffectSquaresFromServer)
         {
-            // Führt die asynchrone Methode "fire-and-forget" aus.
-            // Die Fehlerbehandlung findet innerhalb der Methode statt.
+            // Führt die asynchrone Methode "fire-and-forget" aus. Die Fehlerbehandlung findet innerhalb der Methode statt.
             _ = HandleHubTurnChangedAsync(newBoard, nextPlayer, statusForNextPlayer, lastMoveFromServerFrom, lastMoveFromServerTo, cardEffectSquaresFromServer);
         }
 
+        // Die zentrale Methode zur Verarbeitung von Spielzugs-Updates vom Server.
         private async Task HandleHubTurnChangedAsync(BoardDto newBoard, Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, List<AffectedSquareInfo>? cardEffectSquaresFromServer)
         {
             _logger.LogHandleHubTurnChangedClientInfo(nextPlayer, statusForNextPlayer, lastMoveFromServerFrom, lastMoveFromServerTo, cardEffectSquaresFromServer?.Count ?? 0);
+
+            // Behandelt die Bestätigung eines optimistischen Zugs.
+            if (_gameCoreState.IsAwaitingMoveConfirmation)
+            {
+                // Der Zustand wird mit der Wahrheit des Servers überschrieben.
+                _gameCoreState.ConfirmOptimisticMove(newBoard);
+            }
+            else
+            {
+                // Normales Update des Bretts, wenn kein optimistischer Zug anstand.
+                _gameCoreState.UpdateBoard(newBoard);
+            }
+
+            // Setzt den Wartezustand nach einer Kartenaktion zurück.
             if (_cardState.IsAwaitingTurnConfirmation)
             {
                 _cardState.SetAwaitingTurnConfirmation(false);
-                _logger.LogAwaitingTurnConfirmationStatus(false, "[HubSubs] Server turn confirmation received.");
             }
 
-            Player playerWhoseTurnItWas = _gameCoreState.CurrentTurnPlayer ??
-            Player.None;
-
-            _gameCoreState.UpdateBoard(newBoard);
+            Player playerWhoseTurnItWas = _gameCoreState.CurrentTurnPlayer ?? Player.None;
             _gameCoreState.SetCurrentTurnPlayer(nextPlayer);
 
+            // Spezielle Logik zur Handhabung der Highlights während eines "Extrazuges".
             bool highlightLogicWasHandledByExtraTurn = false;
             if (_gameCoreState.IsExtraTurnSequenceActive && _gameCoreState.CurrentPlayerInfo != null && _gameCoreState.MyColor == playerWhoseTurnItWas)
             {
@@ -115,13 +134,12 @@ namespace ChessClient.Services
                 }
             }
 
+            // Standard-Highlight-Logik für normale Züge oder Karteneffekte.
             if (!highlightLogicWasHandledByExtraTurn)
             {
                 if (cardEffectSquaresFromServer != null && cardEffectSquaresFromServer.Count != 0)
                 {
-                    _highlightState.SetHighlightForCardEffect(
-                        cardEffectSquaresFromServer.Select(eff => (eff.Square, eff.Type)).ToList()
-                    );
+                    _highlightState.SetHighlightForCardEffect(cardEffectSquaresFromServer.Select(eff => (eff.Square, eff.Type)).ToList());
                 }
                 else
                 {
@@ -130,6 +148,7 @@ namespace ChessClient.Services
                 _gameCoreState.SetExtraTurnSequenceActive(false);
             }
 
+            // Bricht eine eventuell laufende Kartenauswahl ab, wenn der Zug wechselt.
             bool isModalInteractionPendingForRebirth = _modalState.ShowPieceSelectionModal && _cardState.ActiveCardForBoardSelection?.Id == CardConstants.Wiedergeburt;
             if (_cardState.IsCardActivationPending && !isModalInteractionPendingForRebirth)
             {
@@ -138,15 +157,19 @@ namespace ChessClient.Services
 
             _cardState.DeselectActiveHandCard();
             _gameCoreState.SetOpponentJoined(true);
-            ProcessEndGameStatus(nextPlayer, statusForNextPlayer);
 
+            // Prüft auf Spielende-Bedingungen und aktualisiert die UI-Nachrichten.
+            ProcessEndGameStatus(nextPlayer, statusForNextPlayer);
             await ProcessGameStatusAsync(statusForNextPlayer, _gameCoreState.MyColor == nextPlayer);
         }
 
+        // Verarbeitet die Benachrichtigung, dass eine Karte gespielt wurde.
         private void HandleCardPlayedNotificationClient(Guid playingPlayerId, CardDto playedCardFullDefinition)
         {
             if (_gameCoreState.CurrentPlayerInfo == null) return;
             var playedCardInfo = new PlayedCardInfo { CardDefinition = playedCardFullDefinition, PlayerId = playingPlayerId, Timestamp = DateTime.UtcNow };
+
+            // Unterscheidet, ob ich oder der Gegner die Karte gespielt hat.
             if (playingPlayerId == _gameCoreState.CurrentPlayerInfo.Id)
             {
                 _cardState.HandleCardPlayedByMe(playedCardFullDefinition.InstanceId, playedCardFullDefinition.Id);
@@ -155,7 +178,6 @@ namespace ChessClient.Services
                 if (playedCardFullDefinition.Id == CardConstants.ExtraZug)
                 {
                     _gameCoreState.SetExtraTurnSequenceActive(true);
-                    _highlightState.SetHighlights(null, null, false);
                 }
             }
             else
@@ -163,18 +185,9 @@ namespace ChessClient.Services
                 _cardState.AddToOpponentPlayedHistory(playedCardInfo);
                 _ = _uiState.SetCurrentInfoMessageForBoxAsync($"Gegner hat Karte '{playedCardFullDefinition.Name}' gespielt!", true, 3000);
             }
-
-            if (_modalState.ShowCardInfoPanelModal && _modalState.CardForInfoPanelModal?.InstanceId == playedCardFullDefinition.InstanceId)
-            {
-                _modalState.CloseCardInfoPanelModal();
-            }
-
-            if (_cardState.IsCardActivationPending && (_cardState.ActiveCardForBoardSelection?.InstanceId == playedCardFullDefinition.InstanceId || _cardState.SelectedCardInstanceIdInHand == playedCardFullDefinition.InstanceId))
-            {
-                _cardState.ResetCardActivationState(false, "Kartenaktion abgeschlossen.");
-            }
         }
 
+        // Startet den visuellen Countdown vor Spielbeginn.
         private async void HandleStartGameCountdown()
         {
             _uiState.ShowCountdown("3");
@@ -185,6 +198,7 @@ namespace ChessClient.Services
             await Task.Delay(1000);
             _uiState.ShowCountdown("Spiel beginnt!");
 
+            // Deckt die Karten auf und markiert das Spiel als laufend.
             _cardState.RevealCards();
             _gameCoreState.SetGameRunning(true);
             _logger.LogCardsRevealed(_gameCoreState.GameId);
@@ -193,13 +207,17 @@ namespace ChessClient.Services
             _uiState.HideCountdown();
         }
 
+        // Setzt die initiale Hand und den Nachziehstapel zu Beginn des Spiels.
         private void HandleReceiveInitialHand(InitialHandDto initialHandDto) => _cardState.SetInitialHand(initialHandDto);
+
+        // Aktualisiert die Handkarten, z.B. nach einem Kartentausch.
         private void HandleUpdateHandContents(InitialHandDto newHandInfo)
         {
             _cardState.UpdateHandAndDrawPile(newHandInfo);
             _ = _uiState.SetCurrentInfoMessageForBoxAsync("Deine Handkarten wurden aktualisiert.", true, 3000);
         }
 
+        // Fügt eine neu gezogene Karte der Hand hinzu.
         private void HandleCardAddedToHand(CardDto drawnCard, int newDrawPileCount)
         {
             _cardState.AddReceivedCardToHand(drawnCard, newDrawPileCount);
@@ -213,6 +231,7 @@ namespace ChessClient.Services
             }
         }
 
+        // Wird vom Server aufgerufen, um den Client zu informieren, dass ein Kartenzug stattgefunden hat (primär für Logging).
         private void HandlePlayerEarnedCardDrawNotification(Guid playerIdToDraw)
         {
             if (_gameCoreState.CurrentPlayerInfo != null && playerIdToDraw == _gameCoreState.CurrentPlayerInfo.Id)
@@ -221,51 +240,42 @@ namespace ChessClient.Services
             }
         }
 
+        // Empfängt die Details für die Kartentausch-Animation.
         private void HandleReceiveCardSwapAnimationDetails(CardSwapAnimationDetailsDto details)
         {
             if (_gameCoreState.CurrentPlayerInfo != null && details.PlayerId == _gameCoreState.CurrentPlayerInfo.Id)
             {
-                // Prüfen, ob die generische Animation bereits fertig ist und auf diese Details wartet.
+                // Prüft, ob die generische Animation bereits beendet ist und auf diese Details wartet.
                 if (_animationState.IsGenericAnimationFinishedForSwap)
                 {
-                    // Ja, sie hat gewartet.
-                    // Starte die Tausch-Animation direkt.
                     _animationState.StartCardSwapAnimation(details.CardGiven, details.CardReceived);
-                    _animationState.SetGenericAnimationFinishedForSwap(false); // Flag zurücksetzen
+                    _animationState.SetGenericAnimationFinishedForSwap(false);
                 }
                 else
                 {
-                    // Nein, die generische Animation läuft noch.
-                    // Speichere die Details für später.
+                    // Speichert die Details, da die generische Animation noch läuft.
                     _animationState.SetPendingSwapAnimationDetails(details);
                 }
-                _logger.LogHandleReceiveCardSwapDetails(details.CardGiven.Name, details.CardReceived.Name, _animationState.IsCardActivationAnimating);
             }
         }
 
+        // Startet die generische Kartenaktivierungs-Animation.
         private void HandlePlayCardActivationAnimation(CardDto cardForAnimation, Guid playerIdActivating, Player playerColorActivating)
         {
-            _logger.LogHandlePlayCardActivationAnimation(cardForAnimation.Id, playerIdActivating, playerColorActivating);
             if (_gameCoreState.CurrentPlayerInfo != null)
             {
-                _animationState.SetLastAnimatedCard(cardForAnimation);
                 _animationState.StartCardActivationAnimation(cardForAnimation, _gameCoreState.MyColor == playerColorActivating);
                 _ = _uiState.SetCurrentInfoMessageForBoxAsync($"Karte '{cardForAnimation.Name}' wird aktiviert...");
-                _logger.LogGenericCardAnimationStartedForCard(cardForAnimation.Name);
             }
         }
 
+        // Aktualisiert die Spielerinformationen, wenn ein Gegner beitritt.
         private async void HandlePlayerJoinedClient(string playerName, int playerCount)
         {
-            // Der Name wird nur als Gegnername gesetzt, wenn der empfangene
-            // Name NICHT der Name des eigenen Spielers ist. Dies funktioniert für beide Clients.
             if (_gameCoreState.CurrentPlayerInfo != null && _gameCoreState.CurrentPlayerInfo.Name != playerName)
             {
-                if (_gameCoreState.MyColor != Player.None)
-                {
-                    Player opponentColor = _gameCoreState.MyColor.Opponent();
-                    _gameCoreState.SetPlayerName(opponentColor, playerName);
-                }
+                Player opponentColor = _gameCoreState.MyColor.Opponent();
+                _gameCoreState.SetPlayerName(opponentColor, playerName);
             }
 
             if (playerCount == 2)
@@ -274,12 +284,9 @@ namespace ChessClient.Services
                 _gameCoreState.SetOpponentJoined(true);
                 await _uiState.SetCurrentInfoMessageForBoxAsync($"Spieler '{playerName}' ist beigetreten. Das Spiel kann beginnen!");
             }
-            else
-            {
-                await _uiState.SetCurrentInfoMessageForBoxAsync($"Spieler '{playerName}' ist beigetreten. Warte auf weiteren Spieler...");
-            }
         }
 
+        // Behandelt den Fall, dass ein Spieler das Spiel verlässt.
         private async void HandlePlayerLeftClient(string playerName, int playerCount)
         {
             if (playerCount < 2)
@@ -293,6 +300,7 @@ namespace ChessClient.Services
             }
         }
 
+        // Aktualisiert die Timer-Anzeigen.
         private void HandleHubTimeUpdate(TimeUpdateDto timeUpdateDto)
         {
             if (!_gameCoreState.IsGameRunning) return;
@@ -303,6 +311,7 @@ namespace ChessClient.Services
             }
         }
 
+        // Verarbeitet den Spielende-Status und setzt die Endspiel-Nachricht.
         private void ProcessEndGameStatus(Player nextPlayer, GameStatusDto status)
         {
             if (string.IsNullOrEmpty(_gameCoreState.EndGameMessage))
@@ -322,6 +331,7 @@ namespace ChessClient.Services
             }
         }
 
+        // Verarbeitet den Schach-Status und zeigt eine entsprechende Nachricht an.
         private async Task ProcessGameStatusAsync(GameStatusDto status, bool isMyCheckStatus)
         {
             if (isMyCheckStatus)
@@ -337,6 +347,7 @@ namespace ChessClient.Services
             }
         }
 
+        // Gibt die abonnierten Hub-Events frei.
         public async ValueTask DisposeAsync()
         {
             UnsubscribeFromHubEvents();

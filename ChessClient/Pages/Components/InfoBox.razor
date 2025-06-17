@@ -1,11 +1,16 @@
 ﻿@implements IDisposable
 
+@* Diese Komponente zeigt eine temporäre oder interaktive Informations-Box oben in der Mitte des Bildschirms an. *@
+@* Sie wird für kurze Benachrichtigungen an den Benutzer verwendet (z.B. "Gegner ist beigetreten" oder "Du stehst im Schach!"). *@
+
+@* Die Box wird nur gerendert, wenn sie sichtbar sein soll und eine Nachricht zum Anzeigen hat. *@
 @if (Visible && !string.IsNullOrEmpty(Message))
 {
     <div class="info-box-wrapper">
         <div class="info-box-message">
             @Message
         </div>
+        @* Der Aktions-Button wird nur angezeigt, wenn dies explizit gefordert wird. *@
         @if (ShowActionButton)
         {
             <button class="btn btn-sm btn-warning info-box-action-button" @onclick="HandleActionButtonClick">

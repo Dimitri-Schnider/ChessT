@@ -3,14 +3,13 @@ using ChessNetwork.DTOs;
 
 namespace ChessClient.Extensions
 {
-    // Statische Klasse für Erweiterungsmethoden von PieceDto.
+    // Stellt Erweiterungsmethoden für das PieceDto zur Verfügung.
     public static class PieceDtoExtensions
     {
-        // Konvertiert ein PieceDto in den entsprechenden Bildpfad.
+        // Konvertiert ein PieceDto in den relativen Pfad seines Bildes im wwwroot-Ordner.
         public static string ToImagePath(this PieceDto piece)
         {
-            // Ordnet jedem Figurentyp und jeder Farbe den Pfad zu seinem Bild zu.
-            // Bilder sind im Ordner wwwroot/img/pieces abgelegt.
+            // Ordnet jedem Enum-Wert den entsprechenden Bildpfad zu.
             return piece switch
             {
                 PieceDto.WhiteKing => "img/pieces/white_king.png",
@@ -27,7 +26,7 @@ namespace ChessClient.Extensions
                 PieceDto.BlackKnight => "img/pieces/black_knight.png",
                 PieceDto.BlackPawn => "img/pieces/black_pawn.png",
 
-                // Wirft eine Ausnahme, wenn ein unbekannter Figurentyp übergeben wird.
+                // Wirft eine Ausnahme, falls ein unbekannter oder ungültiger Wert übergeben wird.
                 _ => throw new ArgumentOutOfRangeException(nameof(piece), piece, "Unbekannte Figur")
             };
         }

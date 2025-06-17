@@ -1,10 +1,14 @@
-﻿<div class="draw-piles-wrapper">
+﻿@* Diese Komponente stellt den Nachziehstapel des Spielers dar. *@
+@* Sie zeigt visuell eine Kartenrückseite und die Anzahl der verbleibenden Karten an. *@
+<div class="draw-piles-wrapper">
     <div class="draw-pile my-pile" title="Dein Nachziehstapel">
         <img src="img/cards/templateback.png" alt="Nachziehstapel" class="draw-pile-image" />
+        @* Zeigt die Anzahl der Karten an, die vom Parameter übergeben wird. *@
         <span>@MyDrawPileCount</span>
     </div>
 </div>
 
 @code {
-    [Parameter] public int MyDrawPileCount { get; set; } // Anzahl der Karten im eigenen Nachziehstapel.
+    // Empfängt die Anzahl der Karten, die sich aktuell im Nachziehstapel des Spielers befinden.
+    [Parameter] public int MyDrawPileCount { get; set; }
 }

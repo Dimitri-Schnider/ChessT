@@ -1,28 +1,34 @@
-﻿// File: [SolutionDir]\ChessClient\State\IAnimationState.cs
-using System;
+﻿using System;
 using ChessNetwork.DTOs;
 
 namespace ChessClient.State
 {
+    // Definiert den Vertrag für den State-Container, der alle UI-Animationen verwaltet.
     public interface IAnimationState
     {
+        // Wird ausgelöst, wenn sich der Animations-Zustand ändert.
         event Action? StateChanged;
+
+        // --- Zustände für die generische Kartenaktivierungs-Animation ---
         bool IsCardActivationAnimating { get; }
         CardDto? CardForAnimation { get; }
         bool IsOwnCardForAnimation { get; }
-        CardDto? LastAnimatedCard { get; }
-        CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; }
-        void SetPendingSwapAnimationDetails(CardSwapAnimationDetailsDto? details);
-        bool IsGenericAnimationFinishedForSwap { get; }
+        CardDto? LastAnimatedCard { get; } // Um nach der Animation den Kontext zu kennen (z.B. für CardSwap)
 
-        void SetLastAnimatedCard(CardDto card);
-        void StartCardActivationAnimation(CardDto card, bool isOwnCard);
-        void FinishCardActivationAnimation();
+        // --- Zustände für die spezifische Kartentausch-Animation ---
         bool IsCardSwapAnimating { get; }
         CardDto? CardGivenForSwap { get; }
         CardDto? CardReceivedForSwap { get; }
+        CardSwapAnimationDetailsDto? PendingSwapAnimationDetails { get; }
+        bool IsGenericAnimationFinishedForSwap { get; }
+
+        // --- Methoden zur Steuerung der Animationen ---
+        void SetLastAnimatedCard(CardDto card);
+        void StartCardActivationAnimation(CardDto card, bool isOwnCard);
+        void FinishCardActivationAnimation();
         void StartCardSwapAnimation(CardDto cardGiven, CardDto cardReceived);
-        void SetGenericAnimationFinishedForSwap(bool isFinished);
         void FinishCardSwapAnimation();
+        void SetPendingSwapAnimationDetails(CardSwapAnimationDetailsDto? details);
+        void SetGenericAnimationFinishedForSwap(bool isFinished);
     }
 }

@@ -1,16 +1,23 @@
 ﻿@using ChessClient.State
 @implements IDisposable
 
+@* Diese Komponente ist für globale, bildschirmfüllende Animationen zuständig, *@
+@* die über die gesamte Anwendung gelegt werden, wie z.B. Konfetti bei einem Sieg. *@
+
+@* Die Gewinn-Animation (Konfetti-Regen) wird nur angezeigt, wenn der entsprechende Zustand im UiState gesetzt ist. *@
 @if (UiState.ShowWinAnimation)
 {
     <div class="global-animation-overlay win-overlay">
+        @* Rendert eine grosse Anzahl von Konfetti-Elementen, um einen dichten Effekt zu erzeugen. *@
         @for (int i = 0; i < 150; i++)
         {
+            @* Jedes Konfetti-Element erhält einen individuellen Stil (Startposition, Farbe, Dauer etc.), um die Animation natürlich aussehen zu lassen. *@
             <div class="confetti" style="@GetConfettiStyle(i)"></div>
         }
     </div>
 }
 
+@* Die Verlust-Animation (ein einfaches Abdunkeln) wird angezeigt, wenn der entsprechende Zustand gesetzt ist. *@
 @if (UiState.ShowLossAnimation)
 {
     <div class="global-animation-overlay loss-overlay">

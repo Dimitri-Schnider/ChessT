@@ -4,31 +4,34 @@
 @using Microsoft.AspNetCore.Components.Web
 @using ChessClient.Utils
 @implements IAsyncDisposable
-@* Diese Komponente stellt ein einzelnes Feld auf dem Schachbrett dar. *@
 
-@* Das einzelne Feld auf dem Schachbrett *@
+@* Diese Komponente stellt ein einzelnes Feld auf dem Schachbrett dar. *@
+@* Sie ist der grundlegende Baustein des Brettes und ist verantwortlich für die Darstellung der Feld-Farbe, der Figur, der Beschriftungen und aller möglichen visuellen Hervorhebungen (Highlights). *@
+
+@* Das Haupt-div für das Feld. Seine Klassen werden dynamisch basierend auf dem Spielzustand berechnet. *@
+@* Es fängt Klicks und Drag-and-Drop-Events ab und wird von JavaScript für Interop referenziert. *@
 <div @ref="squareElementRef"
      class="square @(IsDarkSquare() ? "dark" : "") @GetHighlightClass() @(!IsBoardEnabledOverall && !IsSquareSelectionModeActiveForCard ? "board-disabled" : "")"
      @onclick="HandleGeneralClick"
      data-coord-for-debug="@Coord">
 
-    @* Rank-Beschriftung (Zahlen 1-8) *@
+    @* Zeigt die Rank-Beschriftung (Zahlen 1-8) an, wenn für dieses Feld erforderlich. *@
     @if (ShowRankLabel)
     {
         <span class="rank-label">@RankDisplay</span>
     }
 
-    @* File-Beschriftung (Buchstaben a-h) *@
+    @* Zeigt die File-Beschriftung (Buchstaben a-h) an, wenn für dieses Feld erforderlich. *@
     @if (ShowFileLabel)
     {
         <span class="file-label">@FileDisplay</span>
     }
 
     @{
-        // Lokale Variable, um den Zugriff auf das PieceDto zu vereinfachen.
+        // Lokale Variable, um den Zugriff auf das PieceDto im DTO-Array zu vereinfachen.
         var sq = Board.Squares[Rank][File];
     }
-    @* Anzeige der Schachfigur, falls vorhanden *@
+    @* Das Bild der Schachfigur wird nur gerendert, wenn auf diesem Feld eine Figur steht. *@
     @if (sq.HasValue)
     {
         <img @key="sq.Value"
@@ -36,6 +39,6 @@
              src="@sq.Value.ToImagePath()"
              alt="@Coord"
              class="@(IsBeingDraggedOriginal ? "piece-being-dragged-original" : "") @((IsBoardEnabledOverall && CanThisPieceBeDragged && !IsSquareSelectionModeActiveForCard) ? "" : "piece-not-interactive")"
-             data-piece-coord-original="@Coord" />
+             data-piece-coord-original="@Coord" /> @* Speichert die Koordinate der Figur als data-Attribut für den Zugriff aus JavaScript. *@
     }
 </div>

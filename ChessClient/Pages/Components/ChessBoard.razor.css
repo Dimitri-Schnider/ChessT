@@ -1,50 +1,55 @@
-﻿.chessboard-grid {
+﻿/* Definiert das Grundraster für das Schachbrett. */
+.chessboard-grid {
     display: grid;
+    /* Erstellt ein 8x8 Raster. '1fr' bedeutet, dass jede Spalte/Reihe den gleichen Anteil am verfügbaren Platz einnimmt. */
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows: repeat(8, 1fr);
-    width: 100%; /* Füllt die Breite des .chessboard-container */
-    height: 100%; /* Füllt die Höhe des .chessboard-container */
-    /* WENN .chessboard-container feste Dimensionen hätte.
-                     Da .chessboard-container flexibel ist, sind max-Werte hier wichtiger. */
-
-    max-width: 100%; /* Nicht breiter als .chessboard-container */
-    max-height: 100%; /* Nicht höher als .chessboard-container */
-    aspect-ratio: 1 / 1; /* Erzwingt Quadratischsein, passt sich an die kleinere Dimension des .chessboard-container an */
-
+    width: 100%; /* Füllt die Breite des übergeordneten .chessboard-container. */
+    height: 100%; /* Füllt die Höhe des übergeordneten .chessboard-container. */
+    /* Stellt sicher, dass das Brett nie breiter oder höher als sein Container ist. */
+    max-width: 100%;
+    max-height: 100%;
+    /* Erzwingt ein Seitenverhältnis von 1:1, wodurch das Brett immer quadratisch bleibt. */
+    aspect-ratio: 1 / 1;
     margin: 0;
 }
 
-/* Restliche Stile für .square, .rank-label, .file-label, Highlights etc. bleiben unverändert */
+/* Basis-Styling für jedes einzelne Feld (.square), das von SquareComponent gerendert wird. */
 .square {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    box-sizing: border-box;
+    position: relative; /* Wichtig für die Positionierung der Beschriftungen und Highlights. */
+    box-sizing: border-box; /* Stellt sicher, dass Padding/Border in die Gesamtgröße eingerechnet werden. */
 }
 
+    /* Standard-Cursor für ein interaktives Feld. */
     .square:not(.board-disabled) {
         cursor: default;
     }
 
+    /* Cursor für ein deaktiviertes Brett (z.B. wenn der Gegner am Zug ist). */
     .square.board-disabled {
         cursor: not-allowed !important;
     }
 
+        /* Sorgt dafür, dass auch die Figur auf einem deaktivierten Feld den "not-allowed"-Cursor zeigt. */
         .square.board-disabled img {
             cursor: not-allowed !important;
         }
 
+    /* Styling für das Bild der Schachfigur. */
     .square img {
         max-width: 80%;
         max-height: 80%;
-        object-fit: contain;
-        touch-action: none;
+        object-fit: contain; /* Stellt sicher, dass das Bild skaliert wird, ohne das Seitenverhältnis zu verzerren. */
+        touch-action: none; /* Verhindert Standard-Touch-Gesten wie Scrollen beim Ziehen der Figur. */
         position: relative;
         z-index: 10;
-        transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+        transition: transform 0.15s ease-out, opacity 0.15s ease-out; /* Sanfte Animation für Drag-Effekte. */
+        /* Verhindert, dass der Benutzer das Bild versehentlich markiert oder speichert. */
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         -moz-user-select: none;
@@ -52,48 +57,60 @@
         user-select: none;
     }
 
+    /* Zeigt einen "grab"-Cursor, wenn man über eine ziehbare Figur fährt. */
     .square:not(.board-disabled) img:not(.piece-not-interactive) {
         cursor: grab !important;
     }
-
+        /* Zeigt einen "grabbing"-Cursor, während die Figur aktiv gezogen wird. */
         .square:not(.board-disabled) img:not(.piece-not-interactive):active {
             cursor: grabbing !important;
         }
 
+    /* Standard-Cursor für Figuren, die nicht interaktiv sind (z.B. gegnerische Figuren). */
     .square:not(.board-disabled) img.piece-not-interactive {
         cursor: default !important;
     }
 
+    /* --- HIGHLIGHT-STILE --- */
+
+    /* Hervorhebung für legale Züge. */
     .square.highlight {
         outline: 3px solid rgba(255, 215, 0, 0.7);
-        outline-offset: -3px;
+        outline-offset: -3px; /* Zeichnet den Rahmen innerhalb des Feldes. */
     }
 
+    /* Visuelles Feedback von JavaScript, wenn eine Figur über ein gültiges Zielfeld gezogen wird. */
     .square.drag-over-target-js {
         background-color: rgba(144, 238, 144, 0.5);
     }
 
+    /* Macht die Originalfigur auf dem Brett transparent, während sie gezogen wird. */
     .square img.piece-being-dragged-original {
         opacity: 0.3;
     }
 
+    /* Styling für das "geisterhafte" Abbild der Figur, das dem Mauszeiger beim Ziehen folgt. */
     .square img.dragging-active-piece {
-        z-index: 1000;
+        z-index: 1000; /* Stellt sicher, dass die gezogene Figur über allen anderen Elementen liegt. */
         box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
         opacity: 0.9;
-        transition: none;
+        transition: none; /* Deaktiviert die Transition, um ruckelfreies Dragging zu gewährleisten. */
     }
 
+    /* --- KARTENEFFEKT-HIGHLIGHTS --- */
+
+    /* Hebt das erste für einen Karteneffekt ausgewählte Feld hervor (z.B. bei Teleport). */
     .square.highlight-card-first-selection {
         outline: 3px solid rgba(0, 128, 255, 0.8);
         outline-offset: -3px;
         background-color: rgba(0, 128, 255, 0.1);
     }
-
+        /* Fügt der Figur auf dem ausgewählten Feld einen Leuchteffekt hinzu. */
         .square.highlight-card-first-selection img {
             box-shadow: 0 0 8px 3px rgba(0, 128, 255, 0.7);
         }
 
+    /* Hebt Felder hervor, auf denen eine Figur für einen Karteneffekt ausgewählt werden kann. */
     .square.highlight-card-piece-selection {
         background-color: rgba(255, 165, 0, 0.3);
         outline: 2px dashed rgba(255, 165, 0, 0.7);
@@ -105,6 +122,7 @@
             cursor: pointer !important;
         }
 
+    /* Hebt leere Felder hervor, die als Ziel für einen Karteneffekt (z.B. Wiedergeburt) ausgewählt werden können. */
     .square.highlight-card-actionable-target {
         background-color: rgba(30, 144, 255, 0.25);
         outline: 2px solid rgba(30, 144, 255, 0.6);
@@ -116,21 +134,25 @@
             cursor: pointer !important;
         }
 
+    /* --- LETZTER-ZUG-HIGHLIGHTS --- */
+
     .square.highlight-last-move-to-strong {
-        background-color: rgba(255, 255, 0, 0.6);
+        background-color: rgba(255, 255, 0, 0.6); /* Starke Hervorhebung für das Zielfeld. */
     }
 
     .square.highlight-last-move-from-strong {
-        background-color: rgba(255, 255, 0, 0.5);
+        background-color: rgba(255, 255, 0, 0.5); /* Etwas schwächere Hervorhebung für das Startfeld. */
     }
 
     .square.highlight-last-move-to-weaker {
-        background-color: rgba(255, 255, 0, 0.4);
+        background-color: rgba(255, 255, 0, 0.4); /* Schwächere Hervorhebung für Züge innerhalb einer Sequenz. */
     }
 
     .square.highlight-last-move-from-weaker {
         background-color: rgba(255, 255, 0, 0.3);
     }
+
+    /* --- SPEZIFISCHE KARTENEFFEKT-HIGHLIGHTS --- */
 
     .square.highlight-card-teleport-from {
         background-color: rgba(0, 191, 255, 0.3);
@@ -151,13 +173,15 @@
         outline-offset: -2px;
     }
 
+    /* --- RANK & FILE BESCHRIFTUNGEN --- */
+
     .square .rank-label,
     .square .file-label {
-        position: absolute;
-        font-size: clamp(8px, 1.5vmin, 10px);
+        position: absolute; /* Positioniert die Labels relativ zum Feld. */
+        font-size: clamp(8px, 1.5vmin, 10px); /* Responsive Schriftgröße. */
         font-weight: bold;
-        color: #808080;
-        pointer-events: none;
+        color: #808080; /* Standardfarbe für helle Felder. */
+        pointer-events: none; /* Stellt sicher, dass die Labels Klicks nicht abfangen. */
         z-index: 1;
         padding: 1px;
         line-height: 1;
@@ -177,6 +201,7 @@
         margin-right: 3px;
     }
 
+    /* Passt die Farbe der Beschriftung für dunkle Felder an, um den Kontrast zu verbessern. */
     .square.dark .rank-label,
     .square.dark .file-label {
         color: rgba(255, 255, 255, 0.5);

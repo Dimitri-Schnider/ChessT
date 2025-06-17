@@ -1,10 +1,13 @@
 ﻿@using ChessClient.Models
 
+@* Diese Komponente stellt den Modal-Dialog zur Verfügung, mit dem ein Spieler einem bestehenden Spiel beitreten kann. *@
+@* Sie sammelt den Namen des Spielers und die ID des Spiels. *@
 @if (IsVisible)
 {
-    @* Modal-Überlagerung *@
+    @* Die halbtransparente Hintergrund-Überlagerung. *@
     <div class="modal-backdrop show" @onclick="CloseModal"></div>
-    @* Hauptcontainer des Beitritts-Modals *@
+
+    @* Hauptcontainer des Modals zum Beitreten eines Spiels. *@
     <div class="modal show" tabindex="-1" style="display: block;" role="dialog">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -13,26 +16,28 @@
                     <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    @* Eingabefeld für den Spielernamen *@
+                    @* Eingabefeld für den Namen des Spielers, der beitritt. *@
                     <div class="mb-3">
                         <label for="joinPlayerName" class="form-label">Dein Name:</label>
-                        @* Geändert: @bind="PlayerName" zu @bind-value="PlayerName" @bind-value:event="oninput" *@
+                        @* @bind-value:event="oninput" sorgt für eine sofortige Aktualisierung der UI (z.B. des "disabled"-Status des Buttons). *@
                         <input id="joinPlayerName" class="form-control" @bind-value="PlayerName" @bind-value:event="oninput" />
                     </div>
-                    @* Eingabefeld für die Spiel-ID *@
+
+                    @* Eingabefeld für die Spiel-ID, die oft aus einem geteilten Link stammt. *@
                     <div class="mb-3">
                         <label for="joinGameId" class="form-label">Spiel-ID:</label>
                         <input id="joinGameId" class="form-control" @bind="GameIdToJoin" placeholder="Game-ID eingeben oder aus Link" />
                     </div>
-                    @* Anzeige von Fehlermeldungen *@
+
+                    @* Zeigt Validierungsfehler an, falls die Eingaben ungültig sind. *@
                     @if (!string.IsNullOrWhiteSpace(ModalErrorMessage))
                     {
                         <div class="alert alert-danger mt-2">@ModalErrorMessage</div>
                     }
                 </div>
                 <div class="modal-footer">
-                    @* Buttons zum Abbrechen oder Beitreten *@
                     <button type="button" class="btn btn-secondary" @onclick="CloseModal">Abbrechen</button>
+                    @* Der Button zum Beitreten ist deaktiviert, solange nicht beide Felder ausgefüllt sind. *@
                     <button type="button" class="btn btn-primary" @onclick="HandleJoinGame"
                             disabled="@(string.IsNullOrWhiteSpace(PlayerName) || string.IsNullOrWhiteSpace(GameIdToJoin))">
                         Spiel beitreten
@@ -44,46 +49,49 @@
 }
 
 @code {
-    // Steuert die Sichtbarkeit des Modals
-    [Parameter] public bool IsVisible { get; set; }
-    // Event-Callback beim Schliessen
-    [Parameter] public EventCallback OnClose { get; set; }
-    // Event-Callback mit Beitrittsparametern
-    [Parameter] public EventCallback<JoinGameParameters> OnJoinGame { get; set; }
-    // Optionale, vorausgefüllte Spiel-ID (z.B. aus URL)
-    [Parameter] public string? InitialGameId { get; set; }
+    [Parameter] public bool IsVisible { get; set; }                                 // Steuert die Sichtbarkeit des Modals.
+    [Parameter] public EventCallback OnClose { get; set; }                          // Callback, der beim Schliessen des Modals ausgelöst wird.
+    [Parameter] public EventCallback<JoinGameParameters> OnJoinGame { get; set; }   // Callback, der die Beitritts-Daten an den Aufrufer übergibt.
+    [Parameter] public string? InitialGameId { get; set; }                          // Eine optionale, vorausgefüllte Spiel-ID, z.B. wenn die Seite über einen Einladungslink aufgerufen wird.
 
-    private string PlayerName { get; set; } = "";
-    private string GameIdToJoin { get; set; } = "";
-    private string ModalErrorMessage { get; set; } = "";
+    private string PlayerName { get; set; } = "";                                   // Gebundener Wert für das Spielernamen-Feld.
+    private string GameIdToJoin { get; set; } = "";                                 // Gebundener Wert für das Spiel-ID-Feld.
+    private string ModalErrorMessage { get; set; } = "";                            // Speichert Validierungsfehler.
 
-    // Füllt die Spiel-ID vor, wenn das Modal sichtbar wird und eine InitialGameId vorhanden ist
+    // Lifecycle-Methode, die bei Parameter-Änderungen aufgerufen wird.
     protected override void OnParametersSet()
     {
+        // Wenn das Modal sichtbar wird und eine initiale Game-ID übergeben wurde,
+        // wird das Eingabefeld damit vorausgefüllt.
         if (IsVisible && !string.IsNullOrWhiteSpace(InitialGameId) && string.IsNullOrWhiteSpace(GameIdToJoin))
         {
             GameIdToJoin = InitialGameId;
         }
     }
 
-    // Verarbeitet den Beitrittsversuch
+    // Behandelt den Klick auf den "Spiel beitreten"-Button.
     private async Task HandleJoinGame()
     {
+        // Führt eine clientseitige Validierung der Eingaben durch.
         if (string.IsNullOrWhiteSpace(PlayerName) || string.IsNullOrWhiteSpace(GameIdToJoin))
         {
             ModalErrorMessage = "Bitte gib Name und Spiel-ID ein.";
             return;
         }
+        // Prüft, ob die eingegebene Spiel-ID ein gültiges GUID-Format hat.
         if (!Guid.TryParse(GameIdToJoin, out _))
         {
             ModalErrorMessage = "Die Spiel-ID hat ein ungültiges Format.";
             return;
         }
-        ModalErrorMessage = "";
+
+        ModalErrorMessage = ""; // Setzt die Fehlermeldung zurück.
+
+        // Löst das OnJoinGame-Event aus und übergibt die validierten Daten.
         await OnJoinGame.InvokeAsync(new JoinGameParameters { Name = PlayerName, GameId = GameIdToJoin });
     }
 
-    // Schliesst das Modal und setzt Felder zurück
+    // Schliesst das Modal und setzt die Eingabefelder und Fehlermeldungen zurück.
     private async Task CloseModal()
     {
         PlayerName = "";

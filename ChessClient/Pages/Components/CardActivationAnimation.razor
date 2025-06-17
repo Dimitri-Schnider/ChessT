@@ -1,17 +1,23 @@
-﻿@* File: [SolutionDir]/ChessClient/Pages/Components/CardActivationAnimation.razor *@
-@using ChessClient.Models
+﻿@using ChessClient.Models
 @using ChessNetwork.Configuration
 
+@* Das gesamte Overlay wird nur angezeigt, wenn IsVisible wahr ist und eine Karte zum Anzeigen existiert. *@
 @if (IsVisible && CardToDisplay != null)
 {
+    @* Das Overlay dunkelt den Hintergrund ab. Ein Klick darauf hat aktuell keine Funktion. *@
     <div class="card-animation-overlay" @onclick="TryCloseAnimation">
-        @* Die CSS-Klasse "animate-to-history" wird später für die End-Animation hinzugefügt *@
+
+        @* Der Container für die Karte, steuert die Hauptanimationen wie das Hineinpoppen und Wegfliegen. *@
         <div class="card-animation-container @(GlowEffect ? "glow-animation-active" : "") @(IsMovingToHistory ? "animate-to-history" : "")" @onclick:stopPropagation>
+
+            @* Dieser Wrapper wird für die 3D-Perspektive der Flip-Animation benötigt. *@
             <div class="class_flipper_wrapper_for_perspective">
+
+                @* Der Flipper-Container führt die eigentliche 3D-Drehung aus, wenn die Klasse "is-flipped" hinzugefügt wird. *@
                 <div class="card-flipper @(IsFlipped ? "is-flipped" : "")">
-                    @* VORDERSEITE - Struktur wie in CardInfoPanel *@
+
+                    @* VORDERSEITE der Karte *@
                     <div class="card-face card-front">
-                        @* Wiederverwendung der Struktur und Klassen aus CardInfoPanel, ggf. mit Suffix "-animated", falls Styles nicht global sind *@
                         <div class="card-visual-representation-animated">
                             <div class="card-art-layer-animated">
                                 <img src="@CardToDisplay.ImageUrl" alt="Kartenkunst für @CardToDisplay.Name" class="card-art-actual-image-animated" />
@@ -19,20 +25,17 @@
                             <img src="/img/cards/template.png" alt="Kartenrahmen" class="card-frame-image-animated" />
                             <div class="card-content-layer-animated">
                                 <div class="card-title-section-animated">
+                                    @* Der Kartentitel wird nur angezeigt, wenn es keine spezielle Fallback-Karte ist. *@
                                     @if (!string.IsNullOrWhiteSpace(CardToDisplay.Name) && !CardToDisplay.Name.StartsWith(CardConstants.FallbackCardIdPrefix))
                                     {
                                         <h5 class="card-title-text-animated">@CardToDisplay.Name</h5>
                                     }
                                 </div>
-                                @* Beschreibung für die Animation eventuell zu viel, aber hier wäre der Platz *@
-                                @* <div class="card-description-section-animated">
-                                    <p class="card-description-text-animated">@CardToDisplay.Description</p>
-                                </div> *@
                             </div>
                         </div>
                     </div>
 
-                    @* RÜCKSEITE *@
+                    @* RÜCKSEITE der Karte *@
                     <div class="card-face card-back">
                         <img src="@CardConstants.DefaultCardBackImageUrl" alt="Kartenrückseite" />
                     </div>

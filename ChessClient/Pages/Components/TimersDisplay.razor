@@ -2,20 +2,28 @@
 @using ChessClient.State
 @using System.Collections.Generic
 
+@* Diese Komponente ist für die Anzeige der Bedenkzeiten beider Spieler zuständig. *@
+@* Sie hebt den Timer des Spielers hervor, der aktuell am Zug ist. *@
+
 @code {
+    // Ein CascadingParameter würde es ermöglichen, Zustände von einer übergeordneten Komponente
+    // zu empfangen, ohne sie explizit durchzureichen. Wird hier aktuell nicht direkt genutzt,
+    // da alle Daten über reguläre Parameter kommen.
     [CascadingParameter] public IGameCoreState? GameCoreState { get; set; }
 }
 
 @if (PlayerNames != null)
 {
-    @* Container für die Timer-Anzeigen *@
+    @* Container für die beiden Timer-Anzeigen, angeordnet in einer Reihe (row). *@
     <div class="row mb-3 timers-container">
-        @* Timer-Box für Spieler Weiss *@
+        @* Timer-Box für Spieler Weiss. *@
+        @* Die Klasse 'timer-active' wird dynamisch hinzugefügt, wenn Weiss am Zug ist UND das Spiel noch nicht beendet wurde. *@
         <div class="col text-center timer-box @(CurrentTurnPlayer == Player.White && string.IsNullOrEmpty(EndGameMessage) ? "timer-active" : "")">
             <div>Spieler Weiss @(PlayerNames.TryGetValue(Player.White, out var whiteName) ? $"- {whiteName}" : "")</div>
             <div class="time-display">@WhiteTimeDisplay</div>
         </div>
-        @* Timer-Box für Spieler Schwarz *@
+
+        @* Timer-Box für Spieler Schwarz. *@
         <div class="col text-center timer-box @(CurrentTurnPlayer == Player.Black && string.IsNullOrEmpty(EndGameMessage) ? "timer-active" : "")">
             <div>Spieler Schwarz @(PlayerNames.TryGetValue(Player.Black, out var blackName) ? $"- {blackName}" : "")</div>
             <div class="time-display">@BlackTimeDisplay</div>
@@ -24,14 +32,14 @@
 }
 
 @code {
-    // Angezeigte Zeit für Spieler Weiss
-    [Parameter] public string WhiteTimeDisplay { get; set; } = "00:00";
-    // Angezeigte Zeit für Spieler Schwarz
-    [Parameter] public string BlackTimeDisplay { get; set; } = "00:00";
-    // Aktuell am Zug befindlicher Spieler
-    [Parameter] public Player? CurrentTurnPlayer { get; set; }
-    // Dictionary mit Spielernamen
-    [Parameter] public Dictionary<Player, string> PlayerNames { get; set; } = new();
-    // Nachricht zum Spielende (deaktiviert Timer-Hervorhebung)
-    [Parameter] public string? EndGameMessage { get; set; }
+    [Parameter] public string WhiteTimeDisplay { get; set; } = "00:00";                 // Die formatierte, anzuzeigende Zeit für Spieler Weiss (z.B. "14:55").
+
+    [Parameter] public string BlackTimeDisplay { get; set; } = "00:00";                 // Die formatierte, anzuzeigende Zeit für Spieler Schwarz.
+
+    [Parameter] public Player? CurrentTurnPlayer { get; set; }                          // Der Spieler, der aktuell am Zug ist. Wird für die Hervorhebung benötigt.
+
+    [Parameter] public Dictionary<Player, string> PlayerNames { get; set; } = new();    // Ein Dictionary, das die Namen der Spieler enthält (Player.White -> "Name1", Player.Black -> "Name2").
+
+    [Parameter] public string? EndGameMessage { get; set; }                             // Die Nachricht zum Spielende. Wenn diese gesetzt ist, wird kein Timer mehr als aktiv markiert.
+
 }

@@ -1,6 +1,12 @@
-﻿@if (IsVisible)
+﻿@* Diese Komponente stellt einen standardisierten Modal-Dialog zur Anzeige von Fehlermeldungen dar. *@
+@* Sie wird immer dann verwendet, wenn dem Benutzer ein Problem auf eine klare und konsistente Weise mitgeteilt werden muss. *@
+
+@* Das Modal wird nur gerendert, wenn der 'IsVisible'-Parameter true ist. *@
+@if (IsVisible)
 {
+    @* Das Hintergrund-Overlay. Ein Klick darauf schliesst das Modal. *@
     <div class="modal-backdrop show" @onclick="HandleClose"></div>
+
     <div class="modal show" tabindex="-1" style="display: block;" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-danger">
@@ -22,12 +28,22 @@
 }
 
 @code {
+
+    // Steuert die Sichtbarkeit des Modals. Wird von aussen gesetzt (z.B. vom ModalState).
     [Parameter] public bool IsVisible { get; set; }
+
+    // Die anzuzeigende Fehlermeldung. Besitzt einen Standardwert, falls keine spezifische Nachricht übergeben wird.
     [Parameter] public string ErrorMessage { get; set; } = "Ein unbekannter Fehler ist aufgetreten.";
+
+    // Event-Callback, der ausgelöst wird, wenn der Benutzer das Modal schliesst.
+    // Dies ermöglicht der aufrufenden Komponente, ihren Zustand entsprechend zu aktualisieren.
     [Parameter] public EventCallback OnClose { get; set; }
 
+
+    // Behandelt den Klick auf den Schliessen-Button oder das Backdrop.
     private async Task HandleClose()
     {
+        // Löst das OnClose-Event aus.
         await OnClose.InvokeAsync();
     }
 }

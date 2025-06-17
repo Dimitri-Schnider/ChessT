@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\ChessClient\Pages\Components\Cards\HandCardsDisplay.razor.cs
-using ChessNetwork.DTOs;
+﻿using ChessNetwork.DTOs;
 using ChessClient.State;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -10,43 +9,37 @@ using System;
 
 namespace ChessClient.Pages.Components.Cards
 {
+    // Die Code-Behind-Klasse für die Handkartenanzeige. Verwaltet die Logik für das Scrollen
+    // per JS-Interop und die Interaktion mit dem Kartenzustand.
     public partial class HandCardsDisplay : ComponentBase, IDisposable
     {
-        [Parameter] public List<CardDto> PlayerHand { get; set; } = new List<CardDto>();
-        [Parameter] public bool IsSelectionDisabled { get; set; }
+        [Parameter] public List<CardDto> PlayerHand { get; set; } = new List<CardDto>();    // Die Liste der Handkarten.
+        [Parameter] public bool IsSelectionDisabled { get; set; }                           // Gibt an, ob die Kartenauswahl global deaktiviert ist.
 
         [Inject] private ICardState CardState { get; set; } = null!;
         [Inject] private IGameCoreState GameCoreState { get; set; } = null!;
         [Inject] private IUiState UiState { get; set; } = null!;
-
-        // Stelle sicher, dass IJSRuntime nur einmal injiziert wird.
         [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
 
-        private ElementReference handCardsContainerRef;
-        private bool canScrollLeft;
-        private bool canScrollRight;
-        private DotNetObjectReference<HandCardsDisplay>? dotNetHelper;
+        private ElementReference handCardsContainerRef;                 // Referenz auf den scrollbaren Karten-Container.
+        private bool canScrollLeft;                                     // Zustand für den linken Scroll-Button.
+        private bool canScrollRight;                                    // Zustand für den rechten Scroll-Button.
+        private DotNetObjectReference<HandCardsDisplay>? dotNetHelper;  // Referenz auf diese Instanz für JS-Interop.
 
-        // private bool _isFirstRender; // Entfernt, da nicht im aktuellen Snippet verwendet und Fehlerquelle war
-
+        // Initialisiert die Komponente und abonniert Zustandsänderungen.
         protected override void OnInitialized()
         {
             if (CardState != null) CardState.StateChanged += OnCardStateChanged;
             dotNetHelper = DotNetObjectReference.Create(this);
         }
 
+        // Reagiert auf Änderungen im CardState, um die Komponente neu zu rendern.
         private async void OnCardStateChanged()
         {
             await InvokeAsync(StateHasChanged);
-            if (JSRuntime != null) // Prüfen, ob JSRuntime verfügbar ist
-            {
-                // Es ist besser, UpdateScrollButtonStatesAsync nach dem Rendern aufzurufen,
-                // wenn sich die Kartenliste geändert hat. Dies geschieht in OnAfterRenderAsync.
-                // Der direkte Aufruf hier könnte veraltete DOM-Dimensionen sehen.
-                // Stattdessen stellen wir sicher, dass OnAfterRenderAsync die Aktualisierung vornimmt.
-            }
         }
 
+        // Behandelt den Klick auf eine Karte und delegiert die Logik an den CardState.
         private async Task HandleCardClick(CardDto card)
         {
             if (IsSelectionDisabled) return;
@@ -56,6 +49,7 @@ namespace ChessClient.Pages.Components.Cards
             }
         }
 
+        // Nach dem Rendern wird die JS-Interop für das Scrollen initialisiert.
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
@@ -64,6 +58,7 @@ namespace ChessClient.Pages.Components.Cards
                 {
                     try
                     {
+                        // Ruft die JS-Funktion auf, um einen 'scroll'-Listener zum Container hinzuzufügen.
                         await JSRuntime.InvokeVoidAsync("handCardsDisplayInterop.addScrollListener", handCardsContainerRef, dotNetHelper);
                     }
                     catch (Exception ex)
@@ -73,12 +68,14 @@ namespace ChessClient.Pages.Components.Cards
                 }
             }
 
+            // Stellt sicher, dass der Zustand der Scroll-Buttons nach jedem Rendern korrekt ist.
             if (JSRuntime != null)
             {
                 await UpdateScrollButtonStatesAsync();
             }
         }
 
+        // Diese Methode wird von JavaScript aufgerufen, wenn der Benutzer scrollt.
         [JSInvokable]
         public async Task HandleScroll()
         {
@@ -88,19 +85,19 @@ namespace ChessClient.Pages.Components.Cards
             }
         }
 
+        // Fragt den Scroll-Zustand von JS ab und aktualisiert die Sichtbarkeit der Scroll-Buttons.
         private async Task UpdateScrollButtonStatesAsync()
         {
-            // Stelle sicher, dass JSRuntime hier nicht null ist, bevor du es verwendest.
             if (handCardsContainerRef.Context == null || JSRuntime == null) return;
 
             ScrollStateDto? scrollState = null;
             try
             {
+                // Ruft eine JS-Funktion auf, die die Scroll-Eigenschaften des Elements zurückgibt.
                 scrollState = await JSRuntime.InvokeAsync<ScrollStateDto>("handCardsDisplayInterop.getScrollState", handCardsContainerRef);
             }
             catch (Exception ex)
             {
-                // Dieser Fehler kann auftreten, wenn die Komponente disposed wird, während ein JS-Aufruf noch aussteht.
                 if (ex is JSDisconnectedException || ex.Message.Contains("JavaScript interop calls cannot be issued because the component is not connected to the browser"))
                 {
                     Console.WriteLine($"UpdateScrollButtonStatesAsync: Component is likely disposed or disconnecting. Error: {ex.Message}");
@@ -114,29 +111,32 @@ namespace ChessClient.Pages.Components.Cards
 
             if (scrollState != null)
             {
+                // Berechnet, ob nach links oder rechts gescrollt werden kann.
                 bool newCanScrollLeft = scrollState.ScrollLeft > 0.5;
                 bool newCanScrollRight = scrollState.ScrollLeft < (scrollState.ScrollWidth - scrollState.ClientWidth - 0.5);
 
+                // Aktualisiert die UI nur, wenn sich der Zustand geändert hat, um Endlos-Loops zu vermeiden.
                 if (newCanScrollLeft != canScrollLeft || newCanScrollRight != canScrollRight)
                 {
                     canScrollLeft = newCanScrollLeft;
                     canScrollRight = newCanScrollRight;
-                    // StateHasChanged nur aufrufen, wenn sich der Zustand wirklich geändert hat, um Loops zu vermeiden.
                     await InvokeAsync(StateHasChanged);
                 }
             }
         }
 
+        // Scrollt den Container nach links.
         private async Task ScrollLeft()
         {
             if (handCardsContainerRef.Context != null && JSRuntime != null)
             {
                 await JSRuntime.InvokeVoidAsync("handCardsDisplayInterop.scrollElementHorizontal", handCardsContainerRef, -120);
-                await Task.Delay(160);
+                await Task.Delay(160); // Kurze Verzögerung, um die Scroll-Animation abzuwarten, bevor die Buttons aktualisiert werden.
                 await UpdateScrollButtonStatesAsync();
             }
         }
 
+        // Scrollt den Container nach rechts.
         private async Task ScrollRight()
         {
             if (handCardsContainerRef.Context != null && JSRuntime != null)
@@ -147,26 +147,19 @@ namespace ChessClient.Pages.Components.Cards
             }
         }
 
+        // Räumt alle Abonnements und JS-Interop-Referenzen auf.
         public void Dispose()
         {
             if (CardState != null) CardState.StateChanged -= OnCardStateChanged;
-
             if (handCardsContainerRef.Context != null && dotNetHelper != null && JSRuntime != null)
             {
-                // Es ist sicherer, InvokeVoidAsync nicht mehr in Dispose aufzurufen, wenn die Komponente bereits
-                // dabei ist, sich zu zerlegen, da JS-Interop-Aufrufe fehlschlagen können.
-                // Der JS-Code sollte idealerweise so robust sein, dass er damit umgehen kann, wenn
-                // dotNetHelper.invokeMethodAsync fehlschlägt, weil die .NET-Seite disposed wurde.
-                // Für eine saubere Entfernung des Listeners könnte man im JS prüfen, ob der dotNetHelper noch "lebt",
-                // was aber schwierig ist. Alternativ kann man den Fehler im JS try-catch abfangen.
                 try
                 {
-                    // Versuche, den Listener zu entfernen. Akzeptiere, dass es fehlschlagen kann.
+                    // Versucht, den JS-Listener zu entfernen.
                     _ = JSRuntime.InvokeVoidAsync("handCardsDisplayInterop.removeScrollListener", handCardsContainerRef).AsTask();
                 }
                 catch (Exception ex)
                 {
-                    // Hier nur loggen, keinen Fehler werfen, der Dispose stört.
                     Console.WriteLine($"Error during JS interop in Dispose (removeScrollListener): {ex.Message}");
                 }
             }
@@ -175,6 +168,7 @@ namespace ChessClient.Pages.Components.Cards
         }
     }
 
+    // DTO zum Übertragen der Scroll-Informationen von JavaScript nach C#.
     public class ScrollStateDto
     {
         public double ScrollLeft { get; set; }

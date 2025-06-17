@@ -1,14 +1,9 @@
 ﻿namespace ChessClient.Configuration
 {
+    // Definiert statische Konstanten, die im gesamten Client verwendet werden.
     public static class ClientConstants
     {
-        // Die DefaultServerBaseUrl Konstante wurde entfernt oder auskommentiert, da sie nun aus appsettings kommt.
-        // public const string DefaultServerBaseUrl = "https://localhost:7144";
-
-        // Relativer Pfad zum SignalR Chess Hub auf dem Server.
-        public const string ChessHubRelativePath = "/chessHub";
-
-        // Fallback-URL, falls nichts in der Konfiguration gefunden wird (optional, aber hilfreich für den Übergang)
-        public const string DefaultServerBaseUrl = "https://localhost:7144";
+        public const string ChessHubRelativePath = "/chessHub";                 // Relativer Pfad zum SignalR Chess Hub auf dem Server.
+        public const string DefaultServerBaseUrl = "https://localhost:7144";    // Fallback-URL für die Server-Adresse, falls nichts in der Konfiguration gefunden wird.
     }
 }

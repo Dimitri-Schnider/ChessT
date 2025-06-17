@@ -1,15 +1,19 @@
-﻿.info-box-wrapper {
-    position: fixed;
+﻿/* Styling für den Wrapper der Info-Box. */
+.info-box-wrapper {
+    position: fixed; /* Positioniert die Box relativ zum Viewport. */
     top: 20px;
     left: 50%;
+    /* Zentriert die Box horizontal mit dem bekannten 'transform'-Trick. */
     transform: translateX(-50%);
     background: #2C2C2C;
     color: #E0E0E0;
     padding: 0.75rem 1rem;
     border-radius: 8px;
     font-size: 1.1rem;
+    /* Ein hoher z-index stellt sicher, dass die Box über den meisten anderen Elementen liegt. */
     z-index: 1060;
     transition: opacity 0.3s ease-in-out;
+    /* Richtet die Nachricht und den optionalen Button nebeneinander aus. */
     display: flex;
     align-items: center;
     gap: 10px;
@@ -17,17 +21,20 @@
     border: 1px solid #444444;
 }
 
+    /* CSS, um die Box auszublenden, indem die Deckkraft auf 0 gesetzt wird. */
     .info-box-wrapper[hidden] {
         opacity: 0;
         pointer-events: none;
     }
 
+/* Container für den Nachrichtentext. */
 .info-box-message {
-    flex-grow: 1;
+    flex-grow: 1; /* Nimmt den maximal verfügbaren Platz ein. */
 }
 
+/* Styling für den optionalen Aktions-Button. */
 .info-box-action-button {
-    flex-shrink: 0;
+    flex-shrink: 0; /* Verhindert, dass der Button schrumpft, wenn der Platz knapp wird. */
     background-color: #677D6A;
     border-color: #677D6A;
     color: #E0E0E0;

@@ -1,7 +1,9 @@
-﻿.modal-content.border-danger {
+﻿/* Styling für den Modal-Inhalt, wenn es sich um einen Fehler handelt. */
+.modal-content.border-danger {
     border-width: 2px;
 }
 
+/* Styling für den Textabsatz im Modal-Körper. */
 .modal-body p {
     word-wrap: break-word;
     font-size: 1.1rem;

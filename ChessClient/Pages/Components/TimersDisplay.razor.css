@@ -1,46 +1,55 @@
-﻿.timers-container {
+﻿/* Hauptcontainer, der die beiden Timer-Boxen als Flex-Items anordnet. */
+.timers-container {
     display: flex;
     width: 100%;
-    gap: 6px;
+    gap: 6px; /* Abstand zwischen den beiden Boxen. */
     box-sizing: border-box;
 }
 
+/* Styling für die Box eines einzelnen Spielers. */
 .timer-box {
     border: 1px solid #444444;
     border-radius: 6px;
     background-color: #2C2C2C;
-    flex-grow: 1;
-    flex-basis: 0;
+    flex-grow: 1; /* Beide Boxen wachsen gleichmässig, um den verfügbaren Platz zu füllen. */
+    flex-basis: 0; /* Stellt sicher, dass flex-grow korrekt funktioniert. */
     box-sizing: border-box;
     padding: 0.4rem 0.6rem;
     text-align: center;
     color: #E0E0E0;
 }
 
+/* Styling für die grosse Zeitanzeige. */
 .time-display {
     font-size: 1.4em;
     font-weight: bold;
     line-height: 1.5;
 }
 
+/* Ändert die Farbe der Zeitanzeige, wenn der Timer aktiv ist. */
 .timer-box.timer-active .time-display {
-    color: #A55B4B;
+    color: #A55B4B; /* Akzentfarbe des Themes. */
 }
 
+/* Fügt der gesamten Box einen farbigen Rahmen und einen Leuchteffekt hinzu, wenn der Timer aktiv ist. */
+/* Dies ist das wichtigste visuelle Feedback für den Spieler, wer am Zug ist. */
 .timer-box.timer-active {
     border-color: #A55B4B;
     box-shadow: 0 0 6px rgba(165, 91, 75, 0.4);
 }
 
+/* Styling für die kleinere Textzeile, die den Spielernamen anzeigt. */
 .timer-box div:first-child {
     font-size: 0.8em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap; /* Verhindert Zeilenumbruch bei langen Namen. */
+    overflow: hidden; /* Versteckt den überstehenden Teil. */
+    text-overflow: ellipsis; /* Fügt "..." hinzu, wenn der Name zu lang ist. */
     margin-bottom: 2px;
     line-height: 1.2;
     color: #B0B0B0;
 }
+
+/* --- Responsive Anpassungen für Mobile-Ansichten --- */
 
 @media (max-width: 992px) {
     .timers-container {
@@ -48,6 +57,7 @@
     }
 
     .timer-box {
+        /* Feste Breite auf mobilen Geräten, um Layout-Sprünge zu vermeiden. */
         width: calc(50% - 2px) !important;
         flex-grow: 0 !important;
         flex-shrink: 0 !important;
@@ -65,6 +75,7 @@
     }
 }
 
+/* Weitere Verkleinerung für sehr schmale Bildschirme. */
 @media (max-width: 360px) {
     .timer-box {
         padding: 0.2rem 0.1rem !important;

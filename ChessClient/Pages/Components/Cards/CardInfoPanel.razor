@@ -1,6 +1,8 @@
 ﻿@using ChessClient.Models
 @using ChessNetwork.DTOs
 
+@* Diese Komponente stellt einen Modal-Dialog dar, der eine vergrösserte Ansicht einer einzelnen Karte anzeigt. *@
+@* Sie dient sowohl der reinen Vorschau (z.B. aus der Historie) als auch der Bestätigung zur Aktivierung einer Handkarte. *@
 @if (IsVisible && CardToDisplay != null)
 {
     <div class="modal-backdrop show" @onclick="HandleCancelClick"></div>
@@ -9,9 +11,11 @@
             <div class="modal-content">
                 <div class="modal-body p-0">
                     <div class="card-info-panel-content @(IsPreviewOnly ? "preview-only-mode" : "")">
+                        @* Ein expliziter Schliessen-Button, der immer sichtbar ist. *@
                         <button class="btn btn-sm @(!IsPreviewOnly ? "btn-danger" : "btn-secondary") close-modal-button-cip" @onclick="HandleCancelClick" title="Schliessen">X</button>
 
                         @* --- START KARTENINHALT (VISUELLE DARSTELLUNG) --- *@
+                        @* Dieser Abschnitt baut die Karte visuell aus mehreren übereinanderliegenden Bildern und Text-Layern auf. *@
                         <div class="card-visual-representation">
                             <div class="card-art-layer">
                                 @if (!string.IsNullOrEmpty(CardToDisplay.ImageUrl))
@@ -20,9 +24,11 @@
                                 }
                                 else
                                 {
+                                    @* Fallback, falls für eine Karte kein Bild verfügbar ist. *@
                                     <div class="image-missing-placeholder">Bild nicht verfügbar</div>
                                 }
                             </div>
+                            @* Das leere Kartentemplate (Rahmen, Textboxen etc.) wird über die Kartenkunst gelegt. *@
                             <img src="/img/cards/template.png" alt="Kartenrahmen" class="card-frame-image" />
                             <div class="card-content-layer">
                                 <div class="card-title-section">
@@ -35,8 +41,10 @@
                         </div>
                         @* --- ENDE KARTENINHALT --- *@
 
+                        @* Bedingte Anzeige der Aktions-Buttons basierend auf den Parametern der Komponente. *@
                         @if (IsActivatable && !IsPreviewOnly)
                         {
+                            @* Fall 1: Karte ist aktivierbar (aus der Hand ausgewählt und Spieler ist am Zug). *@
                             <div class="action-buttons-cip mt-3">
                                 <button class="btn btn-primary" @onclick="HandleActivateClick">Aktivieren</button>
                                 <button class="btn btn-secondary" @onclick="HandleCancelClick">Abbrechen</button>
@@ -44,10 +52,12 @@
                         }
                         else if (!IsActivatable && !IsPreviewOnly)
                         {
+                            @* Fall 2: Karte ist nicht aktivierbar (z.B. Gegner am Zug). *@
                             <p class="text-muted mt-3"><small>Kann nicht aktiviert werden (nicht am Zug oder Spiel beendet).</small></p>
                         }
                         else if (IsPreviewOnly)
                         {
+                            @* Fall 3: Die Karte wird nur als Vorschau angezeigt (z.B. aus der Historie). *@
                             <p class="text-muted mt-3"><small>Vorschau einer bereits gespielten Karte.</small></p>
                             <div class="action-buttons-cip mt-3">
                                 <button class="btn btn-outline-secondary" @onclick="HandleCancelClick">Schliessen</button>

@@ -1,4 +1,5 @@
-﻿.hand-cards-display-wrapper {
+﻿/* Haupt-Wrapper, der die Scroll-Pfeile und den Kartencontainer anordnet. */
+.hand-cards-display-wrapper {
     display: flex;
     align-items: center;
     position: relative;
@@ -7,6 +8,7 @@
     min-width: 0;
 }
 
+/* Styling für die Scroll-Pfeile. */
 .scroll-arrow {
     background-color: rgba(103, 125, 106, 0.6);
     color: white;
@@ -30,6 +32,7 @@
         background-color: rgba(103, 125, 106, 0.8);
     }
 
+    /* Macht die Pfeile transparent, wenn sie deaktiviert sind. */
     .scroll-arrow:disabled {
         opacity: 0.3;
         cursor: not-allowed;
@@ -43,9 +46,10 @@
         margin-left: 4px;
     }
 
+/* Der scrollbare Container für die Handkarten. */
 .hand-cards-container {
     display: flex;
-    overflow-x: auto;
+    overflow-x: auto; /* Ermöglicht horizontales Scrollen. */
     overflow-y: hidden;
     gap: 8px;
     padding: 8px;
@@ -53,7 +57,8 @@
     border-radius: 6px;
     height: 100%;
     align-items: center;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch; /* Verbessert das Scroll-Erlebnis auf iOS. */
+    /* Benutzerdefinierte Scrollbar für Firefox. */
     scrollbar-width: thin;
     scrollbar-color: #444444 #2C2C2C;
     flex-grow: 1;
@@ -61,6 +66,7 @@
     box-sizing: border-box;
 }
 
+    /* Benutzerdefinierte Scrollbar für Webkit-Browser (Chrome, Safari etc.). */
     .hand-cards-container::-webkit-scrollbar {
         height: 8px;
     }
@@ -79,20 +85,24 @@
             background: #677D6A;
         }
 
+    /* Reduziert die Deckkraft, wenn die Kartenauswahl global deaktiviert ist. */
     .hand-cards-container.selection-disabled {
         opacity: 0.7;
     }
 
+/* Wrapper für eine einzelne Karte in der Hand. */
 .card-in-hand-wrapper {
     width: 95px;
-    height: calc(95px * (1050 / 750));
-    flex-shrink: 0;
-    border: 2px solid transparent;
+    height: calc(95px * (1050 / 750)); /* Behält das korrekte Seitenverhältnis bei. */
+    flex-shrink: 0; /* Verhindert, dass Karten gestaucht werden. */
+    border: 2px solid transparent; /* Platzhalter für den Auswahl-Rahmen. */
     border-radius: 6px;
     cursor: pointer;
     transition: border-color 0.2s ease-out, opacity 0.2s ease-out;
     box-sizing: border-box;
 }
+
+/* --- 3D Flip-Animation für die Karten --- */
 
 .hand-card-perspective {
     width: 100%;
@@ -106,10 +116,11 @@
     position: relative;
     transform-style: preserve-3d;
     transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
-    -webkit-transform: translateZ(0);
+    -webkit-transform: translateZ(0); /* Erzwingt Hardware-Beschleunigung für flüssigere Animationen. */
     transform: translateZ(0);
 }
 
+    /* Klasse, die die Drehung um 180 Grad auslöst. */
     .hand-card-flipper.is-flipped {
         transform: rotateY(180deg);
     }
@@ -118,7 +129,7 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    backface-visibility: hidden;
+    backface-visibility: hidden; /* Versteckt die abgewandte Seite während der Drehung. */
     -webkit-backface-visibility: hidden;
     border-radius: 5px;
     overflow: hidden;
@@ -130,10 +141,11 @@
 }
 
     .hand-card-face.card-back {
-        transform: rotateY(180deg);
+        transform: rotateY(180deg); /* Die Rückseite ist initial gedreht. */
         background-color: transparent;
     }
 
+/* Hebt die Karte beim Hover-Effekt leicht an und vergrössert sie. */
 .card-in-hand-wrapper:hover .hand-card-flipper:not(.is-flipped) {
     transform: translateY(-4px) scale(1.03);
     transition-duration: 0.2s;
@@ -144,16 +156,20 @@
 }
 
     .card-in-hand-wrapper.disabled:hover .hand-card-flipper {
-        transform: none;
+        transform: none; /* Kein Hover-Effekt für deaktivierte Karten. */
     }
 
+/* Fügt einen farbigen Rahmen hinzu, wenn die Karte ausgewählt ist. */
 .card-in-hand-wrapper.selected {
     border-color: #A55B4B;
 }
 
+    /* Stellt sicher, dass auch die ausgewählte Karte den Hover-Effekt hat. */
     .card-in-hand-wrapper.selected .hand-card-flipper:not(.is-flipped) {
         transform: translateY(-4px) scale(1.03);
     }
+
+/* --- Aufbau der Karten-Visualisierung (ähnlich wie CardInfoPanel, aber kleiner) --- */
 
 .card-visual-representation-hand {
     position: relative;
@@ -219,21 +235,23 @@
 .card-title-text-hand {
     font-size: 0.6em;
     font-weight: bold;
-    color: #E0E0E0; /* Heller für besseren Kontrast */
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9); /* Schatten für Lesbarkeit */
+    color: #E0E0E0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; /* Fügt "..." hinzu, wenn der Titel zu lang ist. */
     padding: 0 1px;
 }
 
 .no-cards-text {
     color: #B0B0B0;
     font-style: italic;
-    margin: auto;
+    margin: auto; /* Zentriert den Text, wenn keine Karten da sind. */
     white-space: nowrap;
     padding: 0 15px;
 }
+
+/* --- Responsive Anpassungen --- */
 
 @media (max-width: 420px) {
     .hand-cards-container {

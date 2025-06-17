@@ -9,29 +9,40 @@
 @using ChessClient.State
 @inject IHighlightState HighlightStateLocal
 
+@* Diese Komponente ist für die visuelle Darstellung des Schachbretts verantwortlich. *@
+@* Sie rendert das 8x8-Gitter und die darauf platzierten `SquareComponent`-Instanzen. *@
 <div class="chessboard-grid">
+    @* --- NORMALE ANSICHT (aus Sicht von Weiss) --- *@
     @if (!FlipBoard)
     {
+        @* Iteriert durch jede Reihe (Rank) des Schachbretts, von 0 (8. Reihe) bis 7 (1. Reihe). *@
         @for (int rank = 0; rank < 8; rank++)
         {
             <div class="rank-row" @key="'r' + rank">
+                @* Iteriert durch jede Spalte (File) in der aktuellen Reihe. *@
                 @for (int file = 0; file < 8; file++)
                 {
-                    var currentCoord = PositionHelper.ToAlgebraic(rank, file);
-                    var pieceOnCurrentSquare = Board.Squares[rank][file];
+                    @* Lokale Variablen zur Vereinfachung der Logik im Template. *@
+                    var currentCoord = PositionHelper.ToAlgebraic(rank, file); // Konvertiert Indizes in algebraische Notation (z.B. "e4").
+                    var pieceOnCurrentSquare = Board.Squares[rank][file]; // Holt die Figur auf dem aktuellen Feld.
+
+                    @* Prüft, ob das Feld für die Figurenauswahl eines Karteneffekts hervorgehoben werden soll. *@
                     bool nhuHighlightForCardPieceSelection = false;
                     if (IsSquareSelectionModeActiveForCard && PlayerColorForCardPieceSelection.HasValue && pieceOnCurrentSquare.HasValue)
                     {
                         nhuHighlightForCardPieceSelection = pieceOnCurrentSquare.Value.IsOfPlayerColor(PlayerColorForCardPieceSelection.Value);
                     }
+
+                    @* Prüft, ob das Feld als gültiges Ziel für eine Kartenaktion hervorgehoben werden soll. *@
                     bool nhuHighlightAsCardActionableTarget = IsSquareSelectionModeActiveForCard &&
                     HighlightedCardTargetSquaresForSelection != null &&
                     HighlightedCardTargetSquaresForSelection.Contains(currentCoord);
 
-                
-                    bool showRank = file == 0;
-                    bool showFile = rank == 7;
+                    @* Bestimmt, ob die Rank- und File-Beschriftungen angezeigt werden sollen (nur am Rand des Bretts). *@
+                    bool showRank = file == 0; // Zahlen (1-8) nur in der a-Linie anzeigen.
+                    bool showFile = rank == 7; // Buchstaben (a-h) nur in der 1. Reihe anzeigen.
 
+                    @* Instanziiert die `SquareComponent` für jedes einzelne Feld und übergibt alle relevanten Zustände und Callbacks. *@
                     <SquareComponent @key="currentCoord"
                                      Board="@Board"
                                      Rank="@rank"
@@ -61,29 +72,31 @@
             </div>
         }
     }
-    else // FlipBoard == true
+    else // --- GEDREHTE ANSICHT (aus Sicht von Schwarz) ---
     {
+        @* Iteriert rückwärts durch die Reihen, um das Brett zu drehen. *@
         @for (int rank = 7; rank >= 0; rank--)
         {
             <div class="rank-row" @key="'r' + rank">
+                @* Iteriert rückwärts durch die Spalten. *@
                 @for (int file = 7; file >= 0; file--)
                 {
                     var currentCoord = PositionHelper.ToAlgebraic(rank, file);
                     var pieceOnCurrentSquare = Board.Squares[rank][file];
+
                     bool nhuHighlightForCardPieceSelection = false;
                     if (IsSquareSelectionModeActiveForCard && PlayerColorForCardPieceSelection.HasValue && pieceOnCurrentSquare.HasValue)
                     {
                         nhuHighlightForCardPieceSelection = pieceOnCurrentSquare.Value.IsOfPlayerColor(PlayerColorForCardPieceSelection.Value);
                     }
+
                     bool nhuHighlightAsCardActionableTarget = IsSquareSelectionModeActiveForCard &&
                     HighlightedCardTargetSquaresForSelection != null &&
                     HighlightedCardTargetSquaresForSelection.Contains(currentCoord);
 
-                    // NEU: Logik für die Anzeige der Labels (angepasst für FlipBoard)
-                    // Wenn das Brett gedreht ist, ist die 'linke' Spalte die h-Linie (file == 7)
-                    // und die 'unterste' Reihe ist die 8. Reihe (rank == 0)
-                    bool showRank = file == 7; // Zahlen nur in der 'ersten' Spalte (jetzt rechts)
-                    bool showFile = rank == 0; // Buchstaben nur in der 'untersten' Zeile (jetzt oben)
+                    @* Angepasste Logik für die Anzeige der Beschriftungen auf dem gedrehten Brett. *@
+                    bool showRank = file == 7; // Zahlen nur in der 'ersten' Spalte (jetzt h-Linie) anzeigen.
+                    bool showFile = rank == 0; // Buchstaben nur in der 'untersten' Zeile (jetzt 8. Reihe) anzeigen.
 
                     <SquareComponent @key="currentCoord"
                                      Board="@Board"

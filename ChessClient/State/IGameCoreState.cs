@@ -23,6 +23,9 @@ namespace ChessClient.State
         string BlackTimeDisplay { get; }
         bool IsPvCGame { get; }
         bool IsGameRunning { get; }
+        // --- NEUE PROPERTIES FÜR OPTIMISTIC UI ---
+        bool IsAwaitingMoveConfirmation { get; }
+        MoveDto? PendingMove { get; }
 
         bool IsExtraTurnSequenceActive { get; }
         int ExtraTurnMovesMade { get; }
@@ -44,5 +47,9 @@ namespace ChessClient.State
         void ResetForNewGame(int initialTimeMinutes = 15);
         void SetIsPvCGame(bool isPvC);
         void SetGameRunning(bool isRunning);
+        // --- NEUE METHODEN FÜR OPTIMISTIC UI ---
+        void ApplyOptimisticMove(MoveDto move);
+        void RevertOptimisticMove();
+        void ConfirmOptimisticMove(BoardDto serverBoard);
     }
 }

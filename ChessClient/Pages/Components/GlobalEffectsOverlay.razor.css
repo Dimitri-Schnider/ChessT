@@ -1,17 +1,23 @@
-﻿.global-animation-overlay {
+﻿/* Basis-Styling für alle globalen Animations-Overlays. */
+.global-animation-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
+    /* 'pointer-events: none' ist entscheidend, damit Klicks "durch" das Overlay zu den dahinterliegenden Elementen gelangen. */
     pointer-events: none;
-    z-index: 1040; /* KORREKTUR: Standard-Backdrop-Ebene, damit das Modal (1050+) darüber liegt */
+    /* Stellt sicher, dass das Overlay über dem meisten Inhalt, aber unter den Modals (z-index: 1050+) liegt. */
+    z-index: 1040;
 }
 
-/* NEU: Styling für das Gewinn-Overlay, damit es als Hintergrund dient */
+/* Spezielles Styling für das Gewinn-Overlay. */
 .win-overlay {
+    /* Fügt einen halbtransparenten schwarzen Hintergrund hinzu, um den Fokus auf die Sieges-Animation zu legen. */
     background-color: rgba(0, 0, 0, 0.75);
-    pointer-events: auto; /* Erlaubt Klicks (obwohl das Modal darüber liegen sollte) */
+    /* Erlaubt Klicks auf diesem spezifischen Overlay, um z.B. das WinLossModal zu bedienen. */
+    pointer-events: auto;
+    /* Führt eine sanfte Einblend-Animation aus. */
     animation: fadeInWin 0.3s ease;
 }
 
@@ -25,23 +31,29 @@
     }
 }
 
+/* Styling für ein einzelnes Konfetti-Element. */
 .confetti {
+    /* CSS-Variablen, die per Inline-Style aus dem C#-Code befüllt werden. */
     --start-x: 50vw;
     --delay: 0s;
     --duration: 5s;
     --rotation: 0deg;
     --color: #fff;
     position: absolute;
+    /* Startet über dem sichtbaren Bereich. */
     top: -20px;
+    /* Die horizontale Startposition wird durch die Variable gesteuert. */
     left: var(--start-x);
     width: 10px;
     height: 20px;
     background-color: var(--color);
+    /* Startet unsichtbar und wird durch die Animation sichtbar. */
     opacity: 0;
-    /* KORREKTUR: Animation auf die neuen, schnelleren Werte angepasst */
+    /* Weist die 'fall'-Animation mit den individuellen Werten zu. */
     animation: fall var(--duration) var(--delay) linear forwards;
 }
 
+/* Keyframe-Animation, die das Fallen und Rotieren eines Konfetti-Stücks beschreibt. */
 @keyframes fall {
     0% {
         opacity: 1;
@@ -50,13 +62,16 @@
 
     100% {
         opacity: 0.8;
-        /* KORREKTUR: Fällt jetzt wieder die gesamte Bildschirmhöhe hinab */
+        /* Bewegt das Konfetti über die gesamte Bildschirmhöhe und wendet die zufällige Rotation an. */
         transform: translateY(105vh) rotateZ(var(--rotation));
     }
 }
 
+/* Spezielles Styling für das Verlust-Overlay. */
 .loss-overlay {
+    /* Ein subtiler, roter Schleier. */
     background-color: rgba(30, 10, 10, 0.2);
+    /* Sanftes Einblenden. */
     animation: fadeInLoss 1s ease;
 }
 

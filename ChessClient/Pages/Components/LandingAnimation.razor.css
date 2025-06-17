@@ -1,25 +1,29 @@
-﻿.landing-overlay {
+﻿/* Styling für das bildschirmfüllende Overlay der Startanimation. */
+.landing-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #1A1A1D;
+    background-color: #1A1A1D; /* Dunkler Hintergrund, passend zum App-Theme. */
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    z-index: 10000; /* Sehr hoher z-index, um über allem anderen zu liegen. */
     opacity: 1;
+    /* Sanfter Übergang für das Ausblenden am Ende. */
     transition: opacity 0.5s ease-out;
 }
 
+    /* Klasse, die das Ausblenden des Overlays steuert. */
     .landing-overlay.fade-out {
         opacity: 0;
-        pointer-events: none;
+        pointer-events: none; /* Verhindert Interaktionen während des Ausblendens. */
     }
 
+/* Der Bereich, in dem die 3D-Animationen stattfinden. */
 .animation-canvas {
-    perspective: 1500px;
+    perspective: 1500px; /* Definiert die 3D-Perspektive für Kind-Elemente. */
     width: 400px;
     height: 400px;
     display: flex;
@@ -28,21 +32,23 @@
     justify-content: center;
 }
 
-/* Karten-Styling */
+/* --- KARTEN-STYLING --- */
 .cards-container {
     position: relative;
     width: 150px;
     height: 210px;
-    transform-style: preserve-3d;
+    transform-style: preserve-3d; /* Erforderlich für 3D-Transformationen der Kinder. */
 }
 
+/* Styling für den Wrapper jeder einzelnen Karte. */
 .card-wrapper {
     position: absolute;
     width: 100%;
     height: 100%;
+    /* Definiert die Dauer und das Timing der transform-Animation. */
     transition: transform 1.2s cubic-bezier(0.4, 0.0, 0.2, 1);
     transform-style: preserve-3d;
-    backface-visibility: hidden;
+    backface-visibility: hidden; /* Versteckt die Rückseite während 3D-Rotationen. */
 }
 
     .card-wrapper img {
@@ -53,25 +59,20 @@
         backface-visibility: hidden;
     }
 
-    .card-wrapper.card-1 {
+    /* Startposition der Karten: ausserhalb des sichtbaren Bereichs unten, leicht gekippt. */
+    .card-wrapper.card-1,
+    .card-wrapper.card-2,
+    .card-wrapper.card-3 {
         z-index: 1;
         transform: translateY(400px) rotateX(45deg);
     }
 
-    .card-wrapper.card-2 {
-        z-index: 2;
-        transform: translateY(400px) rotateX(45deg);
-    }
-
-    .card-wrapper.card-3 {
-        z-index: 3;
-        transform: translateY(400px) rotateX(45deg);
-    }
-
+/* Animationsschritt 1: Bringt alle Karten an ihre Endposition (noch übereinander). */
 .cards-container.step-1-fly-in .card-wrapper {
     transform: translateY(0) rotateX(0);
 }
 
+/* Animationsschritt 2: Fächert die Karten auf. */
 .cards-container.step-2-fan-out .card-1 {
     transform: translateX(-65px) rotateZ(-15deg);
 }
@@ -85,17 +86,18 @@
 }
 
 
-/* === KORREKTUR DER TEXT-ANIMATION === */
+/* --- TEXT-ANIMATION --- */
 
 .text-container {
     margin-top: 40px;
     text-align: center;
 }
 
+/* Keyframes für die Einblend- und Aufwärts-Animation des Textes. */
 @keyframes fadeInAndSlideUp {
     from {
         opacity: 0;
-        transform: translateY(15px);
+        transform: translateY(15px); /* Startet 15px weiter unten. */
     }
 
     to {
@@ -104,10 +106,10 @@
     }
 }
 
+/* Basis-Styling für die Textelemente. */
 .title-text, .subtitle-text {
-    /* Die Animations-Definition wird von hier entfernt und nach unten verschoben */
     font-family: 'Varela', sans-serif;
-    opacity: 0; /* WICHTIG: Beide Texte sind standardmässig unsichtbar */
+    opacity: 0; /* Standardmässig unsichtbar, die Animation wird durch die .visible-Klasse getriggert. */
 }
 
 .title-text {
@@ -124,11 +126,12 @@
     margin-top: -10px;
 }
 
-/* KORREKTUR: Die Animation wird jetzt nur gestartet, wenn der übergeordnete Container die Klasse .visible hat */
+/* Die Animation wird nur gestartet, wenn der übergeordnete Container die Klasse .visible hat. */
 .text-container.visible .title-text {
     animation: fadeInAndSlideUp 1s ease-out forwards;
 }
 
 .text-container.visible .subtitle-text {
-    animation: fadeInAndSlideUp 1s ease-out 0.4s forwards; /* Die Verzögerung bleibt hier */
+    /* Der Untertitel wird mit einer leichten Verzögerung eingeblendet. */
+    animation: fadeInAndSlideUp 1s ease-out 0.4s forwards;
 }

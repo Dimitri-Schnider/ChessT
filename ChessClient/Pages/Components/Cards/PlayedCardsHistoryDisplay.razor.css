@@ -1,6 +1,7 @@
-﻿.played-cards-history-panel {
+﻿/* Styling für das Haupt-Panel der Kartenhistorie. */
+.played-cards-history-panel {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Ordnet die beiden Sektionen (Gegner, Ich) untereinander an. */
     gap: 10px;
     width: 100%;
     padding: 0;
@@ -9,6 +10,7 @@
     box-shadow: none;
 }
 
+/* Styling für eine einzelne Sektion (z.B. "Meine gespielten Karten"). */
 .history-section {
     display: flex;
     flex-direction: column;
@@ -16,12 +18,13 @@
     border: 1px solid #444444;
     border-radius: 6px;
     padding: 0;
-    background-color: #1A1A1D;
+    background-color: #1A1A1D; /* Sehr dunkler Hintergrund für die Listen. */
     width: 100%;
     box-sizing: border-box;
-    overflow-y: visible;
+    overflow-y: visible; /* Stellt sicher, dass Schatten/Ränder nicht abgeschnitten werden. */
 }
 
+    /* Styling für die Überschrift jeder Sektion. */
     .history-section h6 {
         margin: 0;
         font-weight: bold;
@@ -29,19 +32,21 @@
         text-align: center;
         border-bottom: 1px solid #444444;
         padding: 8px;
-        background-color: #2C2C2C;
-        border-top-left-radius: 5px;
+        background-color: #2C2C2C; /* Etwas hellerer Hintergrund für den Header. */
+        border-top-left-radius: 5px; /* Rundet die oberen Ecken ab. */
         border-top-right-radius: 5px;
     }
 
+/* Container für die Liste der gespielten Karten. */
 .cards-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    align-items: stretch;
+    align-items: stretch; /* Stellt sicher, dass die Einträge die volle Breite einnehmen. */
     padding: 8px;
 }
 
+/* Styling für einen einzelnen Eintrag in der Historie. */
 .played-card-entry {
     display: flex;
     align-items: center;
@@ -55,29 +60,33 @@
     box-sizing: border-box;
 }
 
+    /* Visuelles Feedback beim Überfahren mit der Maus. */
     .played-card-entry:hover {
         background-color: #677D6A;
     }
 
+/* Styling für das kleine Vorschaubild der Karte. */
 .played-card-history-image {
     width: 30px;
     height: auto;
-    aspect-ratio: 75 / 105;
+    aspect-ratio: 75 / 105; /* Behält das korrekte Seitenverhältnis der Karten bei. */
     object-fit: cover;
     border-radius: 3px;
     margin-right: 8px;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Verhindert, dass das Bild schrumpft. */
 }
 
+/* Styling für den Namen der Karte. */
 .played-card-history-name {
-    font-size: 0.9em; /* Leicht vergrössert für Lesbarkeit */
-    color: #E0E0E0; /* Heller Text für hohen Kontrast */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-grow: 1;
+    font-size: 0.9em;
+    color: #E0E0E0;
+    white-space: nowrap; /* Verhindert Zeilenumbruch. */
+    overflow: hidden; /* Versteckt den überstehenden Teil. */
+    text-overflow: ellipsis; /* Fügt "..." hinzu, wenn der Name zu lang ist. */
+    flex-grow: 1; /* Nimmt den restlichen Platz ein. */
 }
 
+/* Styling für den Text, der angezeigt wird, wenn keine Karten gespielt wurden. */
 .no-cards-played-text {
     font-size: 0.9em;
     color: #B0B0B0;

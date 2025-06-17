@@ -6,27 +6,33 @@ using Microsoft.JSInterop;
 
 namespace ChessClient.Pages.Components
 {
+    // Die Code-Behind-Klasse für das CreateGameModal.
+    // Sie verwaltet den Zustand der Eingabefelder und löst die entsprechenden
+    // Events aus, um mit der übergeordneten Komponente zu kommunizieren.
     public partial class CreateGameModal
     {
-        [Parameter] public bool IsVisible { get; set; } // Steuert die Sichtbarkeit des Modals.
-        [Parameter] public EventCallback OnClose { get; set; } // Event-Callback, wenn das Modal geschlossen wird.
-        [Parameter] public EventCallback<CreateGameParameters> OnCreateGame { get; set; } // Event-Callback, wenn ein Spiel erstellt wird.
+        // --- PARAMETER ---
+        [Parameter] public bool IsVisible { get; set; }                                     // Steuert die Sichtbarkeit des Modals.
+        [Parameter] public EventCallback OnClose { get; set; }                              // Event-Callback, der aufgerufen wird, wenn das Modal geschlossen wird.
+        [Parameter] public EventCallback<CreateGameParameters> OnCreateGame { get; set; }   // Event-Callback, der die gesammelten Spieldaten an den Aufrufer übergibt.
 
-        private string PlayerName { get; set; } = ""; // Gebundener Wert für den Spielernamen.
-        private Player SelectedColor { get; set; } = Player.White; // Gebundener Wert für die ausgewählte Farbe.
-        private int InitialTimeMinutes { get; set; } = 15; // Gebundener Wert für die ausgewählte Bedenkzeit.
-        private string ModalErrorMessage { get; set; } = ""; // Fehlermeldung für das Modal.
+        // --- PRIVATE PROPERTIES (ZUSTAND) ---
+        private string PlayerName { get; set; } = "";                                       // Gebundener Wert für das Spielernamen-Eingabefeld.
+        private Player SelectedColor { get; set; } = Player.White;                          // Gebundener Wert für die Farbauswahl.
+        private int InitialTimeMinutes { get; set; } = 15;                                  // Gebundener Wert für die Bedenkzeit-Auswahl.
+        private string ModalErrorMessage { get; set; } = "";                                // Speichert eine Fehlermeldung, die im Modal angezeigt wird.
 
-        private bool _isSubmitting;
+        private bool _isSubmitting;                                                         // Flag, um mehrfaches Absenden des Formulars zu verhindern.
 
-        // NEUE Properties
-        private OpponentType SelectedOpponentType { get; set; } = OpponentType.Human;
-        private ComputerDifficulty SelectedComputerDifficulty { get; set; } = ComputerDifficulty.Medium;
+        // Neue Properties für die Auswahl des Gegners.
+        private OpponentType SelectedOpponentType { get; set; } = OpponentType.Human;                   // Gebundener Wert für die Auswahl des Gegnertyps.
+        private ComputerDifficulty SelectedComputerDifficulty { get; set; } = ComputerDifficulty.Medium; // Gebundener Wert für die Auswahl der Computerstärke.
 
-        // NEU: Methode zum Zurücksetzen des Zustands hinzugefügt
+        // Lifecycle-Methode, die bei Parameter-Änderungen aufgerufen wird.
         protected override void OnParametersSet()
         {
-            // Wenn das Modal nicht sichtbar ist, stellen wir sicher, dass der "submitting"-Status zurückgesetzt wird.
+            // Setzt den 'submitting'-Status zurück, wenn das Modal ausgeblendet wird.
+            // Dies verhindert, dass der Button bei erneutem Öffnen fälschlicherweise deaktiviert ist.
             if (!IsVisible)
             {
                 _isSubmitting = false;
@@ -37,14 +43,19 @@ namespace ChessClient.Pages.Components
         private async Task HandleCreateGame()
         {
             _isSubmitting = true;
-
-            if (string.IsNullOrWhiteSpace(PlayerName)) // Validierung des Spielernamens.
+            
+            // Einfache Validierung, ob ein Spielername eingegeben wurde.
+            if (string.IsNullOrWhiteSpace(PlayerName))
             {
                 ModalErrorMessage = "Bitte gib einen Spielernamen ein.";
                 _isSubmitting = false;
                 return;
             }
-            ModalErrorMessage = ""; // Setzt Fehlermeldung zurück.
+
+            ModalErrorMessage = ""; // Setzt die Fehlermeldung zurück, falls vorhanden.
+
+            // Löst das OnCreateGame-Event aus und übergibt ein neues Parameter-Objekt
+            // mit allen im Modal ausgewählten Werten.
             await OnCreateGame.InvokeAsync(new CreateGameParameters
             {
                 Name = PlayerName,
@@ -55,7 +66,7 @@ namespace ChessClient.Pages.Components
             });
         }
 
-        // Schliesst das Modal und setzt die Eingabefelder zurück.
+        // Schliesst das Modal und setzt alle Eingabefelder auf ihren Standardwert zurück.
         private async Task CloseModal()
         {
             PlayerName = "";
@@ -67,7 +78,8 @@ namespace ChessClient.Pages.Components
 
             _isSubmitting = false;
 
-            await OnClose.InvokeAsync(); // Löst das OnClose Event aus.
+            // Löst das OnClose-Event aus, um die übergeordnete Komponente zu benachrichtigen.
+            await OnClose.InvokeAsync();
         }
     }
 }
