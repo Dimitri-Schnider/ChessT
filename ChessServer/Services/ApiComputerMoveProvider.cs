@@ -1,4 +1,5 @@
 ﻿using Chess.Logging;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -10,11 +11,22 @@ namespace ChessServer.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IChessLogger _logger;
+        private readonly string _chessApiUrl;
 
         // DTO für die Deserialisierung der API-Antwort
         private sealed class ChessApiResponseDto
         {
             public string? Move { get; set; }
+        }
+
+        // IConfiguration injizieren
+        public ApiComputerMoveProvider(IHttpClientFactory httpClientFactory, IChessLogger logger, IConfiguration configuration)
+        {
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
+            // URL aus der Konfiguration lesen
+            _chessApiUrl = configuration.GetValue<string>("ChessApi:Url")
+                           ?? throw new InvalidOperationException("Chess API URL is not configured in appsettings.json.");
         }
 
         public ApiComputerMoveProvider(IHttpClientFactory httpClientFactory, IChessLogger logger)
@@ -31,7 +43,7 @@ namespace ChessServer.Services
             try
             {
                 _logger.LogComputerFetchingMove(gameId, fen, depth);
-                HttpResponseMessage response = await client.PostAsJsonAsync("https://chess-api.com/v1", requestBody);
+                HttpResponseMessage response = await client.PostAsJsonAsync(_chessApiUrl, requestBody);
 
                 if (response.IsSuccessStatusCode)
                 {

@@ -415,20 +415,5 @@ namespace ChessServer.Controllers
 
         #endregion
 
-        // Findet die SignalR-Verbindungs-ID für eine gegebene Spieler-ID.
-        private string? GetConnectionIdForPlayerViaHubMap(Guid playerId)
-        {
-            // Direkter Aufruf des neuen Service
-            var connId = _connectionMappingService.GetConnectionId(playerId);
-
-            if (connId != null)
-            {
-                return connId;
-            }
-
-            _logger.LogControllerConnectionIdForPlayerNotFound(playerId);
-            return null;
-        }
-
     }
 }
