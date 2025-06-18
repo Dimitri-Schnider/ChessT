@@ -240,7 +240,7 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, Player, Exception?> _logComputerTimerResumedAfterAnimationAction =
             LoggerMessage.Define<Guid, Player>(LogLevel.Debug, new EventId(SessionLogBaseId + 40, "LogComputerTimerResumedAfterAnimation"), "[GameSession] Timer für Computer ({ComputerColor}) in Spiel {GameId} nach Animations-Delay fortgesetzt.");
         private static readonly Action<ILogger, Guid, string, Exception?> _logComputerSkippingTurnAfterAnimationDelayAction =
-            LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(SessionLogBaseId + 41, "LogComputerSkippingTurnAfterAnimationDelay"), "[GameSession] Spiel beendet oder nicht mehr Computer-Zug nach Animations-Delay für Karte {CardTypeId}. Computerzug wird nicht ausgeführt. Spiel: {GameId}");
+            LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(SessionLogBaseId + 41, "LogComputerSkippingTurnAfterAnimationDelay"), "[GameSession] Spiel: {GameId} beendet oder nicht mehr Computer-Zug nach Animations-Delay für Karte {CardTypeId}. Computerzug wird nicht ausgeführt.");
 
         // --- ChessServer.Services.CardEffects Logs ---
         private static readonly Action<ILogger, Player, Guid, Guid, Exception?> _logAddTimeEffectAppliedAction =

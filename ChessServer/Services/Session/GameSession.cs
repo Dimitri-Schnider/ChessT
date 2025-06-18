@@ -472,7 +472,9 @@ namespace ChessServer.Services.Session
                 }
             });
 
-            if (_playerManager.OpponentType == OpponentType.Computer && !isExtraTurn && !_state.IsGameOver())
+            if (_playerManager.OpponentType == OpponentType.Computer &&
+                _playerManager.ComputerPlayerId != playerId && !isExtraTurn &&
+                !_state.IsGameOver())
             {
                 Task.Run(() => ProcessComputerTurnIfNeeded());
             }

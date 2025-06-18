@@ -27,8 +27,7 @@ namespace ChessServer.Services.Session
         // Spiel-spezifische Konfiguration 
         public OpponentType OpponentType { get; }               // "Human" oder "Computer".
         public ComputerDifficulty ComputerDifficulty { get; }   // Schwierigkeitsgrad des Computers.
-        private readonly string _computerDifficultyString;
-        public Guid? ComputerPlayerId { get; private set; } // ID des Computergegners.
+        public Guid? ComputerPlayerId { get; private set; }     // ID des Computergegners.
 
         // Öffentliche Eigenschaften
         public int PlayerCount => _players.Count;
@@ -119,7 +118,7 @@ namespace ChessServer.Services.Session
                 Player humanPlayerColor = _firstPlayerActualColor;
                 Player computerColor = humanPlayerColor.Opponent();
                 Guid computerId = Guid.NewGuid();
-                string computerName = $"Computer ({_computerDifficultyString})";
+                string computerName = $"Computer ({ComputerDifficulty})";
 
                 ComputerPlayerId = computerId;
                 _players[computerId] = (computerName, computerColor);
