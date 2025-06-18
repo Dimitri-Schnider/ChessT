@@ -12,6 +12,7 @@ using Xunit;
 
 namespace ChessServer.Tests
 {
+    // Testklasse spezifisch für den SacrificeEffect (Opfergabe).
     public class SacrificeEffectTests
     {
         private readonly Mock<IChessLogger> mockLogger;
@@ -19,6 +20,7 @@ namespace ChessServer.Tests
         private readonly Mock<IHistoryManager> mockHistoryManager;
         private readonly Board board;
 
+        // Konstruktor: Richtet die Testumgebung mit Mocks ein.
         public SacrificeEffectTests()
         {
             mockLogger = new Mock<IChessLogger>();
@@ -30,49 +32,51 @@ namespace ChessServer.Tests
             mockGameState.SetupGet(gs => gs.Board).Returns(board);
             mockSession.SetupGet(s => s.CurrentGameState).Returns(mockGameState.Object);
 
-            var mockTimerService = new Mock<GameTimerService>(Guid.NewGuid(), TimeSpan.FromMinutes(5), new Mock<ILogger<GameTimerService>>().Object);
+            var mockTimerService = new Mock<GameTimerService>(Guid.NewGuid(), TimeSpan.FromMinutes(5), mockLogger.Object);
             mockSession.SetupGet(s => s.TimerService).Returns(mockTimerService.Object);
         }
 
+        // Testfall: Überprüft den Erfolgsfall, bei dem ein eigener Bauer geopfert wird.
         [Fact]
         public void ExecuteWithOwnPawnAndValidMoveReturnsSuccessAndSignalsDraw()
         {
-            // Arrange
+            // Arrange: Platziert einen opferbaren Bauern auf dem Brett.
             var effect = new SacrificeEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
             var pawnSquare = "e2";
             board[GameSession.ParsePos(pawnSquare)] = new Pawn(playerColor);
-            board[new Position(7, 4)] = new King(playerColor); // König für Legalitätsprüfung
+            board[new Position(7, 4)] = new King(playerColor); // König für Legalitätsprüfung.
 
-            // Act
+            // Act: Führt den Opfer-Effekt aus.
             var result = effect.Execute(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, CardConstants.SacrificeEffect, pawnSquare, null);
 
-            // Assert
+            // Assert: Die Aktion muss erfolgreich sein und die richtigen Nebeneffekte auslösen.
             Assert.True(result.Success);
             Assert.True(result.BoardUpdatedByCardEffect);
-            Assert.Equal(playerId, result.PlayerIdToSignalDraw); // Wichtig: Der Effekt soll ein Kartenziehen signalisieren
-            Assert.True(board.IsEmpty(GameSession.ParsePos(pawnSquare))); // Der Bauer muss weg sein
-            mockHistoryManager.Verify(hm => hm.AddMove(It.IsAny<PlayedMoveDto>()), Times.Once);
+            Assert.Equal(playerId, result.PlayerIdToSignalDraw);                                // Wichtig: Der Effekt soll ein Kartenziehen signalisieren.
+            Assert.True(board.IsEmpty(GameSession.ParsePos(pawnSquare)));                       // Der Bauer muss vom Brett entfernt worden sein.
+            mockHistoryManager.Verify(hm => hm.AddMove(It.IsAny<PlayedMoveDto>()), Times.Once); // Überprüft die Protokollierung.
         }
 
+        // Testfall: Stellt sicher, dass eine andere Figur als ein Bauer nicht geopfert werden kann.
         [Fact]
         public void ExecuteWithNonPawnPieceReturnsError()
         {
-            // Arrange
+            // Arrange: Platziert einen Turm anstelle eines Bauern.
             var effect = new SacrificeEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
             var rookSquare = "a1";
-            board[GameSession.ParsePos(rookSquare)] = new Rook(playerColor); // Ein Turm statt eines Bauern
+            board[GameSession.ParsePos(rookSquare)] = new Rook(playerColor);
 
-            // Act
+            // Act: Versucht, den Turm zu opfern.
             var result = effect.Execute(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, CardConstants.SacrificeEffect, rookSquare, null);
 
-            // Assert
+            // Assert: Die Aktion muss fehlschlagen und das Brett unverändert lassen.
             Assert.False(result.Success);
             Assert.Contains("ist kein Bauer", result.ErrorMessage);
-            Assert.NotNull(board[GameSession.ParsePos(rookSquare)]); // Der Turm muss noch da sein
+            Assert.NotNull(board[GameSession.ParsePos(rookSquare)]); // Der Turm muss noch da sein.
         }
     }
 }

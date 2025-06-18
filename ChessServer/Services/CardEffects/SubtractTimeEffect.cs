@@ -34,12 +34,14 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: "Gegner nicht gefunden für Zeitdiebstahl.");
             }
 
+            // Sonderregel: Die Karte kann nur eingesetzt werden, wenn der Gegner mehr als 3 Minuten Zeit hat.
             TimeSpan opponentTime = session.TimerService.GetCurrentTimeForPlayer(opponentColor);
             if (opponentTime < TimeSpan.FromMinutes(3))
             {
                 return new CardActivationResult(false, ErrorMessage: "Zeitdiebstahl kann nur eingesetzt werden, wenn der Gegner 3 Minuten oder mehr Zeit hat.");
             }
 
+            // Versucht, die Zeit über den TimerService abzuziehen.
             if (session.TimerService.SubtractTime(opponentColor, TimeSpan.FromMinutes(2)))
             {
                 _logger.LogSubtractTimeEffectApplied(opponentColor, playerDataColor, playerId, session.GameId);

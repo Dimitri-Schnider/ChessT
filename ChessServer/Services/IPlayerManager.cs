@@ -5,19 +5,20 @@ using System.Collections.Generic;
 
 namespace ChessServer.Services
 {
+    // Definiert den Vertrag für einen Dienst, der die Spieler innerhalb einer einzelnen Spielsitzung verwaltet.
+    // Dies entkoppelt die Spieler-Logik (IDs, Namen, Farben, Gegner-Typ) von der `GameSession`.
     public interface IPlayerManager
     {
-        int PlayerCount { get; }
-        bool HasOpponent { get; }
-        Guid FirstPlayerId { get; }
-        Player FirstPlayerColor { get; }
-        string OpponentType { get; }
-        Guid? ComputerPlayerId { get; }
-
-        (Guid PlayerId, Player Color) Join(string playerName, Player? preferredColor = null);
-        Player GetPlayerColor(Guid playerId);
-        Guid? GetPlayerIdByColor(Player color);
-        string? GetPlayerName(Guid playerId);
-        OpponentInfoDto? GetOpponentDetails(Guid currentPlayerId);
+        int PlayerCount { get; }                                                                // Die aktuelle Anzahl der Spieler in der Sitzung.
+        bool HasOpponent { get; }                                                               // Gibt an, ob bereits ein Gegner beigetreten ist.
+        Guid FirstPlayerId { get; }                                                             // Die ID des ersten Spielers, der der Sitzung beigetreten ist (der Ersteller).
+        Player FirstPlayerColor { get; }                                                        // Die Farbe des ersten Spielers.
+        string OpponentType { get; }                                                            // Der Typ des Gegners ("Human" oder "Computer").
+        Guid? ComputerPlayerId { get; }                                                         // Die ID des Computergegners, falls vorhanden.
+        (Guid PlayerId, Player Color) Join(string playerName, Player? preferredColor = null);   // Fügt einen Spieler der Sitzung hinzu und weist ihm eine Farbe zu.
+        Player GetPlayerColor(Guid playerId);                                                   // Ruft die Farbe eines Spielers anhand seiner ID ab.
+        Guid? GetPlayerIdByColor(Player color);                                                 // Ruft die ID eines Spielers anhand seiner Farbe ab.
+        string? GetPlayerName(Guid playerId);                                                   // Ruft den Namen eines Spielers anhand seiner ID ab.
+        OpponentInfoDto? GetOpponentDetails(Guid currentPlayerId);                              // Ruft Informationen über den Gegner des aktuellen Spielers ab.
     }
 }

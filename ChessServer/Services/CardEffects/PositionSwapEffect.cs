@@ -25,6 +25,7 @@ namespace ChessServer.Services.CardEffects
                                             string? fromSquareAlg,
                                             string? toSquareAlg)
         {
+            // Validierungen
             if (cardTypeId != CardConstants.Positionstausch)
             {
                 return new CardActivationResult(false, ErrorMessage: $"PositionSwapEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
@@ -42,6 +43,7 @@ namespace ChessServer.Services.CardEffects
 
             Position piece1Pos;
             Position piece2Pos;
+            // Parst die algebraischen Notationen in Positionsobjekte.
             try
             {
                 piece1Pos = GameSession.ParsePos(fromSquareAlg);
@@ -64,15 +66,16 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: "Nicht beide Figuren für Positionstausch gehören dem Spieler.");
             }
 
+            // Verwendet eine spezielle Move-Klasse, um die Legalität zu prüfen (insbesondere Selbst-Schach).
             var positionSwapMove = new PositionSwapMove(piece1Pos, piece2Pos);
             if (!positionSwapMove.IsLegal(session.CurrentGameState.Board))
             {
                 return new CardActivationResult(false, ErrorMessage: "Positionstausch würde eigenen König ins Schach stellen.");
             }
 
+            // Führt den Tausch auf dem Brett aus.
             positionSwapMove.Execute(session.CurrentGameState.Board);
-
-            // HINZUGEFÜGT: Protokollierung des Zugs im Spielverlauf
+            // Protokolliert die Aktion im Spielverlauf.
             historyManager.AddMove(new PlayedMoveDto
             {
                 PlayerId = playerId,
@@ -86,8 +89,8 @@ namespace ChessServer.Services.CardEffects
                 RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
                 RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
             });
-
             _logger.LogPositionSwapEffectExecuted(fromSquareAlg, toSquareAlg, playerId, session.GameId);
+            // Definiert die betroffenen Felder für die visuelle Hervorhebung auf dem Client.
             var affectedSquares = new List<AffectedSquareInfo>
             {
                 new AffectedSquareInfo { Square = fromSquareAlg, Type = "card-swap-1" },

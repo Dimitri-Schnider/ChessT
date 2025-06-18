@@ -10,28 +10,31 @@ using Xunit;
 
 namespace ChessServer.Tests
 {
+    // Testklasse spezifisch für den SubtractTimeEffect (Zeitdiebstahl).
     public class SubtractTimeEffectTests
     {
         private readonly Mock<IChessLogger> mockLogger;
         private readonly Mock<GameSession> mockSession;
         private readonly Mock<GameTimerService> mockTimerService;
 
+        // Konstruktor: Richtet die Mocks für die Testumgebung ein.
         public SubtractTimeEffectTests()
         {
             mockLogger = new Mock<IChessLogger>();
             mockSession = new Mock<GameSession>();
 
-            // TimerService mocken. Die initialen Zeitwerte im Konstruktor sind für den Mock nicht relevant.
-            mockTimerService = new Mock<GameTimerService>(Guid.NewGuid(), TimeSpan.FromMinutes(10), new Mock<ILogger<GameTimerService>>().Object);
+            // TimerService wird gemockt, um das Zeitverhalten zu kontrollieren.
+            mockTimerService = new Mock<GameTimerService>(Guid.NewGuid(), TimeSpan.FromMinutes(10), mockLogger.Object);
 
             // Den Session-Mock so einrichten, dass er unseren gemockten TimerService zurückgibt.
             mockSession.SetupGet(s => s.TimerService).Returns(mockTimerService.Object);
         }
 
+        // Testfall: Überprüft den Erfolgsfall, wenn der Gegner genügend Zeit hat.
         [Fact]
         public void ExecuteWhenOpponentHasEnoughTimeSubtractsTimeAndReturnsSuccess()
         {
-            // ===== ARRANGE =====
+            // ARRANGE
             var subtractTimeEffect = new SubtractTimeEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
@@ -40,17 +43,15 @@ namespace ChessServer.Tests
 
             // 1. Simulieren, dass der Gegner existiert.
             mockSession.Setup(s => s.GetPlayerIdByColor(opponentColor)).Returns(opponentId);
-
             // 2. WICHTIG: Simulieren, dass der Gegner MEHR als 3 Minuten Zeit hat.
             mockTimerService.Setup(t => t.GetCurrentTimeForPlayer(opponentColor)).Returns(TimeSpan.FromMinutes(5));
-
             // 3. Simulieren, dass das Abziehen der Zeit erfolgreich ist.
             mockTimerService.Setup(t => t.SubtractTime(opponentColor, TimeSpan.FromMinutes(2))).Returns(true);
 
-            // ===== ACT =====
+            // ACT
             var result = subtractTimeEffect.Execute(mockSession.Object, playerId, playerColor, null!, CardConstants.SubtractTime, null, null);
 
-            // ===== ASSERT =====
+            // ASSERT
             // 1. Die Operation sollte erfolgreich sein.
             Assert.True(result.Success);
             Assert.Null(result.ErrorMessage);
@@ -59,10 +60,11 @@ namespace ChessServer.Tests
             mockTimerService.Verify(t => t.SubtractTime(opponentColor, TimeSpan.FromMinutes(2)), Times.Once);
         }
 
+        // Testfall: Überprüft den Fehlerfall, wenn der Gegner zu wenig Zeit hat.
         [Fact]
         public void ExecuteWhenOpponentHasTooLittleTimeReturnsError()
         {
-            // ===== ARRANGE =====
+            // ARRANGE
             var subtractTimeEffect = new SubtractTimeEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
@@ -71,14 +73,13 @@ namespace ChessServer.Tests
 
             // 1. Simulieren, dass der Gegner existiert.
             mockSession.Setup(s => s.GetPlayerIdByColor(opponentColor)).Returns(opponentId);
-
             // 2. WICHTIG: Simulieren, dass der Gegner WENIGER als 3 Minuten Zeit hat.
             mockTimerService.Setup(t => t.GetCurrentTimeForPlayer(opponentColor)).Returns(TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(59)));
 
-            // ===== ACT =====
+            // ACT
             var result = subtractTimeEffect.Execute(mockSession.Object, playerId, playerColor, null!, CardConstants.SubtractTime, null, null);
 
-            // ===== ASSERT =====
+            // ASSERT
             // 1. Die Operation sollte fehlschlagen.
             Assert.False(result.Success);
             Assert.NotNull(result.ErrorMessage);

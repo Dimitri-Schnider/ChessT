@@ -1,5 +1,4 @@
-﻿// File: [SolutionDir]\Chess.Logging\IChessLogger.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using ChessLogic;
 using ChessNetwork.DTOs;
@@ -161,5 +160,19 @@ namespace Chess.Logging
         void LogComputerMoveError(Guid gameId, string fen, int depth, string errorMessage);
         void LogComputerMakingMove(Guid gameId, string from, string toSquare);
         void LogComputerStartingInitialMove(Guid gameId, Player computerColor, Player currentPlayer);
+
+        // --- ChessServer.Services.GameTimerService.cs Logs ---
+        void LogTimerStarting(Guid gameId, Player? player, TimeSpan whiteTime, TimeSpan blackTime);
+        void LogTimerSwitching(Guid gameId, Player? player);
+        void LogTimerStoppedAndCalculated(Player? player, double elapsedSeconds, Guid gameId);
+        void LogTimerTickTrace(Guid gameId, Player? player, TimeSpan whiteTime, TimeSpan blackTime);
+        void LogPlayerTimeExpired(Player player, Guid gameId);
+        void LogTimerDisposed(Guid gameId);
+        void LogGameOverTimerStopped(Guid gameId);
+        void LogTimeAdjustedTimer(TimeSpan timeAmount, Player player, Guid gameId, TimeSpan whiteTime, TimeSpan blackTime);
+        void LogTimeSwappedTimer(Player player1, Player player2, Guid gameId, TimeSpan whiteTime, TimeSpan blackTime);
+        void LogTimeExpiredAfterManipulation(Player player, Guid gameId);
+        void LogTimerPaused(Guid gameId, Player? activePlayer);
+        void LogTimerResumed(Guid gameId, Player? activePlayer);
     }
 }

@@ -1,10 +1,8 @@
-﻿// In ChessClient.Tests/CreateGameModalTests.cs
-
-using Bunit; // Das bUnit Test-Framework
-using ChessClient.Models; // Der Namespace für CreateGameParameters
-using ChessClient.Pages.Components; // Der Namespace deiner Komponente
-using ChessLogic; // Der Namespace für den Player Enum
-using Microsoft.AspNetCore.Components.Web; // Für MouseEventArgs
+﻿using Bunit;
+using ChessClient.Models;
+using ChessClient.Pages.Components;
+using ChessLogic;
+using Microsoft.AspNetCore.Components.Web;
 using Xunit;
 
 namespace ChessClient.Tests;

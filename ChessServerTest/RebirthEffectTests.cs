@@ -13,6 +13,7 @@ using Xunit;
 
 namespace ChessServer.Tests
 {
+    // Testklasse spezifisch für den RebirthEffect (Wiedergeburt).
     public class RebirthEffectTests
     {
         private readonly Mock<IChessLogger> mockLogger;
@@ -22,6 +23,7 @@ namespace ChessServer.Tests
         private readonly Board board;
         private readonly Mock<GameTimerService> mockTimerService;
 
+        // Konstruktor: Richtet eine saubere Testumgebung mit allen notwendigen Mocks ein.
         public RebirthEffectTests()
         {
             mockLogger = new Mock<IChessLogger>();
@@ -29,20 +31,19 @@ namespace ChessServer.Tests
             mockCardManager = new Mock<ICardManager>();
             mockHistoryManager = new Mock<IHistoryManager>();
             board = new Board();
+            // Initialisiert den Mock für den GameTimerService.
+            mockTimerService = new Mock<GameTimerService>(Guid.NewGuid(), TimeSpan.FromMinutes(5), mockLogger.Object);
 
-            // Initialisiere den Mock für den GameTimerService
-            mockTimerService = new Mock<GameTimerService>(Guid.NewGuid(), TimeSpan.FromMinutes(5), new Mock<ILogger<GameTimerService>>().Object);
-
-            // Die gemockte GameSession so einrichten, dass sie unsere anderen Mocks zurückgibt
+            // Die gemockte GameSession so einrichten, dass sie unsere anderen Mocks zurückgibt.
             var mockGameState = new Mock<GameState>();
             mockGameState.SetupGet(gs => gs.Board).Returns(board);
             mockSession.SetupGet(s => s.CurrentGameState).Returns(mockGameState.Object);
             mockSession.SetupGet(s => s.CardManager).Returns(mockCardManager.Object);
-
-            // NEU & WICHTIG: Sage der GameSession, dass sie unseren gemockten TimerService zurückgeben soll
+            // Sage der GameSession, dass sie unseren gemockten TimerService zurückgeben soll.
             mockSession.SetupGet(s => s.TimerService).Returns(mockTimerService.Object);
         }
 
+        // Testfall: Überprüft den Erfolgsfall, bei dem eine Figur auf einem leeren Startfeld wiederbelebt wird.
         [Fact]
         public void ExecuteWithValidCapturedPieceAndEmptySquareRevivesPieceAndReturnsSuccess()
         {
@@ -51,15 +52,15 @@ namespace ChessServer.Tests
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
             var pieceToRevive = PieceType.Queen;
-            var targetSquare = "d1";
+            var targetSquare = "d1"; // Gültiges Startfeld für die weisse Dame.
             var targetPosition = GameSession.ParsePos(targetSquare);
 
+            // Simuliert, dass der Spieler eine Dame geschlagen hat.
             var capturedPieces = new List<CapturedPieceTypeDto> { new(PieceType.Queen) };
             mockCardManager.Setup(cm => cm.GetCapturedPieceTypesOfPlayer(playerColor)).Returns(capturedPieces);
 
-            Assert.True(board.IsEmpty(targetPosition));
-
-            board[new Position(7, 7)] = new King(playerColor);
+            Assert.True(board.IsEmpty(targetPosition)); // Sicherstellen, dass das Feld leer ist.
+            board[new Position(7, 7)] = new King(playerColor); // König für Legalitätsprüfung platzieren.
 
             // ===== ACT =====
             var result = rebirthEffect.Execute(
@@ -75,21 +76,23 @@ namespace ChessServer.Tests
             // ===== ASSERT =====
             Assert.True(result.Success);
             Assert.True(result.BoardUpdatedByCardEffect);
-
             var pieceOnBoard = board[targetPosition];
             Assert.NotNull(pieceOnBoard);
-            Assert.IsType<Queen>(pieceOnBoard);
+            Assert.IsType<Queen>(pieceOnBoard); // Es muss eine Dame sein.
             Assert.Equal(playerColor, pieceOnBoard.Color);
 
+            // Überprüft, ob die Figur aus der Liste der Geschlagenen entfernt wurde.
             mockCardManager.Verify(cm => cm.RemoveCapturedPieceOfType(playerColor, pieceToRevive), Times.Once);
-
+            // Überprüft, ob die Aktion in der Historie vermerkt wurde.
             mockHistoryManager.Verify(hm => hm.AddMove(It.IsAny<PlayedMoveDto>()), Times.Once);
         }
 
+        // Testfall: Stellt sicher, dass die Wiederbelebung fehlschlägt, wenn das Zielfeld besetzt ist.
+        // Die Karte soll laut Spielregel trotzdem verbraucht werden.
         [Fact]
         public void ExecuteWhenTargetSquareIsOccupiedReturnsErrorAndConsumesCard()
         {
-            // ===== ARRANGE =====
+            // ARRANGE
             var rebirthEffect = new RebirthEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
@@ -100,12 +103,11 @@ namespace ChessServer.Tests
             // 1. Simulieren, dass eine Dame geschlagen wurde.
             var capturedPieces = new List<CapturedPieceTypeDto> { new(PieceType.Queen) };
             mockCardManager.Setup(cm => cm.GetCapturedPieceTypesOfPlayer(playerColor)).Returns(capturedPieces);
-
             // 2. WICHTIG: Platziere eine andere Figur auf dem Zielfeld, um es zu blockieren.
             var blockingPiece = new Pawn(Player.White);
             board[targetPosition] = blockingPiece;
 
-            // ===== ACT =====
+            // ACT
             var result = rebirthEffect.Execute(
                 mockSession.Object,
                 playerId,
@@ -116,8 +118,8 @@ namespace ChessServer.Tests
                 targetSquare
             );
 
-            // ===== ASSERT =====
-            // 1. Laut deiner Logik in RebirthEffect.cs wird die Karte trotzdem als "verbraucht" angesehen.
+            // ASSERT
+            // 1. Laut Logik in RebirthEffect.cs wird die Karte trotzdem als "verbraucht" angesehen.
             //    Der `Success` ist `true`, aber es wird eine Fehlermeldung zurückgegeben.
             Assert.True(result.Success);
             Assert.NotNull(result.ErrorMessage);

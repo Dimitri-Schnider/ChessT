@@ -54,6 +54,7 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: $"Keine Figur auf dem Feld {fromSquareAlg} für Opfergabe gefunden.");
             }
 
+            // Validiert, dass die geopferte Figur ein Bauer der eigenen Farbe ist.
             if (pieceToSacrifice.Type != PieceType.Pawn)
             {
                 _logger.LogSacrificeEffectFailedNotAPawn(session.GameId, playerId, fromSquareAlg, pieceToSacrifice.Type);
@@ -66,6 +67,7 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: $"Der Bauer auf {fromSquareAlg} gehört nicht dir.");
             }
 
+            // Führt eine hypothetische Opferung durch, um auf Selbst-Schach zu prüfen.
             Board boardCopy = session.CurrentGameState.Board.Copy();
             boardCopy[pawnPos] = null;
             if (boardCopy.IsInCheck(playerDataColor))
@@ -74,7 +76,7 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: "Opfergabe nicht möglich, da dies deinen König ins Schach stellen würde.");
             }
 
-            // HINZUGEFÜGT: Protokollierung des Zugs im Spielverlauf
+            // Protokolliert die Aktion im Spielverlauf.
             historyManager.AddMove(new PlayedMoveDto
             {
                 PlayerId = playerId,
@@ -88,9 +90,10 @@ namespace ChessServer.Services.CardEffects
                 RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
                 RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
             });
-
+            // Entfernt den Bauern vom Brett.
             session.CurrentGameState.Board[pawnPos] = null;
             _logger.LogSacrificeEffectExecuted(session.GameId, playerId, fromSquareAlg);
+            // Gibt ein erfolgreiches Ergebnis zurück und signalisiert, dass der Spieler eine neue Karte ziehen soll.
             return new CardActivationResult(
                 Success: true,
                 EndsPlayerTurn: true,

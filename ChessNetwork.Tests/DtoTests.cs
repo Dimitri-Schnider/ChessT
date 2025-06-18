@@ -8,15 +8,13 @@ using Xunit;
 
 namespace ChessNetwork.Tests
 {
-    /// <summary>
-    /// Diese Klasse testet die korrekte Erstellung und Initialisierung
-    /// der Data Transfer Objects (DTOs) aus dem ChessNetwork-Projekt.
-    /// Zusätzlich werden die Validierungsattribute der DTOs überprüft.
-    /// </summary>
+    // Diese Klasse testet die korrekte Erstellung, Initialisierung
+    // und Validierung der Data Transfer Objects (DTOs) aus dem ChessNetwork-Projekt.
     public class DtoTests
     {
-        // Hilfsmethode, um die Validierungsattribute eines Objekts zu testen.
-        private (bool IsValid, List<ValidationResult> Results) ValidateModel(object model)
+        // Hilfsmethode, um die Validierungsattribute eines DTO-Modells zu testen.
+        // Gibt zurück, ob das Modell gültig ist und eine Liste der Validierungsfehler.
+        private static (bool IsValid, List<ValidationResult> Results) ValidateModel(object model)
         {
             var validationResults = new List<ValidationResult>();
             var vc = new ValidationContext(model, null, null);
@@ -24,17 +22,18 @@ namespace ChessNetwork.Tests
             return (isValid, validationResults);
         }
 
+        // Testfall: Stellt sicher, dass ein CreateGameDto korrekt mit Werten initialisiert werden kann.
         [Fact]
         public void CreateGameDtoCreationInitializesPropertiesCorrectly()
         {
-            // Arrange
+            // Arrange: Definiert die erwarteten Werte.
             var expectedPlayerName = "Magnus";
             var expectedColor = Player.White;
             var expectedMinutes = 15;
             var expectedOpponentType = "Human";
             var expectedDifficulty = "Medium";
 
-            // Act
+            // Act: Erstellt das DTO.
             var createGameDto = new CreateGameDto
             {
                 PlayerName = expectedPlayerName,
@@ -44,7 +43,7 @@ namespace ChessNetwork.Tests
                 ComputerDifficulty = expectedDifficulty
             };
 
-            // Assert
+            // Assert: Überprüft, ob alle Eigenschaften korrekt gesetzt wurden.
             Assert.Equal(expectedPlayerName, createGameDto.PlayerName);
             Assert.Equal(expectedColor, createGameDto.Color);
             Assert.Equal(expectedMinutes, createGameDto.InitialMinutes);
@@ -52,19 +51,21 @@ namespace ChessNetwork.Tests
             Assert.Equal(expectedDifficulty, createGameDto.ComputerDifficulty);
         }
 
+        // Testfall: Prüft, ob ein MoveDto mit gültigen Daten als valide erkannt wird.
         [Fact]
         public void MoveDtoWithValidDataIsValid()
         {
-            // Arrange
+            // Arrange: Erstellt ein gültiges MoveDto.
             var moveDto = new MoveDto("e2", "e4", Guid.NewGuid());
 
-            // Act
+            // Act: Führt die Validierung durch.
             var validation = ValidateModel(moveDto);
 
-            // Assert
+            // Assert: Das Modell muss gültig sein.
             Assert.True(validation.IsValid);
         }
 
+        // Testfall: Prüft verschiedene ungültige Koordinaten für ein MoveDto.
         [Theory]
         [InlineData("a9")] // Ungültige Zeile
         [InlineData("i1")] // Ungültige Spalte
@@ -72,31 +73,33 @@ namespace ChessNetwork.Tests
         [InlineData("e")]   // Unvollständig
         public void MoveDtoWithInvalidFromSquareIsInvalid(string from)
         {
-            // Arrange
+            // Arrange: Erstellt ein MoveDto mit ungültiger Startkoordinate.
             var moveDto = new MoveDto(from, "e4", Guid.NewGuid());
 
-            // Act
+            // Act: Führt die Validierung durch.
             var validation = ValidateModel(moveDto);
 
-            // Assert
+            // Assert: Das Modell muss ungültig sein und der Fehler muss sich auf das "From"-Feld beziehen.
             Assert.False(validation.IsValid);
             Assert.Contains(validation.Results, r => r.MemberNames.Contains("From"));
         }
 
+        // Testfall: Stellt sicher, dass eine leere Spieler-ID als ungültig erkannt wird.
         [Fact]
         public void MoveDtoWithEmptyPlayerIdIsInvalid()
         {
-            // Arrange
+            // Arrange: Erstellt ein MoveDto mit einer leeren Guid als PlayerId.
             var moveDto = new MoveDto("a1", "h8", Guid.Empty);
 
-            // Act
+            // Act: Führt die Validierung durch.
             var validation = ValidateModel(moveDto);
 
-            // Assert
+            // Assert: Das Modell muss ungültig sein.
             Assert.False(validation.IsValid);
             Assert.Contains(validation.Results, r => r.MemberNames.Contains("PlayerId"));
         }
 
+        // Testfall: Prüft die Validierung ungültiger Koordinaten im ActivateCardRequestDto.
         [Fact]
         public void ActivateCardRequestDtoWithInvalidSquareIsInvalid()
         {
@@ -116,6 +119,7 @@ namespace ChessNetwork.Tests
             Assert.Contains(validation.Results, r => r.MemberNames.Contains("FromSquare"));
         }
 
+        // Testfall: Überprüft, ob das Fehlen von Pflichtfeldern im ActivateCardRequestDto erkannt wird.
         [Fact]
         public void ActivateCardRequestDtoWithMissingRequiredFieldsIsInvalid()
         {
@@ -131,11 +135,13 @@ namespace ChessNetwork.Tests
 
             // Assert
             Assert.False(validation.IsValid);
-            Assert.Equal(2, validation.Results.Count); // Erwartet zwei Validierungsfehler
+            Assert.Equal(2, validation.Results.Count); // Erwartet zwei Validierungsfehler.
             Assert.Contains(validation.Results, r => r.MemberNames.Contains("CardInstanceId"));
             Assert.Contains(validation.Results, r => r.MemberNames.Contains("CardTypeId"));
         }
 
+        // Die folgenden Tests sind einfache "Smoke Tests", die sicherstellen, dass die DTOs
+        // korrekt erstellt und ihre Eigenschaften wie erwartet gesetzt werden können.
         [Fact]
         public void CardDtoInitializesCorrectly()
         {
@@ -149,7 +155,6 @@ namespace ChessNetwork.Tests
                 ImageUrl = "img/test.png",
                 AnimationDelayMs = 1000
             };
-
             // Assert
             Assert.NotEqual(Guid.Empty, card.InstanceId);
             Assert.Equal("test_card", card.Id);
@@ -178,7 +183,6 @@ namespace ChessNetwork.Tests
                 LastMoveTo = "e4",
                 CardEffectSquares = squares
             };
-
             // Assert
             Assert.True(result.IsValid);
             Assert.Null(result.ErrorMessage);
@@ -208,7 +212,6 @@ namespace ChessNetwork.Tests
                 Moves = new List<PlayedMoveDto> { new() { MoveNumber = 1, From = "e2", To = "e4" } },
                 PlayedCards = new List<PlayedCardDto> { new() { CardId = "teleport", CardName = "Teleport", PlayerName = "Alice" } }
             };
-
             // Assert
             Assert.NotEqual(Guid.Empty, history.GameId);
             Assert.Equal("Alice", history.PlayerWhiteName);
@@ -232,7 +235,6 @@ namespace ChessNetwork.Tests
                 BoardUpdatedByCardEffect = true,
                 PawnPromotionPendingAt = new PositionDto(0, 4)
             };
-
             // Assert
             Assert.True(result.Success);
             Assert.Equal("card_swap", result.CardId);
@@ -249,9 +251,8 @@ namespace ChessNetwork.Tests
             var timeUpdate = new TimeUpdateDto(
                 TimeSpan.FromSeconds(150),
                 TimeSpan.FromSeconds(120),
-                Player.Black
+                 Player.Black
             );
-
             // Assert
             Assert.Equal(150, timeUpdate.WhiteTime.TotalSeconds);
             Assert.Equal(120, timeUpdate.BlackTime.TotalSeconds);

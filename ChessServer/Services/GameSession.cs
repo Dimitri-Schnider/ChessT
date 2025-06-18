@@ -19,24 +19,28 @@ using System.Threading.Tasks;
 
 namespace ChessServer.Services
 {
+    // Repräsentiert eine einzelne, laufende Schachpartie.
+    // Diese Klasse ist das Herzstück der Spiellogik auf dem Server. Sie verwaltet den Spielzustand (`GameState`),
+    // die Spieler, den Timer, die Karten und die Kommunikation mit den Clients über den SignalR Hub.
     public class GameSession : IDisposable
     {
-        #region Fields
-        private readonly Guid _gameIdInternal;
-        private readonly GameState _state;
-        private readonly GameTimerService _timerServiceInternal;
-        private readonly IHubContext<ChessHub> _hubContext;
-        private readonly IChessLogger _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly object _sessionLock = new();
-        private Move? lastMoveForHistory;
+        #region Felder
+        private readonly Guid _gameIdInternal;                      // Die eindeutige ID dieser Spielsitzung.
+        private readonly GameState _state;                          // Das Kernobjekt, das die Schachlogik und den Brettzustand verwaltet.
+        private readonly GameTimerService _timerServiceInternal;    // Der Dienst, der die Bedenkzeiten der Spieler verwaltet.
+        private readonly IHubContext<ChessHub> _hubContext;         // Der SignalR-Hub-Kontext für die Echtzeitkommunikation.
+        private readonly IChessLogger _logger;                      // Dienst für das Logging.
+        private readonly IHttpClientFactory _httpClientFactory;     // Factory zur Erstellung von HttpClient-Instanzen (für Computergegner-API).
+        private readonly object _sessionLock = new();               // Sperrobjekt, um Thread-Sicherheit bei Zugriffen auf den Spielzustand zu gewährleisten.
+        private Move? lastMoveForHistory;                           // Speichert den letzten Zug für die FEN-Generierung in der Historie.
 
-        private readonly IPlayerManager _playerManager;
-        private readonly HistoryManager _historyManager;
-        internal virtual ICardManager CardManager { get; }
+        // Manager-Komponenten, die spezifische Aspekte der Sitzung verwalten.
+        private readonly IPlayerManager _playerManager;             // Verwaltet die Spieler (Namen, Farben, IDs).
+        private readonly HistoryManager _historyManager;            // Verwaltet den detaillierten Spielverlauf.
+        internal virtual ICardManager CardManager { get; }          // Verwaltet das gesamte Kartensystem.
         #endregion
 
-        #region Public Properties
+        #region Öffentliche Eigenschaften
         public virtual Guid GameId => _gameIdInternal;
         internal virtual GameState CurrentGameState => _state;
         internal virtual GameTimerService TimerService => _timerServiceInternal;
@@ -45,6 +49,7 @@ namespace ChessServer.Services
         public Player FirstPlayerColor => _playerManager.FirstPlayerColor;
         #endregion
 
+        // Konstruktor: Initialisiert eine neue Spielsitzung mit allen notwendigen Diensten und Konfigurationen.
         public GameSession(Guid gameId, IPlayerManager playerManager, int initialMinutes,
                            IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory,
                            IHttpClientFactory httpClientFactory)
@@ -56,18 +61,22 @@ namespace ChessServer.Services
             _logger = logger;
             _httpClientFactory = httpClientFactory;
             _historyManager = new HistoryManager(gameId, initialMinutes);
+            // Initialisiert die spezialisierten Manager mit Referenzen auf diese Session.
             CardManager = new CardManager(this, _sessionLock, _historyManager, new ChessLogger<CardManager>(loggerFactory.CreateLogger<CardManager>()), loggerFactory);
-            _timerServiceInternal = new GameTimerService(gameId, TimeSpan.FromMinutes(initialMinutes), loggerFactory.CreateLogger<GameTimerService>());
+            _timerServiceInternal = new GameTimerService(gameId, TimeSpan.FromMinutes(initialMinutes), new ChessLogger<GameTimerService>(loggerFactory.CreateLogger<GameTimerService>()));
+            // Abonniert die Timer-Events, um auf Zeit-Updates und Zeitüberschreitungen zu reagieren.
             _timerServiceInternal.OnTimeUpdated += HandleTimeUpdated;
             _timerServiceInternal.OnTimeExpired += HandleTimeExpired;
         }
 
-        #region Public Methods
+        #region Öffentliche Methoden
+        // Ermöglicht einem Spieler, dieser Sitzung beizutreten.
         public (Guid PlayerId, Player Color) Join(string playerName, Player? preferredColor = null)
         {
             var (playerId, assignedColor) = _playerManager.Join(playerName, preferredColor);
             int initialTimeMinutes = _historyManager.GetGameHistory(_playerManager).InitialTimeMinutes;
             CardManager.InitializeDecksForPlayer(playerId, initialTimeMinutes);
+            // Bei Spielen gegen den Computer wird auch dessen Deck initialisiert.
             if (_playerManager.ComputerPlayerId.HasValue && CardManager.GetPlayerHand(_playerManager.ComputerPlayerId.Value).Count == 0)
             {
                 CardManager.InitializeDecksForPlayer(_playerManager.ComputerPlayerId.Value, initialTimeMinutes);
@@ -75,7 +84,7 @@ namespace ChessServer.Services
             return (playerId, assignedColor);
         }
 
-        // Dieser parameterlose Konstruktor wird für Moq benötigt.
+        // Dieser parameterlose Konstruktor wird für Moq in den Tests benötigt.
         public GameSession() { }
         public bool IsGameReallyOver() { lock (_sessionLock) { return _state.IsGameOver(); } }
         public virtual Player GetPlayerColor(Guid playerId) => _playerManager.GetPlayerColor(playerId);
@@ -87,6 +96,8 @@ namespace ChessServer.Services
         public GameStatusDto GetStatus(Guid playerId) => GetStatusForPlayer(GetPlayerColor(playerId));
         public GameStatusDto GetStatusForOpponentOf(Guid lastPlayerId) => GetStatusForPlayer(GetPlayerColor(lastPlayerId).Opponent());
         public Task<ServerCardActivationResultDto> ActivateCard(Guid playerId, ActivateCardRequestDto dto) => CardManager.ActivateCard(playerId, dto);
+
+        // Startet das Spiel und den Timer. Löst bei Bedarf den ersten Zug des Computers aus.
         public void StartTheGameAndTimer()
         {
             lock (_sessionLock)
@@ -98,24 +109,29 @@ namespace ChessServer.Services
                 {
                     var computerColor = _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value);
                     _logger.LogComputerStartingInitialMove(GameId, computerColor, _state.CurrentPlayer);
+                    // Der Computerzug wird in einem Hintergrundthread ausgeführt, um die Hauptanwendung nicht zu blockieren.
                     Task.Run(() => ProcessComputerTurnIfNeeded());
                 }
             }
         }
 
+        // Verarbeitet einen vom Client gesendeten Zug.
         public MoveResultDto MakeMove(MoveDto dto, Guid playerIdCalling)
         {
             lock (_sessionLock)
             {
                 var playerColor = GetPlayerColor(playerIdCalling);
+                // Validierung: Ist der Spieler am Zug?
                 if (playerColor != _state.CurrentPlayer)
                     return new MoveResultDto { IsValid = false, ErrorMessage = "Nicht dein Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
 
+                // Prüft, ob ein "Extrazug" durch eine Karte aktiv ist.
                 var extraTurn = CardManager.PeekPendingCardEffect(playerIdCalling) == CardConstants.ExtraZug;
 
                 var fromPos = ParsePos(dto.From);
                 var toPos = ParsePos(dto.To);
                 Move? legalMove = null;
+                // Sonderfall: Bauernumwandlung ohne Bewegung (kann auf dem Client auftreten).
                 if (fromPos == toPos && dto.PromotionTo.HasValue)
                 {
                     var piece = _state.Board[fromPos];
@@ -131,6 +147,7 @@ namespace ChessServer.Services
                 }
                 else
                 {
+                    // Findet den legalen Zug in der Liste der möglichen Züge.
                     legalMove = FindLegalMove(dto, fromPos, toPos);
                 }
 
@@ -148,6 +165,7 @@ namespace ChessServer.Services
                     return new MoveResultDto { IsValid = false, ErrorMessage = "Ungültiger Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
                 }
 
+                // Sonderregel für Extrazug: Der erste Zug darf den Gegner nicht ins Schach setzen.
                 if (extraTurn)
                 {
                     Board boardCopy = _state.Board.Copy();
@@ -159,6 +177,7 @@ namespace ChessServer.Services
                     }
                 }
 
+                // Führt eine hypothetische Ausführung durch, um sicherzustellen, dass der eigene König nicht im Schach landet.
                 Board boardCopyForCheck = _state.Board.Copy();
                 legalMove.Execute(boardCopyForCheck);
                 if (boardCopyForCheck.IsInCheck(playerColor))
@@ -172,10 +191,12 @@ namespace ChessServer.Services
                     CardManager.ClearPendingCardEffect(playerIdCalling);
                 }
 
+                // Führt den Zug endgültig aus und finalisiert den Zustand.
                 return ExecuteAndFinalizeMove(legalMove, dto, playerIdCalling, playerColor, extraTurn);
             }
         }
 
+        // Verarbeitet das Ergebnis einer Kartenaktivierung und koordiniert die Folgeaktionen.
         public async Task<ServerCardActivationResultDto> HandleCardActivationResult(CardActivationResult effectResult, Guid playerId, CardDto playedCard, string cardTypeId, bool timerWasPaused)
         {
             var activatingPlayerColor = GetPlayerColor(playerId);
@@ -186,6 +207,7 @@ namespace ChessServer.Services
                 _logger.LogSessionCardActivationFailed(GameId, playerId, cardTypeId, effectResult.ErrorMessage ?? "Kartenaktivierung durch Effektimplementierung fehlgeschlagen.");
                 if (timerWasPaused) lock (_sessionLock) TimerService.ResumeTimer();
 
+                // Sonderfall: Bestimmte fehlgeschlagene Effekte (z.B. Wiedergeburt auf besetztes Feld) verbrauchen die Karte trotzdem.
                 bool consumeCardOnFailure = cardTypeId == CardConstants.Wiedergeburt && (effectResult.ErrorMessage?.Contains("besetzt") == true || effectResult.ErrorMessage?.Contains("Ursprungsfeld") == true || effectResult.ErrorMessage?.Contains("Keine wiederbelebungsfähigen") == true);
                 if (consumeCardOnFailure)
                 {
@@ -204,57 +226,55 @@ namespace ChessServer.Services
                 };
             }
 
-            // Stoppe die Uhr des Spielers, um die Bedenkzeit für die Kartenaktion zu ermitteln
+            // Bei erfolgreicher Aktivierung
             TimeSpan timeTakenForCard = TimerService.StopAndCalculateElapsedTime();
             CardManager.RemoveCardFromPlayerHand(playerId, playedCard.InstanceId);
             CardManager.MarkCardAsUsedGlobal(playerId, cardTypeId);
 
+            // Sendet spezielle Animationsdetails für den Kartentausch.
             if (cardTypeId == CardConstants.CardSwap && effectResult.CardGivenByPlayerForSwapEffect != null && effectResult.CardReceivedByPlayerForSwapEffect != null)
             {
                 await SignalCardSwapAnimationDetails(playerId, effectResult.CardGivenByPlayerForSwapEffect, effectResult.CardReceivedByPlayerForSwapEffect);
             }
 
+            // Löst die generische Kartenaktivierungs-Animation auf den Clients aus.
             await _hubContext.Clients.Group(GameId.ToString()).SendAsync("PlayCardActivationAnimation", playedCard, playerId, activatingPlayerColor);
             await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnCardPlayed", playerId, playedCard);
 
+            // Wartet eine definierte Zeit, um die Animation auf dem Client abzuspielen.
             int delayMs = playedCard.AnimationDelayMs;
             if (delayMs > 0)
             {
                 if (cardTypeId == CardConstants.CardSwap) { }
-                // TODO  _logger.LogComputerTurnDelayCardSwap(GameId, cardTypeId, delayMs / 1000.0);
                 else
                     _logger.LogComputerTurnDelayAfterCard(GameId, cardTypeId, delayMs / 1000.0);
                 await Task.Delay(delayMs);
             }
 
+            // Sendet die aktualisierten Handkarten nach einem Tausch.
             if (cardTypeId == CardConstants.CardSwap)
             {
                 await SignalHandUpdatesAfterCardSwap(playerId, GetOpponentDetails(playerId));
             }
 
             _historyManager.AddPlayedCard(new PlayedCardDto { PlayerId = playerId, PlayerName = activatingPlayerName, PlayerColor = activatingPlayerColor, CardId = cardTypeId, CardName = playedCard.Name, TimestampUtc = DateTime.UtcNow }, effectResult.BoardUpdatedByCardEffect);
-            // Wenn die Karte das Brett NICHT verändert hat UND den Zug des Spielers NICHT beendet, fügen wir einen "AbstractMove" hinzu.
+
+            // Fügt einen "abstrakten" Zug zur Historie hinzu, wenn eine Karte gespielt wurde, die das Brett nicht verändert (z.B. Zeitkarte).
             if (effectResult.Success && !effectResult.BoardUpdatedByCardEffect && effectResult.EndsPlayerTurn)
             {
                 _historyManager.AddMove(new PlayedMoveDto
                 {
                     PlayerId = playerId,
                     PlayerColor = activatingPlayerColor,
-
-
-                    From = "card", // Deskriptiver Platzhalter
-                    To = "play",   // Deskriptiver Platzhalter
+                    From = "card",
+                    To = "play",
                     ActualMoveType = MoveType.AbstractMove,
                     PromotionPiece = null,
-
-
                     TimestampUtc = DateTime.UtcNow,
-                    TimeTaken = timeTakenForCard, // KORREKTUR: Die tatsächlich vergangene Zeit verwenden
+                    TimeTaken = timeTakenForCard,
                     RemainingTimeWhite = TimerService.GetCurrentTimeForPlayer(Player.White),
                     RemainingTimeBlack = TimerService.GetCurrentTimeForPlayer(Player.Black),
-
-
-                    PieceMoved = $"Card: {playedCard.Name}", // Eindeutige Beschreibung der Aktion
+                    PieceMoved = $"Card: {playedCard.Name}",
                     CapturedPiece = null
                 });
             }
@@ -262,7 +282,6 @@ namespace ChessServer.Services
             Position? promotionSquareAfterCard = null;
             if (effectResult.BoardUpdatedByCardEffect)
             {
-                // KORREKTUR: Hier prüfen wir auf Spielende
                 _state.CheckForGameOver();
                 if (_state.IsGameOver())
                 {
@@ -271,7 +290,7 @@ namespace ChessServer.Services
                 }
                 else
                 {
-                    // Nur auf Umwandlung prüfen, wenn das Spiel nicht schon vorbei ist
+                    // Prüft, ob der Karteneffekt zu einer Bauernumwandlung geführt hat.
                     promotionSquareAfterCard = CheckForPawnPromotion(activatingPlayerColor);
                     if (promotionSquareAfterCard != null)
                     {
@@ -281,18 +300,18 @@ namespace ChessServer.Services
                 }
             }
 
+            // Prüft, ob der Spieler nach der Kartenaktion immer noch im Schach steht.
             if (CurrentGameState.Board.IsInCheck(activatingPlayerColor) && !_state.IsGameOver())
             {
                 _logger.LogPlayerStillInCheckAfterCardTurnNotEnded(GameId, playerId, cardTypeId);
             }
 
+            // Aktualisiert den Spielzustand basierend auf dem Ergebnis des Karteneffekts.
             lock (_sessionLock)
             {
                 if (effectResult.EndsPlayerTurn) _state.UpdateStateAfterMove(false, false, null);
                 else if (effectResult.BoardUpdatedByCardEffect) _state.RecordCurrentStateForRepetition(null);
 
-                // KORREKTUR: Wir rufen CheckForGameOver hier nochmals auf, falls der Zug nicht brettverändernd war, aber z.B. eine Zeitkarte zum Sieg führte
-                // oder um den Zustand nach UpdateStateAfterMove zu finalisieren.
                 if (!_state.IsGameOver())
                 {
                     _state.CheckForGameOver();
@@ -310,10 +329,11 @@ namespace ChessServer.Services
                 {
                     if (effectResult.EndsPlayerTurn) SwitchPlayerTimer();
                     else if (timerWasPaused) TimerService.ResumeTimer();
-                    else if (!TimerService.IsPaused) TimerService.StartPlayerTimer(activatingPlayerColor, false); // Timer wieder starten, falls er nicht pausiert war
+                    else if (!TimerService.IsPaused) TimerService.StartPlayerTimer(activatingPlayerColor, false);
                 }
             }
 
+            // Signalisiert einem Spieler, eine neue Karte zu ziehen, falls erforderlich.
             CardDto? newlyDrawnCard = null;
             if (effectResult.PlayerIdToSignalDraw.HasValue)
             {
@@ -321,28 +341,29 @@ namespace ChessServer.Services
                 if (newlyDrawnCard != null) await SignalCardDrawnToPlayer(effectResult.PlayerIdToSignalDraw.Value, newlyDrawnCard, "ActivateCard");
             }
 
+            // Sendet die finale Zustandsänderung an alle Clients.
             await SendOnTurnChangedNotification(ToBoardDto(), _state.CurrentPlayer, GetStatusForPlayer(_state.CurrentPlayer), null, null, effectResult.AffectedSquaresByCard);
+            // Löst bei Bedarf den Zug des Computers aus.
             if (effectResult.EndsPlayerTurn && _playerManager.OpponentType == "Computer" && !_state.IsGameOver())
             {
                 await Task.Run(() => ProcessComputerTurnIfNeeded(null, Random.Shared.Next(1000, 2001)));
             }
 
+            // Gibt das Endergebnis der Kartenaktivierung an den Controller zurück.
             return new ServerCardActivationResultDto
             {
                 Success = true,
                 CardId = cardTypeId,
                 AffectedSquaresByCard = effectResult.AffectedSquaresByCard,
                 EndsPlayerTurn = effectResult.EndsPlayerTurn,
-
-
                 BoardUpdatedByCardEffect = effectResult.BoardUpdatedByCardEffect,
                 CardGivenByPlayerForSwap = effectResult.CardGivenByPlayerForSwapEffect,
                 CardReceivedByPlayerForSwap = effectResult.CardReceivedByPlayerForSwapEffect,
-                PawnPromotionPendingAt = promotionSquareAfterCard != null ?
-                    new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) : null
+                PawnPromotionPendingAt = promotionSquareAfterCard != null ? new PositionDto(promotionSquareAfterCard.Row, promotionSquareAfterCard.Column) : null
             };
         }
 
+        // Pausiert den Timer für eine Aktion, die Zeit benötigt (z.B. Kartenaktivierung).
         public bool PauseTimerForAction()
         {
             lock (_sessionLock)
@@ -356,6 +377,7 @@ namespace ChessServer.Services
             }
         }
 
+        // Konvertiert den aktuellen Brettzustand in ein DTO für die Netzwerkübertragung.
         public BoardDto ToBoardDto()
         {
             lock (_sessionLock)
@@ -371,6 +393,7 @@ namespace ChessServer.Services
             }
         }
 
+        // Parst eine Position in algebraischer Notation (z.B. "e4") in ein Positionsobjekt.
         public static Position ParsePos(string alg)
         {
             if (string.IsNullOrWhiteSpace(alg) || alg.Length != 2) throw new ArgumentException("Ungültiges algebraisches Format für Position.", nameof(alg));
@@ -381,6 +404,7 @@ namespace ChessServer.Services
             return new Position(row, col);
         }
 
+        // Gibt den Spieler zurück, der laut Spiellogik am Zug ist.
         public Player GetCurrentTurnPlayerLogic()
         {
             lock (_sessionLock)
@@ -390,7 +414,8 @@ namespace ChessServer.Services
         }
         #endregion
 
-        #region Private Helpers
+        #region Private Hilfsmethoden
+        // Private Helfermethode: Führt einen validierten Zug aus und finalisiert den Spielzustand.
         private MoveResultDto ExecuteAndFinalizeMove(Move legalMove, MoveDto dto, Guid playerId, Player playerColor, bool isExtraTurn)
         {
             Piece? pieceBeingMoved;
@@ -401,6 +426,7 @@ namespace ChessServer.Services
 
             pieceBeingMoved = _state.Board[legalMove.FromPos];
             pieceAtDestination = _state.Board[legalMove.ToPos];
+            // Führt den Zug auf dem Brett aus.
             captureOrPawn = legalMove.Execute(_state.Board);
             if (isExtraTurn)
             {
@@ -412,13 +438,17 @@ namespace ChessServer.Services
                 _state.UpdateStateAfterMove(captureOrPawn, true, legalMove);
             }
             lastMoveForHistory = legalMove;
+            // Fügt geschlagene Figuren der entsprechenden Liste hinzu.
             if (pieceAtDestination != null) CardManager.AddCapturedPiece(pieceAtDestination.Color, pieceAtDestination.Type);
             else if (legalMove is EnPassant) CardManager.AddCapturedPiece(playerColor.Opponent(), PieceType.Pawn);
 
+            // Inkrementiert den Zugzähler und prüft, ob eine neue Karte gezogen werden soll.
             CardManager.IncrementPlayerMoveCount(playerId);
             var (shouldDraw, newlyDrawnCard) = CardManager.CheckAndProcessCardDraw(playerId);
+            // Erstellt das Ergebnis-DTO für den Client.
             var moveResultDto = CreateMoveResultDto(dto, isExtraTurn, shouldDraw ? playerId : null, newlyDrawnCard);
             AddMoveToHistory(dto, legalMove, playerId, playerColor, pieceBeingMoved, pieceAtDestination, moveTimestamp, timeTaken);
+            // Prüft auf Spielende und startet/wechselt den Timer.
             if (_state.IsGameOver())
             {
                 _historyManager.UpdateOnGameOver(_state.Result!);
@@ -430,6 +460,7 @@ namespace ChessServer.Services
                 else StartGameTimer();
             }
 
+            // Löst bei Bedarf den Zug des Computers aus.
             if (_playerManager.OpponentType == "Computer" && !isExtraTurn && !_state.IsGameOver())
             {
                 Task.Run(() => ProcessComputerTurnIfNeeded());
@@ -438,6 +469,7 @@ namespace ChessServer.Services
             return moveResultDto;
         }
 
+        // Prüft, ob eine Karte das Brett verändert.
         private bool IsCardBoardAltering(string cardTypeId)
         {
             return cardTypeId switch
@@ -450,29 +482,28 @@ namespace ChessServer.Services
             };
         }
 
+        // Findet einen legalen Zug in der Liste der möglichen Züge für eine Figur.
         private Move? FindLegalMove(MoveDto dto, Position from, Position to)
         {
             var candidateMoves = _state.LegalMovesForPiece(from);
+            // Berücksichtigt Bauernumwandlungen.
             if (dto.PromotionTo.HasValue)
                 return candidateMoves.OfType<PawnPromotion>().FirstOrDefault(m => m.ToPos == to && m.PromotionTo == dto.PromotionTo.Value);
             return candidateMoves.FirstOrDefault(m => m.ToPos == to && m is not PawnPromotion);
         }
 
+        // Fügt einen ausgeführten Zug zur Historie hinzu.
         private void AddMoveToHistory(MoveDto dto, Move legalMove, Guid playerId, Player playerColor, Piece? moved, Piece? captured, DateTime timestamp, TimeSpan timeTaken)
         {
             _historyManager.AddMove(new PlayedMoveDto
             {
                 PlayerId = playerId,
                 PlayerColor = playerColor,
-
-
                 From = dto.From,
                 To = dto.To,
                 ActualMoveType = legalMove.Type,
                 PromotionPiece = (legalMove is PawnPromotion promoMove) ? promoMove.PromotionTo : null,
                 TimestampUtc = timestamp,
-
-
                 TimeTaken = timeTaken,
                 RemainingTimeWhite = TimerService.GetCurrentTimeForPlayer(Player.White),
                 RemainingTimeBlack = TimerService.GetCurrentTimeForPlayer(Player.Black),
@@ -481,27 +512,25 @@ namespace ChessServer.Services
             });
         }
 
+        // Erstellt das MoveResultDto, das an den Client zurückgesendet wird.
         private MoveResultDto CreateMoveResultDto(MoveDto dto, bool isExtraTurn, Guid? drawPlayerId, CardDto? drawnCard)
         {
             return new MoveResultDto
             {
                 IsValid = true,
                 ErrorMessage = null,
-
-
                 NewBoard = ToBoardDto(),
                 IsYourTurn = isExtraTurn,
                 Status = GetStatusForPlayer(GetPlayerColor(dto.PlayerId)),
                 PlayerIdToSignalCardDraw = drawPlayerId,
                 NewlyDrawnCard = drawnCard,
                 LastMoveFrom = dto.From,
-
-
                 LastMoveTo = dto.To,
                 CardEffectSquares = null
             };
         }
 
+        // Ermittelt den Spielstatus aus der Perspektive eines bestimmten Spielers.
         private GameStatusDto GetStatusForPlayer(Player color)
         {
             lock (_sessionLock)
@@ -516,6 +545,7 @@ namespace ChessServer.Services
             }
         }
 
+        // Mappt den logischen Endgrund auf das DTO für den Client.
         private static GameStatusDto MapEndReasonToGameStatusDto(EndReason? reason, bool forLoserOrOpponentOfWinner = false)
         {
             if (reason == null) return GameStatusDto.None;
@@ -527,6 +557,7 @@ namespace ChessServer.Services
             };
         }
 
+        // Prüft, ob nach einem Zug eine Bauernumwandlung möglich ist.
         private Position? CheckForPawnPromotion(Player player)
         {
             int promotionRank = (player == Player.White) ? 0 : 7;
@@ -539,6 +570,7 @@ namespace ChessServer.Services
             return null;
         }
 
+        // Prüft, ob ein bestimmter Spieler gerade am Zug ist.
         private bool IsPlayerTurn(Guid playerId)
         {
             try
@@ -552,6 +584,7 @@ namespace ChessServer.Services
             }
         }
 
+        // Timer-Steuerung und Event-Handler
         private void SwitchPlayerTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
         private void StartGameTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
         private void NotifyTimerGameOver() => TimerService.SetGameOver();
@@ -568,14 +601,13 @@ namespace ChessServer.Services
                 var finalTimeUpdate = TimerService.GetCurrentTimeUpdateDto();
                 Task.Run(async () =>
                 {
-                    // Sende den Spieler 'p' (den Verlierer), nicht den 'winner'.
                     await SendOnTurnChangedNotification(currentBoardDto, p, GameStatusDto.TimeOut, null, null, null);
                     await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", finalTimeUpdate);
-
                 });
             }
         }
 
+        // SignalR-Benachrichtigungen
         private async Task SendOnTurnChangedNotification(BoardDto board, Player nextPlayer, GameStatusDto status, string? from, string? to, List<AffectedSquareInfo>? effects)
         {
             await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTurnChanged", board, nextPlayer, status, from, to, effects);
@@ -633,7 +665,7 @@ namespace ChessServer.Services
             }
         }
 
-
+        // Logik für den Computergegner
         private sealed class ChessApiResponseDto
         {
             public string? Move { get; set; }
@@ -648,6 +680,7 @@ namespace ChessServer.Services
         };
         private async Task ProcessComputerTurnIfNeeded(string? cardId = null, int animationDelayMs = -1)
         {
+            // Fügt eine künstliche Verzögerung hinzu, um den Computer menschlicher wirken zu lassen.
             if (animationDelayMs == -1)
             {
                 var cardDef = cardId != null ? CardManager.GetCardDefinitionForAnimation(cardId) : null;
@@ -660,23 +693,20 @@ namespace ChessServer.Services
                 lock (_sessionLock) { computerColorToPause = _state.CurrentPlayer; }
                 _logger.LogComputerTimerPausedForAnimation(GameId, computerColorToPause);
                 TimerService.PauseTimer();
-
                 await Task.Delay(animationDelayMs);
-
                 TimerService.ResumeTimer();
                 _logger.LogComputerTimerResumedAfterAnimation(GameId, computerColorToPause);
             }
 
             Guid? computerId;
             Player computerColor;
+            // Stellt sicher, dass der Computer wirklich am Zug ist.
             lock (_sessionLock)
             {
                 if (_playerManager.OpponentType != "Computer" ||
                     !_playerManager.ComputerPlayerId.HasValue ||
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) != _state.CurrentPlayer ||
                     _state.IsGameOver())
-
-
                 {
                     if (animationDelayMs > 0) _logger.LogComputerSkippingTurnAfterAnimationDelay(GameId, cardId ?? "N/A");
                     return;
@@ -685,6 +715,7 @@ namespace ChessServer.Services
                 computerColor = _playerManager.GetPlayerColor(computerId.Value);
             }
 
+            // Holt den besten Zug von einer externen Schach-API.
             string? apiMoveString = await GetComputerApiMoveAsync();
             if (string.IsNullOrWhiteSpace(apiMoveString) || apiMoveString.Length < 4)
             {
@@ -692,6 +723,7 @@ namespace ChessServer.Services
                 return;
             }
 
+            // Parst den API-Zug und führt ihn aus.
             string fromAlg = apiMoveString.Substring(0, 2);
             string toAlg = apiMoveString.Substring(2, 2);
             PieceType? promotion = apiMoveString.Length == 5 ? ParsePromotionChar(apiMoveString[4]) : null;
@@ -699,6 +731,7 @@ namespace ChessServer.Services
             _logger.LogComputerMakingMove(GameId, fromAlg, toAlg);
 
             var moveResult = MakeMove(moveDto, computerId.Value);
+            // Wenn der Zug gültig war, wird das Ergebnis an alle Clients gesendet.
             if (moveResult.IsValid)
             {
                 Player nextPlayerTurn = GetCurrentTurnPlayerLogic();
@@ -722,11 +755,13 @@ namespace ChessServer.Services
         {
             string fen;
             int depth;
+            // Erstellt die FEN-Notation des aktuellen Brettzustands für die API.
             lock (_sessionLock)
             {
                 if (_playerManager.ComputerPlayerId == null) return null;
                 var moveCount = _historyManager.GetMoveCount();
                 fen = new StateString(_state.CurrentPlayer, _state.Board, null, _state.NoCaptureOrPawnMoves, (moveCount / 2) + 1, true).ToString();
+                // Die Suchtiefe wird basierend auf der gewählten Schwierigkeit eingestellt.
                 depth = _playerManager.GetPlayerName(_playerManager.ComputerPlayerId.Value)?.Contains("Easy") == true ? 1 :
                         _playerManager.GetPlayerName(_playerManager.ComputerPlayerId.Value)?.Contains("Hard") == true ? 20 : 10;
             }
@@ -765,6 +800,7 @@ namespace ChessServer.Services
         }
         #endregion
 
+        // Gibt die von der Session verwendeten Ressourcen (Timer, CardManager) frei.
         public void Dispose()
         {
             _timerServiceInternal.Dispose();

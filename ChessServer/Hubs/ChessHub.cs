@@ -15,12 +15,9 @@ namespace ChessServer.Hubs
     {
         #region Static Fields
 
-        // Bildet eine Verbindungs-ID auf eine Spieler-ID ab.
-        public static readonly ConcurrentDictionary<string, Guid> connectionToPlayerIdMap = new();
-        // Bildet eine Spieler-ID auf eine Verbindungs-ID ab (für schnelles Nachschlagen).
-        public static readonly ConcurrentDictionary<Guid, string> PlayerIdToConnectionMap = new();
-        // Bildet eine Verbindungs-ID auf eine Spiel-ID ab.
-        private static readonly ConcurrentDictionary<string, Guid> _connectionToGameIdMap = new();
+        public static readonly ConcurrentDictionary<string, Guid> connectionToPlayerIdMap = new();  // Bildet eine Verbindungs-ID auf eine Spieler-ID ab.
+        public static readonly ConcurrentDictionary<Guid, string> PlayerIdToConnectionMap = new();  // Bildet eine Spieler-ID auf eine Verbindungs-ID ab (für schnelles Nachschlagen).
+        private static readonly ConcurrentDictionary<string, Guid> _connectionToGameIdMap = new();  // Bildet eine Verbindungs-ID auf eine Spiel-ID ab.
 
         #endregion
 

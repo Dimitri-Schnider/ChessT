@@ -17,6 +17,7 @@ namespace Chess.Logging
         private const int CardEffectsLogBaseId = 24000;
         private const int GameManagerLogBaseId = 25000;
         private const int PvcLogBaseId = 26000;
+        private const int TimerLogBaseId = 27000;
 
         // --- ChessClient.Pages.Chess.razor.cs Logs ---
         private static readonly Action<ILogger, Guid, string, string, Exception?> _logStartingGenericCardSwapAnimationAction =
@@ -313,6 +314,32 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, Player, Player, Exception?> _logComputerStartingInitialMoveAction =
             LoggerMessage.Define<Guid, Player, Player>(LogLevel.Debug, new EventId(PvcLogBaseId + 6, "SessionComputerStartingInitialMoveLog"), "[GameSession] Spiel {GameId}: Computer (Farbe: {ComputerColor}, aktuell am Zug: {CurrentPlayer}) startet. Planne initialen Zug.");
 
+        // --- ChessServer.Services.GameTimerService.cs Logs ---
+        private static readonly Action<ILogger, Guid, Player?, TimeSpan, TimeSpan, Exception?> _logTimerStartingAction =
+            LoggerMessage.Define<Guid, Player?, TimeSpan, TimeSpan>(LogLevel.Information, new EventId(TimerLogBaseId + 1, "TimerStartingLog"), "[GameTimerService] Timer für Spiel {GameId}, Spieler {Player} wird gestartet. W: {WhiteTime}, B: {BlackTime}");
+        private static readonly Action<ILogger, Guid, Player?, Exception?> _logTimerSwitchingAction =
+            LoggerMessage.Define<Guid, Player?>(LogLevel.Information, new EventId(TimerLogBaseId + 2, "TimerSwitchingLog"), "[GameTimerService] Timer für Spiel {GameId} wird auf Spieler {Player} umgeschaltet.");
+        private static readonly Action<ILogger, Player?, double, Guid, Exception?> _logTimerStoppedAndCalculatedAction =
+            LoggerMessage.Define<Player?, double, Guid>(LogLevel.Debug, new EventId(TimerLogBaseId + 3, "TimerStoppedAndCalculatedLog"), "[GameTimerService] Timer gestoppt für Spieler {Player} in Spiel {GameId}. Vergangene Zeit: {ElapsedSeconds}s.");
+        private static readonly Action<ILogger, Guid, Player?, TimeSpan, TimeSpan, Exception?> _logTimerTickTraceAction =
+            LoggerMessage.Define<Guid, Player?, TimeSpan, TimeSpan>(LogLevel.Trace, new EventId(TimerLogBaseId + 4, "TimerTickTraceLog"), "[GameTimerService] Tick für Spieler {Player} in Spiel {GameId}. W: {WhiteTime}, B: {BlackTime}");
+        private static readonly Action<ILogger, Player, Guid, Exception?> _logPlayerTimeExpiredAction =
+            LoggerMessage.Define<Player, Guid>(LogLevel.Information, new EventId(TimerLogBaseId + 5, "PlayerTimeExpiredLog"), "[GameTimerService] Zeit für Spieler {Player} in Spiel {GameId} abgelaufen.");
+        private static readonly Action<ILogger, Guid, Exception?> _logTimerDisposedAction =
+            LoggerMessage.Define<Guid>(LogLevel.Trace, new EventId(TimerLogBaseId + 6, "TimerDisposedLog"), "[GameTimerService] Interner Timer gestoppt/entsorgt für Spiel {GameId}.");
+        private static readonly Action<ILogger, Guid, Exception?> _logGameOverTimerStoppedAction =
+            LoggerMessage.Define<Guid>(LogLevel.Information, new EventId(TimerLogBaseId + 7, "GameOverTimerStoppedLog"), "[GameTimerService] Spiel {GameId} als beendet markiert, Timer gestoppt.");
+        private static readonly Action<ILogger, TimeSpan, Player, Guid, TimeSpan, TimeSpan, Exception?> _logTimeAdjustedTimerAction =
+           LoggerMessage.Define<TimeSpan, Player, Guid, TimeSpan, TimeSpan>(LogLevel.Information, new EventId(TimerLogBaseId + 8, "TimeAdjustedTimerLog"), "[GameTimerService] {TimeAmount} für Spieler {Player} in Spiel {GameId} angepasst. W: {WhiteTime}, B: {BlackTime}");
+        private static readonly Action<ILogger, Player, Player, Guid, TimeSpan, TimeSpan, Exception?> _logTimeSwappedTimerAction =
+            LoggerMessage.Define<Player, Player, Guid, TimeSpan, TimeSpan>(LogLevel.Information, new EventId(TimerLogBaseId + 9, "TimeSwappedTimerLog"), "[GameTimerService] Zeiten zwischen Spieler {Player1} und {Player2} in Spiel {GameId} getauscht. W: {WhiteTime}, B: {BlackTime}");
+        private static readonly Action<ILogger, Player, Guid, Exception?> _logTimeExpiredAfterManipulationAction =
+            LoggerMessage.Define<Player, Guid>(LogLevel.Information, new EventId(TimerLogBaseId + 10, "TimeExpiredAfterManipulationLog"), "[GameTimerService] Zeit für Spieler {Player} in Spiel {GameId} durch Manipulation auf 0 oder weniger gefallen und als abgelaufen markiert.");
+        private static readonly Action<ILogger, Guid, Player?, Exception?> _logTimerPausedAction =
+            LoggerMessage.Define<Guid, Player?>(LogLevel.Debug, new EventId(TimerLogBaseId + 11, "TimerPausedLog"), "[GameTimerService] Timer für Spiel {GameId}, Spieler {ActivePlayer} pausiert.");
+        private static readonly Action<ILogger, Guid, Player?, Exception?> _logTimerResumedAction =
+            LoggerMessage.Define<Guid, Player?>(LogLevel.Debug, new EventId(TimerLogBaseId + 12, "TimerResumedLog"), "[GameTimerService] Timer für Spiel {GameId}, Spieler {ActivePlayer} fortgesetzt.");
+
         public ChessLogger(ILogger<TCategoryName> msLogger)
         {
             _msLogger = msLogger ?? throw new ArgumentNullException(nameof(msLogger));
@@ -460,6 +487,20 @@ namespace Chess.Logging
         public void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context) => _logAwaitingTurnConfirmationStatusAction(_msLogger, flagStatus, context, null);
         public void LogCardsRevealed(Guid? gameId) => _logCardsRevealedAction(_msLogger, gameId, null);
         public void LogStartGameCountdown(Guid gameId) => _logStartGameCountdownAction(_msLogger, gameId, null);
+
+        // --- ChessServer.Services.GameTimerService.cs Logs Implementations ---
+        public void LogTimerStarting(Guid gameId, Player? player, TimeSpan whiteTime, TimeSpan blackTime) => _logTimerStartingAction(_msLogger, gameId, player, whiteTime, blackTime, null);
+        public void LogTimerSwitching(Guid gameId, Player? player) => _logTimerSwitchingAction(_msLogger, gameId, player, null);
+        public void LogTimerStoppedAndCalculated(Player? player, double elapsedSeconds, Guid gameId) => _logTimerStoppedAndCalculatedAction(_msLogger, player, elapsedSeconds, gameId, null);
+        public void LogTimerTickTrace(Guid gameId, Player? player, TimeSpan whiteTime, TimeSpan blackTime) => _logTimerTickTraceAction(_msLogger, gameId, player, whiteTime, blackTime, null);
+        public void LogPlayerTimeExpired(Player player, Guid gameId) => _logPlayerTimeExpiredAction(_msLogger, player, gameId, null);
+        public void LogTimerDisposed(Guid gameId) => _logTimerDisposedAction(_msLogger, gameId, null);
+        public void LogGameOverTimerStopped(Guid gameId) => _logGameOverTimerStoppedAction(_msLogger, gameId, null);
+        public void LogTimeAdjustedTimer(TimeSpan timeAmount, Player player, Guid gameId, TimeSpan whiteTime, TimeSpan blackTime) => _logTimeAdjustedTimerAction(_msLogger, timeAmount, player, gameId, whiteTime, blackTime, null);
+        public void LogTimeSwappedTimer(Player player1, Player player2, Guid gameId, TimeSpan whiteTime, TimeSpan blackTime) => _logTimeSwappedTimerAction(_msLogger, player1, player2, gameId, whiteTime, blackTime, null);
+        public void LogTimeExpiredAfterManipulation(Player player, Guid gameId) => _logTimeExpiredAfterManipulationAction(_msLogger, player, gameId, null);
+        public void LogTimerPaused(Guid gameId, Player? activePlayer) => _logTimerPausedAction(_msLogger, gameId, activePlayer, null);
+        public void LogTimerResumed(Guid gameId, Player? activePlayer) => _logTimerResumedAction(_msLogger, gameId, activePlayer, null);
 
     }
 }

@@ -58,14 +58,7 @@ namespace ChessServer.Controllers
                     return BadRequest(activationResultFull);
                 }
 
-                // ERFOLGREICH - Die Session hat bereits alle nötigen Hub-Nachrichten (Animation, OnTurnChanged) in der korrekten Reihenfolge gesendet.
-                // Der Controller muss hier nichts mehr an den Hub senden.
-
                 _logger.LogCardActivationSuccessController(gameId, playerId, dto.CardTypeId);
-
-                // Die Logik für das Senden von neu gezogenen Karten und Hand-Updates nach einem Tausch muss in der Session bleiben,
-                // da sie auf dem finalen Zustand basiert, der erst nach der Animation feststeht.
-                // Der Controller gibt einfach das finale Ergebnis zurück.
 
                 return Ok(activationResultFull);
             }

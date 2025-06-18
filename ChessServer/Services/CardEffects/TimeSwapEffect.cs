@@ -34,6 +34,7 @@ namespace ChessServer.Services.CardEffects
                 return new CardActivationResult(false, ErrorMessage: "Gegner nicht gefunden für Zeittausch.");
             }
 
+            // Versucht, die Zeiten über den TimerService zu tauschen.
             if (session.TimerService.SwapTimes(playerDataColor, opponentColor))
             {
                 _logger.LogTimeSwapEffectApplied(playerDataColor, opponentColor, session.GameId);

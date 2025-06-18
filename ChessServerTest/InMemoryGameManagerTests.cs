@@ -1,6 +1,4 @@
-﻿// In ChessServer.Tests/InMemoryGameManagerTests.cs
-
-using Xunit;
+﻿using Xunit;
 using Moq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -11,113 +9,115 @@ using ChessLogic;
 using ChessNetwork.DTOs;
 using Chess.Logging;
 
-namespace ChessServer.Tests;
-
-public class InMemoryGameManagerTests
+namespace ChessServer.Tests
 {
-    // Mock-Objekte für die Abhängigkeiten, die der GameManager benötigt.
-    // Wir simulieren diese, um uns nur auf das Testen des Managers zu konzentrieren.
-    private readonly Mock<IHubContext<ChessHub>> _mockHubContext;
-    private readonly Mock<IChessLogger> _mockLogger;
-    private readonly Mock<ILoggerFactory> _mockLoggerFactory;
-    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
-    private readonly InMemoryGameManager _gameManager;
-
-    public InMemoryGameManagerTests()
+    // Testklasse für den InMemoryGameManager, die zentrale Verwaltungsinstanz für alle Spiele.
+    public class InMemoryGameManagerTests
     {
-        // Initialisierung der Mock-Objekte im Konstruktor
-        _mockHubContext = new Mock<IHubContext<ChessHub>>();
-        _mockLogger = new Mock<IChessLogger>();
-        _mockLoggerFactory = new Mock<ILoggerFactory>();
-        _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+        // Mock-Objekte für die Abhängigkeiten, die der GameManager benötigt.
+        // Wir simulieren diese, um uns nur auf das Testen der Manager-Logik zu konzentrieren.
+        private readonly Mock<IHubContext<ChessHub>> _mockHubContext;
+        private readonly Mock<IChessLogger> _mockLogger;
+        private readonly Mock<ILoggerFactory> _mockLoggerFactory;
+        private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
+        private readonly InMemoryGameManager _gameManager;
 
-        // Sicherstellen, dass der LoggerFactory einen gültigen (aber leeren) Logger zurückgibt,
-        // da die GameSession-Klasse dies beim Erstellen erwartet.
-        _mockLoggerFactory.Setup(f => f.CreateLogger(It.IsAny<string>()))
-            .Returns(new Mock<ILogger>().Object);
+        // Konstruktor: Initialisiert die Mock-Objekte und die zu testende Instanz des Managers.
+        public InMemoryGameManagerTests()
+        {
+            _mockHubContext = new Mock<IHubContext<ChessHub>>();
+            _mockLogger = new Mock<IChessLogger>();
+            _mockLoggerFactory = new Mock<ILoggerFactory>();
+            _mockHttpClientFactory = new Mock<IHttpClientFactory>();
 
-        // Erstellen einer Instanz des InMemoryGameManager mit den simulierten Abhängigkeiten
-        _gameManager = new InMemoryGameManager(
-            _mockHubContext.Object,
-            _mockLogger.Object,
-            _mockLoggerFactory.Object,
-            _mockHttpClientFactory.Object
-        );
-    }
+            // Sicherstellen, dass der LoggerFactory einen gültigen (aber leeren) Logger zurückgibt,
+            // da die GameSession-Klasse dies beim Erstellen erwartet.
+            _mockLoggerFactory.Setup(f => f.CreateLogger(It.IsAny<string>()))
+                .Returns(new Mock<ILogger>().Object);
 
-    [Fact]
-    public void CreateGameWithValidPlayerNameReturnsValidGameAndPlayerIds()
-    {
-        // Arrange
-        string playerName = "max Mustermann";
-        Player color = Player.White;
-        int time = 10;
+            // Erstellen einer Instanz des InMemoryGameManager mit den simulierten Abhängigkeiten.
+            _gameManager = new InMemoryGameManager(
+                _mockHubContext.Object,
+                _mockLogger.Object,
+                _mockLoggerFactory.Object,
+                _mockHttpClientFactory.Object
+            );
+        }
 
-        // Act
-        // Rufe die zu testende Methode auf
-        var (gameId, playerId) = _gameManager.CreateGame(playerName, color, time);
+        // Testfall: Überprüft, ob das Erstellen eines Spiels mit gültigen Daten eine Spiel- und Spieler-ID zurückgibt.
+        [Fact]
+        public void CreateGameWithValidPlayerNameReturnsValidGameAndPlayerIds()
+        {
+            // Arrange: Definiert die Parameter für das neue Spiel.
+            string playerName = "max Mustermann";
+            Player color = Player.White;
+            int time = 10;
 
-        // Assert
-        // Überprüfe die Ergebnisse
-        Assert.NotEqual(Guid.Empty, gameId); // Die Spiel-ID sollte nicht leer sein
-        Assert.NotEqual(Guid.Empty, playerId); // Die Spieler-ID sollte nicht leer sein
-    }
+            // Act: Ruft die zu testende Methode auf.
+            var (gameId, playerId) = _gameManager.CreateGame(playerName, color, time);
 
-    [Fact]
-    public void CreateGameWithEmptyPlayerNameThrowsArgumentException()
-    {
-        // Arrange
-        string playerName = ""; // Ungültiger Name
-        Player color = Player.White;
-        int time = 10;
+            // Assert: Überprüft die Ergebnisse.
+            Assert.NotEqual(Guid.Empty, gameId); // Die Spiel-ID sollte nicht leer sein.
+            Assert.NotEqual(Guid.Empty, playerId); // Die Spieler-ID sollte nicht leer sein.
+        }
 
-        // Act & Assert
-        // Überprüft, ob die Methode eine ArgumentException wirft, wenn der Name leer ist.
-        // Das ist der erwartete, korrekte Fehlerfall.
-        Assert.Throws<ArgumentException>(() => _gameManager.CreateGame(playerName, color, time));
-    }
+        // Testfall: Stellt sicher, dass das Erstellen eines Spiels mit einem leeren Namen eine Ausnahme auslöst.
+        [Fact]
+        public void CreateGameWithEmptyPlayerNameThrowsArgumentException()
+        {
+            // Arrange: Definiert ungültige Parameter.
+            string playerName = ""; // Ungültiger Name.
+            Player color = Player.White;
+            int time = 10;
 
-    [Fact]
-    public void JoinGameWhenGameExistsAndIsNotFullReturnsValidPlayerIdAndColor()
-    {
-        // Arrange
-        var (gameId, _) = _gameManager.CreateGame("Player1", Player.White, 10);
+            // Act & Assert: Überprüft, ob die Methode eine ArgumentException wirft. Dies ist der erwartete, korrekte Fehlerfall.
+            Assert.Throws<ArgumentException>(() => _gameManager.CreateGame(playerName, color, time));
+        }
 
-        // Act
-        var (player2Id, player2Color) = _gameManager.JoinGame(gameId, "Player2");
+        // Testfall: Simuliert das Beitreten eines zweiten Spielers zu einem existierenden Spiel.
+        [Fact]
+        public void JoinGameWhenGameExistsAndIsNotFullReturnsValidPlayerIdAndColor()
+        {
+            // Arrange: Erstellt zuerst ein Spiel.
+            var (gameId, _) = _gameManager.CreateGame("Player1", Player.White, 10);
 
-        // Assert
-        Assert.NotEqual(Guid.Empty, player2Id); // Der zweite Spieler sollte eine gültige ID bekommen
-        Assert.Equal(Player.Black, player2Color); // Der zweite Spieler sollte die entgegengesetzte Farbe bekommen
-    }
+            // Act: Lässt einen zweiten Spieler beitreten.
+            var (player2Id, player2Color) = _gameManager.JoinGame(gameId, "Player2");
 
-    [Fact]
-    public void JoinGameWhenGameIsFullThrowsInvalidOperationException()
-    {
-        // Arrange
-        var (gameId, _) = _gameManager.CreateGame("Player1", Player.White, 10);
-        _gameManager.JoinGame(gameId, "Player2"); // Spiel ist jetzt voll
+            // Assert: Überprüft, ob der zweite Spieler eine gültige ID und die korrekte (entgegengesetzte) Farbe erhält.
+            Assert.NotEqual(Guid.Empty, player2Id);
+            Assert.Equal(Player.Black, player2Color);
+        }
 
-        // Act & Assert
-        // Versucht, einem vollen Spiel beizutreten und erwartet eine Exception
-        Assert.Throws<InvalidOperationException>(() => _gameManager.JoinGame(gameId, "Player3"));
-    }
+        // Testfall: Prüft das Verhalten, wenn ein dritter Spieler versucht, einem bereits vollen Spiel beizutreten.
+        [Fact]
+        public void JoinGameWhenGameIsFullThrowsInvalidOperationException()
+        {
+            // Arrange: Erstellt ein Spiel und lässt einen zweiten Spieler beitreten, um es zu füllen.
+            var (gameId, _) = _gameManager.CreateGame("Player1", Player.White, 10);
+            _gameManager.JoinGame(gameId, "Player2"); // Spiel ist jetzt voll.
 
-    [Fact]
-    public void GetGameInfoAfterCreationReturnsCorrectCreatorInfo()
-    {
-        // Arrange
-        string creatorName = "Gandalf";
-        Player creatorColor = Player.White;
-        var (gameId, creatorId) = _gameManager.CreateGame(creatorName, creatorColor, 10);
+            // Act & Assert: Versucht, einem vollen Spiel beizutreten und erwartet eine InvalidOperationException.
+            Assert.Throws<InvalidOperationException>(() => _gameManager.JoinGame(gameId, "Player3"));
+        }
 
-        // Act
-        var gameInfo = _gameManager.GetGameInfo(gameId);
+        // Testfall: Überprüft, ob die Informationen über den Spieler, der das Spiel erstellt hat, korrekt abgerufen werden können.
+        [Fact]
+        public void GetGameInfoAfterCreationReturnsCorrectCreatorInfo()
+        {
+            // Arrange: Erstellt ein neues Spiel.
+            string creatorName = "Gandalf";
+            Player creatorColor = Player.White;
+            var (gameId, creatorId) = _gameManager.CreateGame(creatorName, creatorColor, 10);
 
-        // Assert
-        Assert.NotNull(gameInfo);
-        Assert.Equal(creatorId, gameInfo.CreatorId);
-        Assert.Equal(creatorColor, gameInfo.CreatorColor);
-        Assert.False(gameInfo.HasOpponent); // Zu diesem Zeitpunkt ist noch kein Gegner beigetreten
+            // Act: Ruft die Spielinformationen ab.
+            var gameInfo = _gameManager.GetGameInfo(gameId);
+
+            // Assert: Verifiziert die zurückgegebenen Informationen.
+            Assert.NotNull(gameInfo);
+            Assert.Equal(creatorId, gameInfo.CreatorId);
+            Assert.Equal(creatorColor, gameInfo.CreatorColor);
+            Assert.False(gameInfo.HasOpponent); // Zu diesem Zeitpunkt ist noch kein Gegner beigetreten.
+        }
     }
 }
