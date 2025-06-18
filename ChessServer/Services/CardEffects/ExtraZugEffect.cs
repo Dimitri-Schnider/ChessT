@@ -13,22 +13,19 @@ namespace ChessServer.Services.CardEffects
         public ExtraZugEffect(IChessLogger logger) { _logger = logger; }
 
         // Führt den Effekt aus.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor, IHistoryManager historyManager, string cardTypeId, string? fromSquareAlg, string? toSquareAlg)
+        public CardActivationResult Execute(CardExecutionContext context)
         {
-            if (cardTypeId != CardConstants.ExtraZug)
-                return new CardActivationResult(false, ErrorMessage: $"ExtraZugEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+            if (context.RequestDto.CardTypeId != CardConstants.ExtraZug)
+                return new CardActivationResult(false, ErrorMessage: $"ExtraZugEffect fälschlicherweise für Karte {context.RequestDto.CardTypeId} aufgerufen.");
 
-            // Prüft, ob diese Karte (die global nur einmal pro Spieler verwendet werden darf) bereits genutzt wurde.
-            if (!session.CardManager.IsCardUsableGlobal(playerId, CardConstants.ExtraZug))
-                return new CardActivationResult(false, ErrorMessage: $"Karte '{CardConstants.ExtraZug}' wurde von Spieler {playerId} bereits verwendet.");
+            if (!context.Session.CardManager.IsCardUsableGlobal(context.PlayerId, CardConstants.ExtraZug))
+                return new CardActivationResult(false, ErrorMessage: $"Karte '{CardConstants.ExtraZug}' wurde von Spieler {context.PlayerId} bereits verwendet.");
 
-            // Registriert den Effekt als "anstehend" für den nächsten Zug. Der eigentliche Effekt wird in GameSession.MakeMove angewendet.
-            session.CardManager.SetPendingCardEffectForNextMove(playerId, CardConstants.ExtraZug);
-            // Markiert die Karte als global verbraucht.
-            session.CardManager.MarkCardAsUsedGlobal(playerId, cardTypeId);
+            context.Session.CardManager.SetPendingCardEffectForNextMove(context.PlayerId, CardConstants.ExtraZug);
+            context.Session.CardManager.MarkCardAsUsedGlobal(context.PlayerId, context.RequestDto.CardTypeId);
 
-            _logger.LogExtraZugEffectApplied(playerId, session.GameId);
-            // Gibt ein erfolgreiches Ergebnis zurück. Wichtig: EndsPlayerTurn ist false, da der Spieler am Zug bleibt.
+            _logger.LogExtraZugEffectApplied(context.PlayerId, context.Session.GameId);
+
             return new CardActivationResult(true, EndsPlayerTurn: false, BoardUpdatedByCardEffect: false);
         }
     }

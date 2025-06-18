@@ -13,8 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Threading.Tasks;
 
 namespace ChessServer.Services
@@ -25,19 +23,20 @@ namespace ChessServer.Services
     public class GameSession : IDisposable
     {
         #region Felder
-        private readonly Guid _gameIdInternal;                      // Die eindeutige ID dieser Spielsitzung.
-        private readonly GameState _state;                          // Das Kernobjekt, das die Schachlogik und den Brettzustand verwaltet.
-        private readonly GameTimerService _timerServiceInternal;    // Der Dienst, der die Bedenkzeiten der Spieler verwaltet.
-        private readonly IHubContext<ChessHub> _hubContext;         // Der SignalR-Hub-Kontext für die Echtzeitkommunikation.
-        private readonly IChessLogger _logger;                      // Dienst für das Logging.
-        private readonly IHttpClientFactory _httpClientFactory;     // Factory zur Erstellung von HttpClient-Instanzen (für Computergegner-API).
-        private readonly object _sessionLock = new();               // Sperrobjekt, um Thread-Sicherheit bei Zugriffen auf den Spielzustand zu gewährleisten.
-        private Move? lastMoveForHistory;                           // Speichert den letzten Zug für die FEN-Generierung in der Historie.
+        private readonly Guid _gameIdInternal;                                  // Die eindeutige ID dieser Spielsitzung.
+        private readonly GameState _state;                                      // Das Kernobjekt, das die Schachlogik und den Brettzustand verwaltet.
+        private readonly GameTimerService _timerServiceInternal;                // Der Dienst, der die Bedenkzeiten der Spieler verwaltet.
+        private readonly IHubContext<ChessHub> _hubContext;                     // Der SignalR-Hub-Kontext für die Echtzeitkommunikation.
+        private readonly IChessLogger _logger;                                  // Dienst für das Logging.
+        private readonly IComputerMoveProvider _computerMoveProvider;           // Dienst, der die Züge des Computergegners generiert.
+        private readonly object _sessionLock = new();                           // Sperrobjekt, um Thread-Sicherheit bei Zugriffen auf den Spielzustand zu gewährleisten.
+        private Move? lastMoveForHistory;                                       // Speichert den letzten Zug für die FEN-Generierung in der Historie.
 
         // Manager-Komponenten, die spezifische Aspekte der Sitzung verwalten.
-        private readonly IPlayerManager _playerManager;             // Verwaltet die Spieler (Namen, Farben, IDs).
-        private readonly HistoryManager _historyManager;            // Verwaltet den detaillierten Spielverlauf.
-        internal virtual ICardManager CardManager { get; }          // Verwaltet das gesamte Kartensystem.
+        private readonly IPlayerManager _playerManager;                         // Verwaltet die Spieler (Namen, Farben, IDs).
+        private readonly HistoryManager _historyManager;                        // Verwaltet den detaillierten Spielverlauf.
+        private readonly IConnectionMappingService _connectionMappingService;   // Verwaltet die Verbindungen der Spieler zu dieser Spielsitzung.
+        internal virtual ICardManager CardManager { get; }                      // Verwaltet das gesamte Kartensystem. (Virtuelle Eigenschaft für Tests.)
         #endregion
 
         #region Öffentliche Eigenschaften
@@ -52,14 +51,16 @@ namespace ChessServer.Services
         // Konstruktor: Initialisiert eine neue Spielsitzung mit allen notwendigen Diensten und Konfigurationen.
         public GameSession(Guid gameId, IPlayerManager playerManager, int initialMinutes,
                            IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory,
-                           IHttpClientFactory httpClientFactory)
+                           IComputerMoveProvider computerMoveProvider,
+                           IConnectionMappingService connectionMappingService)
         {
             _gameIdInternal = gameId;
             _playerManager = playerManager;
             _state = new GameState(Player.White, Board.Initial());
             _hubContext = hubContext;
             _logger = logger;
-            _httpClientFactory = httpClientFactory;
+            _computerMoveProvider = computerMoveProvider;
+            _connectionMappingService = connectionMappingService;
             _historyManager = new HistoryManager(gameId, initialMinutes);
             // Initialisiert die spezialisierten Manager mit Referenzen auf diese Session.
             CardManager = new CardManager(this, _sessionLock, _historyManager, new ChessLogger<CardManager>(loggerFactory.CreateLogger<CardManager>()), loggerFactory);
@@ -92,7 +93,7 @@ namespace ChessServer.Services
         public string? GetPlayerName(Guid playerId) => _playerManager.GetPlayerName(playerId);
         public OpponentInfoDto? GetOpponentDetails(Guid currentPlayerId) => _playerManager.GetOpponentDetails(currentPlayerId);
         public GameHistoryDto GetGameHistory() => _historyManager.GetGameHistory(_playerManager);
-        public IEnumerable<string> GetLegalMoves(string fromAlg) => _state.LegalMovesForPiece(ParsePos(fromAlg)).Select(m => PieceHelper.ToAlgebraic(m.ToPos));
+        public IEnumerable<string> GetLegalMoves(string fromAlg) => _state.LegalMovesForPiece(PositionParser.ParsePos(fromAlg)).Select(m => PieceHelper.ToAlgebraic(m.ToPos));
         public GameStatusDto GetStatus(Guid playerId) => GetStatusForPlayer(GetPlayerColor(playerId));
         public GameStatusDto GetStatusForOpponentOf(Guid lastPlayerId) => GetStatusForPlayer(GetPlayerColor(lastPlayerId).Opponent());
         public Task<ServerCardActivationResultDto> ActivateCard(Guid playerId, ActivateCardRequestDto dto) => CardManager.ActivateCard(playerId, dto);
@@ -102,7 +103,7 @@ namespace ChessServer.Services
         {
             lock (_sessionLock)
             {
-                if (_playerManager.OpponentType == "Computer" &&
+                if (_playerManager.OpponentType == OpponentType.Computer &&
                     _playerManager.ComputerPlayerId.HasValue &&
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) == Player.White &&
                     _state.CurrentPlayer == Player.White)
@@ -128,8 +129,8 @@ namespace ChessServer.Services
                 // Prüft, ob ein "Extrazug" durch eine Karte aktiv ist.
                 var extraTurn = CardManager.PeekPendingCardEffect(playerIdCalling) == CardConstants.ExtraZug;
 
-                var fromPos = ParsePos(dto.From);
-                var toPos = ParsePos(dto.To);
+                var fromPos = PositionParser.ParsePos(dto.From);
+                var toPos = PositionParser.ParsePos(dto.To);    
                 Move? legalMove = null;
                 // Sonderfall: Bauernumwandlung ohne Bewegung (kann auf dem Client auftreten).
                 if (fromPos == toPos && dto.PromotionTo.HasValue)
@@ -344,7 +345,7 @@ namespace ChessServer.Services
             // Sendet die finale Zustandsänderung an alle Clients.
             await SendOnTurnChangedNotification(ToBoardDto(), _state.CurrentPlayer, GetStatusForPlayer(_state.CurrentPlayer), null, null, effectResult.AffectedSquaresByCard);
             // Löst bei Bedarf den Zug des Computers aus.
-            if (effectResult.EndsPlayerTurn && _playerManager.OpponentType == "Computer" && !_state.IsGameOver())
+            if (effectResult.EndsPlayerTurn && _playerManager.OpponentType == OpponentType.Computer && !_state.IsGameOver())
             {
                 await Task.Run(() => ProcessComputerTurnIfNeeded(null, Random.Shared.Next(1000, 2001)));
             }
@@ -393,17 +394,6 @@ namespace ChessServer.Services
             }
         }
 
-        // Parst eine Position in algebraischer Notation (z.B. "e4") in ein Positionsobjekt.
-        public static Position ParsePos(string alg)
-        {
-            if (string.IsNullOrWhiteSpace(alg) || alg.Length != 2) throw new ArgumentException("Ungültiges algebraisches Format für Position.", nameof(alg));
-            int col = alg[0] - 'a';
-            if (!int.TryParse(alg[1].ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rankValue)) throw new ArgumentException("Ungültiger Rang in algebraischer Notation.", nameof(alg));
-            int row = 8 - rankValue;
-            if (col < 0 || col > 7 || row < 0 || row > 7) throw new ArgumentException("Position ausserhalb des Schachbretts.", nameof(alg));
-            return new Position(row, col);
-        }
-
         // Gibt den Spieler zurück, der laut Spiellogik am Zug ist.
         public Player GetCurrentTurnPlayerLogic()
         {
@@ -426,8 +416,8 @@ namespace ChessServer.Services
 
             pieceBeingMoved = _state.Board[legalMove.FromPos];
             pieceAtDestination = _state.Board[legalMove.ToPos];
-            // Führt den Zug auf dem Brett aus.
             captureOrPawn = legalMove.Execute(_state.Board);
+
             if (isExtraTurn)
             {
                 _state.GrantExtraMove(playerColor);
@@ -437,18 +427,17 @@ namespace ChessServer.Services
             {
                 _state.UpdateStateAfterMove(captureOrPawn, true, legalMove);
             }
+
             lastMoveForHistory = legalMove;
-            // Fügt geschlagene Figuren der entsprechenden Liste hinzu.
             if (pieceAtDestination != null) CardManager.AddCapturedPiece(pieceAtDestination.Color, pieceAtDestination.Type);
             else if (legalMove is EnPassant) CardManager.AddCapturedPiece(playerColor.Opponent(), PieceType.Pawn);
 
-            // Inkrementiert den Zugzähler und prüft, ob eine neue Karte gezogen werden soll.
             CardManager.IncrementPlayerMoveCount(playerId);
             var (shouldDraw, newlyDrawnCard) = CardManager.CheckAndProcessCardDraw(playerId);
-            // Erstellt das Ergebnis-DTO für den Client.
             var moveResultDto = CreateMoveResultDto(dto, isExtraTurn, shouldDraw ? playerId : null, newlyDrawnCard);
+
             AddMoveToHistory(dto, legalMove, playerId, playerColor, pieceBeingMoved, pieceAtDestination, moveTimestamp, timeTaken);
-            // Prüft auf Spielende und startet/wechselt den Timer.
+
             if (_state.IsGameOver())
             {
                 _historyManager.UpdateOnGameOver(_state.Result!);
@@ -460,8 +449,26 @@ namespace ChessServer.Services
                 else StartGameTimer();
             }
 
-            // Löst bei Bedarf den Zug des Computers aus.
-            if (_playerManager.OpponentType == "Computer" && !isExtraTurn && !_state.IsGameOver())
+            Player nextPlayerTurn = GetCurrentTurnPlayerLogic();
+            Guid? nextPlayerId = GetPlayerIdByColor(nextPlayerTurn);
+            var statusForNextPlayer = nextPlayerId.HasValue ? GetStatus(nextPlayerId.Value) : GameStatusDto.None;
+
+            string? cardEffectSquareCountLog = moveResultDto.CardEffectSquares != null ? moveResultDto.CardEffectSquares.Count.ToString(CultureInfo.InvariantCulture) : "0";
+            _logger.LogSignalRUpdateInfo(GameId, nextPlayerTurn, statusForNextPlayer, moveResultDto.LastMoveFrom, moveResultDto.LastMoveTo, cardEffectSquareCountLog);
+
+            // Das Task.Run ist wichtig, damit wir den 'lock' der GameSession nicht blockieren, während wir auf das Senden warten.
+            Task.Run(async () =>
+            {
+                await SendOnTurnChangedNotification(moveResultDto.NewBoard, nextPlayerTurn, statusForNextPlayer, moveResultDto.LastMoveFrom, moveResultDto.LastMoveTo, moveResultDto.CardEffectSquares);
+                await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", TimerService.GetCurrentTimeUpdateDto());
+
+                if (moveResultDto.PlayerIdToSignalCardDraw.HasValue && moveResultDto.NewlyDrawnCard != null)
+                {
+                    await SignalCardDrawnToPlayer(moveResultDto.PlayerIdToSignalCardDraw.Value, moveResultDto.NewlyDrawnCard, "PlayerMove");
+                }
+            });
+
+            if (_playerManager.OpponentType == OpponentType.Computer && !isExtraTurn && !_state.IsGameOver())
             {
                 Task.Run(() => ProcessComputerTurnIfNeeded());
             }
@@ -616,7 +623,8 @@ namespace ChessServer.Services
         private async Task SignalCardDrawnToPlayer(Guid playerId, CardDto? card, string source)
         {
             if (card == null) return;
-            if (ChessHub.PlayerIdToConnectionMap.TryGetValue(playerId, out string? connId) && connId != null)
+
+            if (_connectionMappingService.GetConnectionId(playerId) is string connId)
             {
                 await _hubContext.Clients.Client(connId).SendAsync("CardAddedToHand", card, CardManager.GetDrawPileCount(playerId));
             }
@@ -624,7 +632,7 @@ namespace ChessServer.Services
 
         private async Task SignalCardSwapAnimationDetails(Guid activatingPlayerId, CardDto cardGiven, CardDto cardReceived)
         {
-            string? playerConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(activatingPlayerId);
+            string? playerConnectionId = _connectionMappingService.GetConnectionId(activatingPlayerId);
             if (!string.IsNullOrEmpty(playerConnectionId))
             {
                 await _hubContext.Clients.Client(playerConnectionId)
@@ -634,7 +642,7 @@ namespace ChessServer.Services
             var opponentInfo = GetOpponentDetails(activatingPlayerId);
             if (opponentInfo != null)
             {
-                string? opponentConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(opponentInfo.OpponentId);
+                string? opponentConnectionId = _connectionMappingService.GetConnectionId(opponentInfo.OpponentId);
                 if (!string.IsNullOrEmpty(opponentConnectionId))
                 {
                     await _hubContext.Clients.Client(opponentConnectionId)
@@ -645,7 +653,7 @@ namespace ChessServer.Services
 
         private async Task SignalHandUpdatesAfterCardSwap(Guid playerId, OpponentInfoDto? opponentInfo)
         {
-            string? playerConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(playerId);
+            string? playerConnectionId = _connectionMappingService.GetConnectionId(playerId);
             if (!string.IsNullOrEmpty(playerConnectionId))
             {
                 var playerHand = CardManager.GetPlayerHand(playerId);
@@ -655,7 +663,7 @@ namespace ChessServer.Services
 
             if (opponentInfo != null)
             {
-                string? opponentConnectionId = ChessHub.PlayerIdToConnectionMap.GetValueOrDefault(opponentInfo.OpponentId);
+                string? opponentConnectionId = _connectionMappingService.GetConnectionId(opponentInfo.OpponentId);
                 if (!string.IsNullOrEmpty(opponentConnectionId))
                 {
                     var opponentHand = CardManager.GetPlayerHand(opponentInfo.OpponentId);
@@ -665,11 +673,6 @@ namespace ChessServer.Services
             }
         }
 
-        // Logik für den Computergegner
-        private sealed class ChessApiResponseDto
-        {
-            public string? Move { get; set; }
-        }
         private static PieceType? ParsePromotionChar(char promoChar) => promoChar switch
         {
             'q' => PieceType.Queen,
@@ -678,9 +681,10 @@ namespace ChessServer.Services
             'n' => PieceType.Knight,
             _ => null
         };
+
         private async Task ProcessComputerTurnIfNeeded(string? cardId = null, int animationDelayMs = -1)
         {
-            // Fügt eine künstliche Verzögerung hinzu, um den Computer menschlicher wirken zu lassen.
+            // Künstliche Verzögerung für Animationen, falls erforderlich.
             if (animationDelayMs == -1)
             {
                 var cardDef = cardId != null ? CardManager.GetCardDefinitionForAnimation(cardId) : null;
@@ -700,10 +704,13 @@ namespace ChessServer.Services
 
             Guid? computerId;
             Player computerColor;
-            // Stellt sicher, dass der Computer wirklich am Zug ist.
+            string fen;
+            int depth;
+
+            // Sicherstellen, dass der Computer am Zug ist 
             lock (_sessionLock)
             {
-                if (_playerManager.OpponentType != "Computer" ||
+                if (_playerManager.OpponentType != OpponentType.Computer ||
                     !_playerManager.ComputerPlayerId.HasValue ||
                     _playerManager.GetPlayerColor(_playerManager.ComputerPlayerId.Value) != _state.CurrentPlayer ||
                     _state.IsGameOver())
@@ -713,17 +720,28 @@ namespace ChessServer.Services
                 }
                 computerId = _playerManager.ComputerPlayerId;
                 computerColor = _playerManager.GetPlayerColor(computerId.Value);
+
+                var moveCount = _historyManager.GetMoveCount();
+                fen = new StateString(_state.CurrentPlayer, _state.Board, null, _state.NoCaptureOrPawnMoves, (moveCount / 2) + 1, true).ToString();
+
+                depth = _playerManager.ComputerDifficulty switch
+                {
+                    ComputerDifficulty.Easy => 1,
+                    ComputerDifficulty.Hard => 20,
+                    _ => 10 // Medium als Standard
+                };
             }
 
-            // Holt den besten Zug von einer externen Schach-API.
-            string? apiMoveString = await GetComputerApiMoveAsync();
+            // Den besten Zug vom neuen Service holen
+            string? apiMoveString = await _computerMoveProvider.GetNextMoveAsync(_gameIdInternal, fen, depth);
+
             if (string.IsNullOrWhiteSpace(apiMoveString) || apiMoveString.Length < 4)
             {
                 _logger.LogComputerMoveError(GameId, "N/A", 0, $"API lieferte keinen gültigen Zug: '{apiMoveString}'.");
                 return;
             }
 
-            // Parst den API-Zug und führt ihn aus.
+            // Der restliche Teil der Methode (Parsen und Ausführen) 
             string fromAlg = apiMoveString.Substring(0, 2);
             string toAlg = apiMoveString.Substring(2, 2);
             PieceType? promotion = apiMoveString.Length == 5 ? ParsePromotionChar(apiMoveString[4]) : null;
@@ -731,7 +749,7 @@ namespace ChessServer.Services
             _logger.LogComputerMakingMove(GameId, fromAlg, toAlg);
 
             var moveResult = MakeMove(moveDto, computerId.Value);
-            // Wenn der Zug gültig war, wird das Ergebnis an alle Clients gesendet.
+
             if (moveResult.IsValid)
             {
                 Player nextPlayerTurn = GetCurrentTurnPlayerLogic();
@@ -751,53 +769,7 @@ namespace ChessServer.Services
                 _logger.LogComputerMoveError(GameId, apiMoveString, 0, $"Computer API schlug ungültigen Zug vor: {apiMoveString}. Fehler: {moveResult.ErrorMessage}");
             }
         }
-        private async Task<string?> GetComputerApiMoveAsync()
-        {
-            string fen;
-            int depth;
-            // Erstellt die FEN-Notation des aktuellen Brettzustands für die API.
-            lock (_sessionLock)
-            {
-                if (_playerManager.ComputerPlayerId == null) return null;
-                var moveCount = _historyManager.GetMoveCount();
-                fen = new StateString(_state.CurrentPlayer, _state.Board, null, _state.NoCaptureOrPawnMoves, (moveCount / 2) + 1, true).ToString();
-                // Die Suchtiefe wird basierend auf der gewählten Schwierigkeit eingestellt.
-                depth = _playerManager.GetPlayerName(_playerManager.ComputerPlayerId.Value)?.Contains("Easy") == true ? 1 :
-                        _playerManager.GetPlayerName(_playerManager.ComputerPlayerId.Value)?.Contains("Hard") == true ? 20 : 10;
-            }
 
-            var client = _httpClientFactory.CreateClient("ChessApi");
-            var requestBody = new { fen, depth };
-
-            try
-            {
-                _logger.LogComputerFetchingMove(GameId, fen, depth);
-                HttpResponseMessage response = await client.PostAsJsonAsync("https://chess-api.com/v1", requestBody);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var apiResponse = await response.Content.ReadFromJsonAsync<ChessApiResponseDto>();
-                    if (apiResponse != null && !string.IsNullOrEmpty(apiResponse.Move))
-                    {
-                        _logger.LogComputerReceivedMove(GameId, apiResponse.Move, fen, depth);
-                        return apiResponse.Move;
-                    }
-                    _logger.LogComputerMoveError(GameId, fen, depth, "API-Antwort erfolgreich, aber kein Zug gefunden.");
-                    return null;
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogComputerMoveError(GameId, fen, depth, $"API-Anfrage fehlgeschlagen mit Status {response.StatusCode}: {errorContent}");
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogComputerMoveError(GameId, fen, depth, $"Exception während API-Aufruf: {ex.Message}");
-                return null;
-            }
-        }
         #endregion
 
         // Gibt die von der Session verwendeten Ressourcen (Timer, CardManager) frei.

@@ -16,28 +16,23 @@ namespace ChessServer.Services.CardEffects
         }
 
         // Führt den Zeittausch-Effekt aus.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
-                                            IHistoryManager historyManager,
-                                            string cardTypeId,
-                                            string? fromSquareAlg,
-                                            string? toSquareAlg)
+        public CardActivationResult Execute(CardExecutionContext context)
         {
-            if (cardTypeId != CardConstants.TimeSwap)
+            if (context.RequestDto.CardTypeId != CardConstants.TimeSwap)
             {
-                return new CardActivationResult(false, ErrorMessage: $"TimeSwapEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+                return new CardActivationResult(false, ErrorMessage: $"TimeSwapEffect fälschlicherweise für Karte {context.RequestDto.CardTypeId} aufgerufen.");
             }
 
-            Player opponentColor = playerDataColor.Opponent();
-            Guid? opponentId = session.GetPlayerIdByColor(opponentColor);
+            Player opponentColor = context.PlayerColor.Opponent();
+            Guid? opponentId = context.Session.GetPlayerIdByColor(opponentColor);
             if (!opponentId.HasValue)
             {
                 return new CardActivationResult(false, ErrorMessage: "Gegner nicht gefunden für Zeittausch.");
             }
 
-            // Versucht, die Zeiten über den TimerService zu tauschen.
-            if (session.TimerService.SwapTimes(playerDataColor, opponentColor))
+            if (context.Session.TimerService.SwapTimes(context.PlayerColor, opponentColor))
             {
-                _logger.LogTimeSwapEffectApplied(playerDataColor, opponentColor, session.GameId);
+                _logger.LogTimeSwapEffectApplied(context.PlayerColor, opponentColor, context.Session.GameId);
                 return new CardActivationResult(true, BoardUpdatedByCardEffect: false);
             }
 

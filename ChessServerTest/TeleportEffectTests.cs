@@ -1,6 +1,8 @@
 ﻿using Chess.Logging;
 using ChessLogic;
+using ChessLogic.Utilities;
 using ChessNetwork.Configuration;
+using ChessNetwork.DTOs;
 using ChessServer.Services;
 using ChessServer.Services.CardEffects;
 using Microsoft.Extensions.Logging;
@@ -48,17 +50,20 @@ namespace ChessServer.Tests
             var pieceToMove = new Rook(playerColor);
             var blockingPiece = new Pawn(playerColor);
 
-            board[GameSession.ParsePos(fromSquare)] = pieceToMove;
-            board[GameSession.ParsePos(toSquare)] = blockingPiece; // Zielfeld blockieren.
+            board[PositionParser.ParsePos(fromSquare)] = pieceToMove;
+            board[PositionParser.ParsePos(toSquare)] = blockingPiece; // Zielfeld blockieren.
+
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.Teleport, FromSquare = fromSquare, ToSquare = toSquare };
+            var context = new CardExecutionContext(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, requestDto);
 
             // Act: Führt den Teleport-Effekt aus.
-            var result = effect.Execute(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, CardConstants.Teleport, fromSquare, toSquare);
+            var result = effect.Execute(context);
 
             // Assert: Die Aktion muss fehlschlagen und das Brett unverändert bleiben.
             Assert.False(result.Success);
             Assert.Contains("ist nicht leer", result.ErrorMessage);
-            Assert.Same(pieceToMove, board[GameSession.ParsePos(fromSquare)]); // Figur wurde nicht bewegt.
-            Assert.Same(blockingPiece, board[GameSession.ParsePos(toSquare)]); // Blockierende Figur ist noch da.
+            Assert.Same(pieceToMove, board[PositionParser.ParsePos(fromSquare)]); // Figur wurde nicht bewegt.
+            Assert.Same(blockingPiece, board[PositionParser.ParsePos(toSquare)]); // Blockierende Figur ist noch da.
         }
     }
 }

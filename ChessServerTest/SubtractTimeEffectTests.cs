@@ -1,6 +1,7 @@
 ﻿using Chess.Logging;
 using ChessLogic;
 using ChessNetwork.Configuration;
+using ChessNetwork.DTOs;
 using ChessServer.Services;
 using ChessServer.Services.CardEffects;
 using Microsoft.Extensions.Logging;
@@ -48,8 +49,11 @@ namespace ChessServer.Tests
             // 3. Simulieren, dass das Abziehen der Zeit erfolgreich ist.
             mockTimerService.Setup(t => t.SubtractTime(opponentColor, TimeSpan.FromMinutes(2))).Returns(true);
 
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.SubtractTime };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, null!, requestDto);
+
             // ACT
-            var result = subtractTimeEffect.Execute(mockSession.Object, playerId, playerColor, null!, CardConstants.SubtractTime, null, null);
+            var result = subtractTimeEffect.Execute(context);
 
             // ASSERT
             // 1. Die Operation sollte erfolgreich sein.
@@ -76,8 +80,11 @@ namespace ChessServer.Tests
             // 2. WICHTIG: Simulieren, dass der Gegner WENIGER als 3 Minuten Zeit hat.
             mockTimerService.Setup(t => t.GetCurrentTimeForPlayer(opponentColor)).Returns(TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(59)));
 
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.SubtractTime };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, null!, requestDto);
+
             // ACT
-            var result = subtractTimeEffect.Execute(mockSession.Object, playerId, playerColor, null!, CardConstants.SubtractTime, null, null);
+            var result = subtractTimeEffect.Execute(context);
 
             // ASSERT
             // 1. Die Operation sollte fehlschlagen.

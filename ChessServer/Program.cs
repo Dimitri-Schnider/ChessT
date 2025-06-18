@@ -54,6 +54,12 @@ builder.Services.AddSingleton<IChessLogger>(sp =>
     )
 );
 
+// Registriert den ComputerMoveProvider, der die Logik für den Computerzug bereitstellt.
+builder.Services.AddSingleton<IComputerMoveProvider, ApiComputerMoveProvider>();
+
+// Registriert den InMemoryConnectionMappingService, der die Verbindungen verwaltet.
+builder.Services.AddSingleton<IConnectionMappingService, InMemoryConnectionMappingService>();
+
 var app = builder.Build();
 
 // HTTP-Request-Pipeline konfigurieren.

@@ -136,11 +136,16 @@ namespace ChessServer.Services
                 }
 
                 var timerWasPaused = _session.PauseTimerForAction();
-                // Bereitet die Parameter für die Effekt-Ausführung vor.
-                string? param1ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.PieceTypeToRevive?.ToString() : (dto.CardTypeId == CardConstants.CardSwap) ? dto.CardInstanceIdToSwapFromHand?.ToString() : dto.FromSquare;
-                string? param2ForEffect = (dto.CardTypeId == CardConstants.Wiedergeburt) ? dto.TargetRevivalSquare : dto.ToSquare;
-                // Führt den eigentlichen Effekt aus (Strategy Pattern).
-                var effectResult = effect.Execute(_session, playerId, activatingPlayerColor, _historyManager, dto.CardTypeId, param1ForEffect, param2ForEffect);
+
+                var context = new CardExecutionContext(
+                    _session,
+                    playerId,
+                    activatingPlayerColor,
+                    _historyManager,
+                    dto // Das komplette DTO wird übergeben
+                );
+                var effectResult = effect.Execute(context);
+
                 // Leitet das Ergebnis an die GameSession weiter, die die Folgeaktionen (Timer, Benachrichtigungen) koordiniert.
                 var finalResult = await _session.HandleCardActivationResult(effectResult, playerId, playedCardInstance, dto.CardTypeId, timerWasPaused);
                 return finalResult;

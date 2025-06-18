@@ -45,17 +45,20 @@ namespace ChessServer.Tests
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
             var pawnSquare = "e2";
-            board[GameSession.ParsePos(pawnSquare)] = new Pawn(playerColor);
+            board[PositionParser.ParsePos(pawnSquare)] = new Pawn(playerColor);
             board[new Position(7, 4)] = new King(playerColor); // König für Legalitätsprüfung.
 
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.SacrificeEffect, FromSquare = pawnSquare };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, requestDto);
+
             // Act: Führt den Opfer-Effekt aus.
-            var result = effect.Execute(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, CardConstants.SacrificeEffect, pawnSquare, null);
+            var result = effect.Execute(context);
 
             // Assert: Die Aktion muss erfolgreich sein und die richtigen Nebeneffekte auslösen.
             Assert.True(result.Success);
             Assert.True(result.BoardUpdatedByCardEffect);
             Assert.Equal(playerId, result.PlayerIdToSignalDraw);                                // Wichtig: Der Effekt soll ein Kartenziehen signalisieren.
-            Assert.True(board.IsEmpty(GameSession.ParsePos(pawnSquare)));                       // Der Bauer muss vom Brett entfernt worden sein.
+            Assert.True(board.IsEmpty(PositionParser.ParsePos(pawnSquare)));                    // Der Bauer muss vom Brett entfernt worden sein.
             mockHistoryManager.Verify(hm => hm.AddMove(It.IsAny<PlayedMoveDto>()), Times.Once); // Überprüft die Protokollierung.
         }
 
@@ -68,15 +71,18 @@ namespace ChessServer.Tests
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
             var rookSquare = "a1";
-            board[GameSession.ParsePos(rookSquare)] = new Rook(playerColor);
+            board[PositionParser.ParsePos(rookSquare)] = new Rook(playerColor);
+
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.SacrificeEffect, FromSquare = rookSquare };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, requestDto);
 
             // Act: Versucht, den Turm zu opfern.
-            var result = effect.Execute(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, CardConstants.SacrificeEffect, rookSquare, null);
+            var result = effect.Execute(context);
 
             // Assert: Die Aktion muss fehlschlagen und das Brett unverändert lassen.
             Assert.False(result.Success);
             Assert.Contains("ist kein Bauer", result.ErrorMessage);
-            Assert.NotNull(board[GameSession.ParsePos(rookSquare)]); // Der Turm muss noch da sein.
+            Assert.NotNull(board[PositionParser.ParsePos(rookSquare)]); // Der Turm muss noch da sein.
         }
     }
 }

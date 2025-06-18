@@ -13,25 +13,20 @@ namespace ChessServer.Hubs
     // SignalR-Hub für Echtzeit-Kommunikation während des Schachspiels.
     public class ChessHub : Hub
     {
-        #region Static Fields
-
-        public static readonly ConcurrentDictionary<string, Guid> connectionToPlayerIdMap = new();  // Bildet eine Verbindungs-ID auf eine Spieler-ID ab.
-        public static readonly ConcurrentDictionary<Guid, string> PlayerIdToConnectionMap = new();  // Bildet eine Spieler-ID auf eine Verbindungs-ID ab (für schnelles Nachschlagen).
-        private static readonly ConcurrentDictionary<string, Guid> _connectionToGameIdMap = new();  // Bildet eine Verbindungs-ID auf eine Spiel-ID ab.
-
-        #endregion
 
         #region Instance Fields
 
         private readonly IGameManager _gameManager;
         private readonly IChessLogger _logger;
+        private readonly IConnectionMappingService _connectionMappingService;
 
         #endregion
 
-        public ChessHub(IGameManager gameManager, IChessLogger logger)
+        public ChessHub(IGameManager gameManager, IChessLogger logger, IConnectionMappingService connectionMappingService)
         {
             _gameManager = gameManager;
             _logger = logger;
+            _connectionMappingService = connectionMappingService;
         }
 
         #region Overridden Methods
@@ -47,16 +42,19 @@ namespace ChessServer.Hubs
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             _logger.LogHubClientDisconnected(Context.ConnectionId, exception?.Message, exception);
-            if (connectionToPlayerIdMap.TryRemove(Context.ConnectionId, out Guid playerId))
+
+            var (playerId, gameId) = _connectionMappingService.RemoveMapping(Context.ConnectionId);
+
+            if (playerId.HasValue)
             {
-                PlayerIdToConnectionMap.TryRemove(playerId, out _);
-                _logger.LogHubPlayerMappingRemovedOnDisconnect(playerId);
+                _logger.LogHubPlayerMappingRemovedOnDisconnect(playerId.Value);
             }
-            if (_connectionToGameIdMap.TryRemove(Context.ConnectionId, out Guid gameId))
+            if (gameId.HasValue)
             {
-                _gameManager.UnregisterPlayerHubConnection(gameId, Context.ConnectionId);
-                _logger.LogHubConnectionRemovedFromGameOnDisconnect(Context.ConnectionId, gameId);
+                _gameManager.UnregisterPlayerHubConnection(gameId.Value, Context.ConnectionId);
+                _logger.LogHubConnectionRemovedFromGameOnDisconnect(Context.ConnectionId, gameId.Value);
             }
+
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -68,9 +66,9 @@ namespace ChessServer.Hubs
         public async Task RegisterConnection(Guid gameId, Guid playerId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
-            _connectionToGameIdMap[Context.ConnectionId] = gameId;
-            connectionToPlayerIdMap[Context.ConnectionId] = playerId;
-            PlayerIdToConnectionMap[playerId] = Context.ConnectionId;
+
+            // Den neuen Service für das Hinzufügen verwenden
+            _connectionMappingService.AddMapping(Context.ConnectionId, playerId, gameId);
 
             _gameManager.RegisterPlayerHubConnection(gameId, playerId, Context.ConnectionId);
             _logger.LogHubPlayerRegisteredToHub(playerId, Context.ConnectionId, gameId);
@@ -102,6 +100,7 @@ namespace ChessServer.Hubs
 
                     _logger.LogHubSendingInitialHand(playerId, Context.ConnectionId, gameId, initialHandDto.Hand.Count, initialHandDto.DrawPileCount);
                     await Clients.Client(Context.ConnectionId).SendAsync("ReceiveInitialHand", initialHandDto);
+
                     var gameInfo = _gameManager.GetGameInfo(gameId);
                     if (gameInfo.HasOpponent && playerCount == 2)
                     {
@@ -117,7 +116,8 @@ namespace ChessServer.Hubs
                             opponentId = playerWhiteId.Value;
                         }
 
-                        if (opponentId != Guid.Empty && PlayerIdToConnectionMap.TryGetValue(opponentId, out string? opponentConnectionId))
+                        // Den neuen Service verwenden, um die ConnectionId des Gegners zu finden
+                        if (opponentId != Guid.Empty && _connectionMappingService.GetConnectionId(opponentId) is string opponentConnectionId)
                         {
                             List<CardDto> opponentHand = session.CardManager.GetPlayerHand(opponentId);
                             int opponentDrawPileCount = session.CardManager.GetDrawPileCount(opponentId);
@@ -127,12 +127,9 @@ namespace ChessServer.Hubs
                             await Clients.Client(opponentConnectionId).SendAsync("ReceiveInitialHand", opponentInitialHandDto);
                         }
 
-                        // Countdown starten, wenn der zweite Spieler beitritt
                         _logger.LogStartGameCountdown(gameId);
                         await Clients.Group(gameId.ToString()).SendAsync("StartGameCountdown");
 
-                        // NEU: Warte ~4 Sekunden, bevor der Server-Timer gestartet wird.
-                        // Gibt dem Client genug Zeit für die Animation.
                         await Task.Delay(4000);
                         _gameManager.StartGame(gameId);
                     }
@@ -154,13 +151,13 @@ namespace ChessServer.Hubs
             _logger.LogHubClientLeavingGameGroup(Context.ConnectionId, gameIdString);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameIdString);
 
-            Guid gameIdGuid = Guid.Empty;
-            if (_connectionToGameIdMap.TryRemove(Context.ConnectionId, out var gid)) gameIdGuid = gid;
-            if (connectionToPlayerIdMap.TryRemove(Context.ConnectionId, out Guid playerId))
+            // Den neuen Service für das Aufräumen verwenden
+            var (playerId, gameId) = _connectionMappingService.RemoveMapping(Context.ConnectionId);
+
+            if (playerId.HasValue && gameId.HasValue)
             {
-                PlayerIdToConnectionMap.TryRemove(playerId, out _);
-                if (gameIdGuid != Guid.Empty) _gameManager.UnregisterPlayerHubConnection(gameIdGuid, Context.ConnectionId);
-                _logger.LogHubPlayerMappingRemovedOnDisconnect(playerId);
+                _gameManager.UnregisterPlayerHubConnection(gameId.Value, Context.ConnectionId);
+                _logger.LogHubPlayerMappingRemovedOnDisconnect(playerId.Value);
             }
             _logger.LogHubClientRemovedFromGameGroup(Context.ConnectionId, gameIdString);
         }

@@ -21,14 +21,6 @@ namespace ChessServer.Services.CardEffects
     public interface ICardEffect
     {
         // Führt den spezifischen Karteneffekt aus und gibt das Ergebnis zurück.
-        CardActivationResult Execute(
-            GameSession session,            // `session`: Die aktuelle Spielsitzung, die den gesamten Kontext (Brett, Spieler, Timer) bereitstellt.
-            Guid playerId,                  // `playerId`: Die ID des Spielers, der die Karte aktiviert.
-            Player playerDataColor,         // `playerDataColor`: Die Farbe des aktivierenden Spielers.
-            IHistoryManager historyManager, // `historyManager`: Der Manager für den Spielverlauf, um Aktionen zu protokollieren.
-            string cardTypeId,              // `cardTypeId`: Die Typ-ID der aktivierten Karte (z.B. "teleport").
-            string? fromSquareAlg,          // `fromSquareAlg`: Optionale Start-Koordinate für den Effekt (z.B. bei Teleport, Opfergabe).
-            string? toSquareAlg             // `toSquareAlg`: Optionale Ziel-Koordinate für den Effekt (z.B. bei Teleport, Positionstausch).
-         );
+        CardActivationResult Execute(CardExecutionContext context); // Der Kontext enthält alle notwendigen Informationen für die Ausführung des Effekts.
     }
 }

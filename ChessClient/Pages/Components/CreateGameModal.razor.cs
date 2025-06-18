@@ -1,5 +1,6 @@
 ﻿using ChessClient.Models;
 using ChessLogic;
+using ChessNetwork.DTOs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -14,7 +15,7 @@ namespace ChessClient.Pages.Components
         // --- PARAMETER ---
         [Parameter] public bool IsVisible { get; set; }                                     // Steuert die Sichtbarkeit des Modals.
         [Parameter] public EventCallback OnClose { get; set; }                              // Event-Callback, der aufgerufen wird, wenn das Modal geschlossen wird.
-        [Parameter] public EventCallback<CreateGameParameters> OnCreateGame { get; set; }   // Event-Callback, der die gesammelten Spieldaten an den Aufrufer übergibt.
+        [Parameter] public EventCallback<CreateGameDto> OnCreateGame { get; set; }          // Event-Callback, der die gesammelten Spieldaten an den Aufrufer übergibt.
 
         // --- PRIVATE PROPERTIES (ZUSTAND) ---
         private string PlayerName { get; set; } = "";                                       // Gebundener Wert für das Spielernamen-Eingabefeld.
@@ -54,13 +55,12 @@ namespace ChessClient.Pages.Components
 
             ModalErrorMessage = ""; // Setzt die Fehlermeldung zurück, falls vorhanden.
 
-            // Löst das OnCreateGame-Event aus und übergibt ein neues Parameter-Objekt
-            // mit allen im Modal ausgewählten Werten.
-            await OnCreateGame.InvokeAsync(new CreateGameParameters
+            // Erstellt direkt das DTO und löst das Event aus.
+            await OnCreateGame.InvokeAsync(new CreateGameDto
             {
-                Name = PlayerName,
+                PlayerName = PlayerName,
                 Color = SelectedColor,
-                TimeMinutes = InitialTimeMinutes,
+                InitialMinutes = InitialTimeMinutes,
                 OpponentType = SelectedOpponentType,
                 ComputerDifficulty = SelectedComputerDifficulty
             });

@@ -60,9 +60,9 @@ namespace ChessClient.Services
         }
 
         // Sendet eine Anfrage zur Erstellung eines neuen Spiels an den Server.
-        public async Task<CreateGameResultDto?> CreateGameOnServerAsync(CreateGameParameters args)
+        public async Task<CreateGameResultDto?> CreateGameOnServerAsync(CreateGameDto createGameDto)
         {
-            if (string.IsNullOrWhiteSpace(args.Name))
+            if (string.IsNullOrWhiteSpace(createGameDto.PlayerName))
             {
                 _modalState.OpenErrorModal("Bitte gib einen Spielernamen ein.");
                 return null;
@@ -70,19 +70,10 @@ namespace ChessClient.Services
 
             try
             {
-                // Erstellt das Data Transfer Object für die Server-Anfrage.
-                var createGameDto = new CreateGameDto
-                {
-                    PlayerName = args.Name,
-                    Color = args.Color,
-                    InitialMinutes = args.TimeMinutes,
-                    OpponentType = args.OpponentType.ToString(),
-                    ComputerDifficulty = args.ComputerDifficulty.ToString()
-                };
-                // Ruft den Server auf und initialisiert den lokalen Spielzustand mit dem Ergebnis.
+                // Die Logik wird einfacher: Das DTO wird direkt durchgereicht.
                 var result = await _gameService.CreateGameAsync(createGameDto);
-                _gameCoreState.InitializeNewGame(result, args);
-                _modalState.UpdateCreateGameModalArgs(args.Name, args.Color, args.TimeMinutes);
+                _gameCoreState.InitializeNewGame(result, createGameDto);
+                _modalState.UpdateCreateGameModalArgs(createGameDto.PlayerName, createGameDto.Color, createGameDto.InitialMinutes);
                 return result;
             }
             catch (Exception ex)

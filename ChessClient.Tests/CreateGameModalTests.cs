@@ -2,6 +2,7 @@
 using ChessClient.Models;
 using ChessClient.Pages.Components;
 using ChessLogic;
+using ChessNetwork.DTOs;
 using Microsoft.AspNetCore.Components.Web;
 using Xunit;
 
@@ -32,13 +33,13 @@ public class CreateGameModalTests : TestContext
     public void OnCreateGameIsInvokedWithCorrectParametersWhenFormIsValid()
     {
         // Arrange
-        CreateGameParameters? capturedParameters = null; // Eine Variable, um die Daten des Events aufzufangen
+        CreateGameDto? capturedDto = null; // Eine Variable, um die Daten des Events aufzufangen
 
         // Rendere die Komponente und richte einen Event-Listener ein
         var cut = RenderComponent<CreateGameModal>(parameters => parameters
             .Add(p => p.IsVisible, true)
             // Wenn das OnCreateGame-Event ausgelöst wird, speichere die Parameter
-            .Add(p => p.OnCreateGame, args => capturedParameters = args)
+            .Add(p => p.OnCreateGame, args => capturedDto = args)
         );
 
         // Finde die Eingabefelder und den Button
@@ -57,11 +58,13 @@ public class CreateGameModalTests : TestContext
         createButton.Click();
 
         // Assert
-        // Überprüfe, ob das Event ausgelöst wurde (d.h. die capturedParameters sind nicht mehr null)
-        Assert.NotNull(capturedParameters);
+        // Überprüfe, ob das Event ausgelöst wurde (d.h. die capturedDto sind nicht mehr null)
+        Assert.NotNull(capturedDto);
         // Überprüfe, ob die Daten im Event korrekt sind
-        Assert.Equal("Gandalf", capturedParameters.Name);
-        Assert.Equal(Player.Black, capturedParameters.Color);
-        Assert.Equal(5, capturedParameters.TimeMinutes);
+        Assert.Equal("Gandalf", capturedDto.PlayerName);
+        Assert.Equal(Player.Black, capturedDto.Color);
+        Assert.Equal(5, capturedDto.InitialMinutes);
+        // Prüfen, ob der Standardwert für den Gegnertyp korrekt übergeben wird.
+        Assert.Equal(OpponentType.Human, capturedDto.OpponentType);
     }
 }

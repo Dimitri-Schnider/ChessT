@@ -18,23 +18,18 @@ namespace ChessServer.Services.CardEffects
         }
 
         // Führt den Effekt aus: Fügt dem Spieler 2 Minuten Zeit hinzu.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
-                                            IHistoryManager historyManager,
-                                            string cardTypeId,
-                                            string? fromSquareAlg,
-                                            string? toSquareAlg)
+        public CardActivationResult Execute(CardExecutionContext context)
         {
             // Sicherheitsüberprüfung, ob dieser Effekt für die korrekte Karte aufgerufen wurde.
-            if (cardTypeId != CardConstants.AddTime)
+            if (context.RequestDto.CardTypeId != CardConstants.AddTime)
             {
-                return new CardActivationResult(false, ErrorMessage: $"AddTimeEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+                return new CardActivationResult(false, ErrorMessage: $"AddTimeEffect fälschlicherweise für Karte {context.RequestDto.CardTypeId} aufgerufen.");
             }
 
             // Versucht, die Zeit über den TimerService der Session hinzuzufügen.
-            if (session.TimerService.AddTime(playerDataColor, TimeSpan.FromMinutes(2)))
+            if (context.Session.TimerService.AddTime(context.PlayerColor, TimeSpan.FromMinutes(2)))
             {
-                _logger.LogAddTimeEffectApplied(playerDataColor, playerId, session.GameId);
-                // Gibt ein erfolgreiches Ergebnis zurück. Das Brett wurde nicht verändert.
+                _logger.LogAddTimeEffectApplied(context.PlayerColor, context.PlayerId, context.Session.GameId);
                 return new CardActivationResult(true, BoardUpdatedByCardEffect: false);
             }
 

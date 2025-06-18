@@ -47,13 +47,13 @@ namespace ChessServer.Tests
         [Fact]
         public void ExecuteWithValidCapturedPieceAndEmptySquareRevivesPieceAndReturnsSuccess()
         {
-            // ===== ARRANGE =====
+            // ARRANGE 
             var rebirthEffect = new RebirthEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
             var pieceToRevive = PieceType.Queen;
             var targetSquare = "d1"; // Gültiges Startfeld für die weisse Dame.
-            var targetPosition = GameSession.ParsePos(targetSquare);
+            var targetPosition = PositionParser.ParsePos(targetSquare);
 
             // Simuliert, dass der Spieler eine Dame geschlagen hat.
             var capturedPieces = new List<CapturedPieceTypeDto> { new(PieceType.Queen) };
@@ -62,18 +62,19 @@ namespace ChessServer.Tests
             Assert.True(board.IsEmpty(targetPosition)); // Sicherstellen, dass das Feld leer ist.
             board[new Position(7, 7)] = new King(playerColor); // König für Legalitätsprüfung platzieren.
 
-            // ===== ACT =====
-            var result = rebirthEffect.Execute(
-                mockSession.Object,
-                playerId,
-                playerColor,
-                mockHistoryManager.Object,
-                CardConstants.Wiedergeburt,
-                pieceToRevive.ToString(),
-                targetSquare
-            );
 
-            // ===== ASSERT =====
+            var requestDto = new ActivateCardRequestDto
+            {
+                CardTypeId = CardConstants.Wiedergeburt,
+                PieceTypeToRevive = pieceToRevive,
+                TargetRevivalSquare = targetSquare
+            };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, requestDto);
+
+            // ACT
+            var result = rebirthEffect.Execute(context);
+
+            // ASSERT 
             Assert.True(result.Success);
             Assert.True(result.BoardUpdatedByCardEffect);
             var pieceOnBoard = board[targetPosition];
@@ -98,7 +99,7 @@ namespace ChessServer.Tests
             var playerColor = Player.White;
             var pieceToRevive = PieceType.Queen;
             var targetSquare = "d1";
-            var targetPosition = GameSession.ParsePos(targetSquare);
+            var targetPosition = PositionParser.ParsePos(targetSquare);
 
             // 1. Simulieren, dass eine Dame geschlagen wurde.
             var capturedPieces = new List<CapturedPieceTypeDto> { new(PieceType.Queen) };
@@ -107,16 +108,16 @@ namespace ChessServer.Tests
             var blockingPiece = new Pawn(Player.White);
             board[targetPosition] = blockingPiece;
 
+            var requestDto = new ActivateCardRequestDto
+            {
+                CardTypeId = CardConstants.Wiedergeburt,
+                PieceTypeToRevive = pieceToRevive,
+                TargetRevivalSquare = targetSquare
+            };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, mockHistoryManager.Object, requestDto);
+
             // ACT
-            var result = rebirthEffect.Execute(
-                mockSession.Object,
-                playerId,
-                playerColor,
-                mockHistoryManager.Object,
-                CardConstants.Wiedergeburt,
-                pieceToRevive.ToString(),
-                targetSquare
-            );
+            var result = rebirthEffect.Execute(context);
 
             // ASSERT
             // 1. Laut Logik in RebirthEffect.cs wird die Karte trotzdem als "verbraucht" angesehen.

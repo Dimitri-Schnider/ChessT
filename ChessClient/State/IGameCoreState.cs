@@ -32,7 +32,7 @@ namespace ChessClient.State
         void SetExtraTurnSequenceActive(bool isActive);
         void IncrementExtraTurnMovesMade();
 
-        void InitializeNewGame(CreateGameResultDto result, CreateGameParameters args);
+        void InitializeNewGame(CreateGameResultDto result, CreateGameDto args);
         void InitializeJoinedGame(JoinGameResultDto result, Guid gameId, Player assignedColor);
         void SetGameIdFromQuery(string? gameIdQuery, bool isValidAndExists);
         void UpdatePlayerNames(Dictionary<Player, string> names);

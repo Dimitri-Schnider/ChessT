@@ -25,8 +25,9 @@ namespace ChessServer.Services
         private Guid? _playerBlackId;               // ID des schwarzen Spielers.
 
         // Spiel-spezifische Konfiguration 
-        public string OpponentType { get; }                 // "Human" oder "Computer".
-        private readonly string _computerDifficultyString;  // Schwierigkeitsgrad des Computers.
+        public OpponentType OpponentType { get; }               // "Human" oder "Computer".
+        public ComputerDifficulty ComputerDifficulty { get; }   // Schwierigkeitsgrad des Computers.
+        private readonly string _computerDifficultyString;
         public Guid? ComputerPlayerId { get; private set; } // ID des Computergegners.
 
         // Öffentliche Eigenschaften
@@ -36,11 +37,11 @@ namespace ChessServer.Services
         public Player FirstPlayerColor => _firstPlayerActualColor;
 
         // Konstruktor: Initialisiert den Manager für eine neue Spielsitzung.
-        public PlayerManager(Guid gameId, string opponentType, string computerDifficulty, IChessLogger logger)
+        public PlayerManager(Guid gameId, OpponentType opponentType, ComputerDifficulty computerDifficulty, IChessLogger logger)
         {
             _gameId = gameId;
             OpponentType = opponentType;
-            _computerDifficultyString = computerDifficulty;
+            ComputerDifficulty = computerDifficulty;
             _logger = logger;
         }
 
@@ -52,7 +53,7 @@ namespace ChessServer.Services
 
             // Wenn es ein Spiel gegen den Computer ist und nur ein menschlicher Spieler beigetreten ist,
             // wird der Computergegner automatisch initialisiert.
-            if (OpponentType == "Computer" && PlayerCount == 1 && ComputerPlayerId == null)
+            if (OpponentType == OpponentType.Computer && PlayerCount == 1 && ComputerPlayerId == null)
             {
                 InitializeComputerPlayer();
             }
@@ -110,7 +111,7 @@ namespace ChessServer.Services
         {
             lock (_lock)
             {
-                if (!(_players.Count == 1 && ComputerPlayerId == null && OpponentType == "Computer"))
+                if (!(_players.Count == 1 && ComputerPlayerId == null && OpponentType == OpponentType.Computer))
                 {
                     return; // Sicherheitsprüfung
                 }

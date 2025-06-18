@@ -30,8 +30,8 @@ namespace ChessNetwork.Tests
             var expectedPlayerName = "Magnus";
             var expectedColor = Player.White;
             var expectedMinutes = 15;
-            var expectedOpponentType = "Human";
-            var expectedDifficulty = "Medium";
+            var expectedOpponentType = OpponentType.Human;
+            var expectedDifficulty = ComputerDifficulty.Medium;
 
             // Act: Erstellt das DTO.
             var createGameDto = new CreateGameDto

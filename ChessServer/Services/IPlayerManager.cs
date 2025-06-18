@@ -13,8 +13,9 @@ namespace ChessServer.Services
         bool HasOpponent { get; }                                                               // Gibt an, ob bereits ein Gegner beigetreten ist.
         Guid FirstPlayerId { get; }                                                             // Die ID des ersten Spielers, der der Sitzung beigetreten ist (der Ersteller).
         Player FirstPlayerColor { get; }                                                        // Die Farbe des ersten Spielers.
-        string OpponentType { get; }                                                            // Der Typ des Gegners ("Human" oder "Computer").
+        OpponentType OpponentType { get; }                                                      // Der Typ des Gegners ("Human" oder "Computer").
         Guid? ComputerPlayerId { get; }                                                         // Die ID des Computergegners, falls vorhanden.
+        ComputerDifficulty ComputerDifficulty { get; }                                          // Die Schwierigkeitsstufe des Computergegners, falls vorhanden.
         (Guid PlayerId, Player Color) Join(string playerName, Player? preferredColor = null);   // Fügt einen Spieler der Sitzung hinzu und weist ihm eine Farbe zu.
         Player GetPlayerColor(Guid playerId);                                                   // Ruft die Farbe eines Spielers anhand seiner ID ab.
         Guid? GetPlayerIdByColor(Player color);                                                 // Ruft die ID eines Spielers anhand seiner Farbe ab.

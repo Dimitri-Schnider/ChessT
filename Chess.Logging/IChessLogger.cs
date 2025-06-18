@@ -25,7 +25,7 @@ namespace Chess.Logging
         void LogHandleHubTurnChangedClientInfo(Player nextPlayer, GameStatusDto statusForNextPlayer, string? lastMoveFromServerFrom, string? lastMoveFromServerTo, int cardEffectsCount);
         void LogAwaitingTurnConfirmationStatus(bool flagStatus, string context);
         void LogClientAttemptedToAddDuplicateCardInstance(Guid instanceId, string cardName);
-        void LogCardsRevealed(Guid? gameId); // KORREKTUR: Hinzugefügt
+        void LogCardsRevealed(Guid? gameId);
 
         // --- ChessServer.Controllers.GamesController.cs Logs ---
         void LogMoveProcessingError(Guid gameId, string fromSquare, string toSquare, Exception? ex);

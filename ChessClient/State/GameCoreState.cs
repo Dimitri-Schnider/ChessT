@@ -131,17 +131,16 @@ namespace ChessClient.State
         }
 
         // Initialisiert den gesamten Zustand für ein neu erstelltes Spiel.
-        public void InitializeNewGame(CreateGameResultDto result, CreateGameParameters args)
+        public void InitializeNewGame(CreateGameResultDto result, CreateGameDto args)
         {
-            CurrentPlayerInfo = new PlayerDto(result.PlayerId, args.Name);
+            CurrentPlayerInfo = new PlayerDto(result.PlayerId, args.PlayerName);
             MyColor = result.Color;
             BoardDto = result.Board;
             GameId = result.GameId;
             _isPvCGame = (args.OpponentType == OpponentType.Computer);
             OpponentJoined = _isPvCGame;
-
             var newPlayerNames = new Dictionary<Player, string>();
-            newPlayerNames[MyColor] = args.Name;
+            newPlayerNames[MyColor] = args.PlayerName;
             if (_isPvCGame)
             {
                 Player computerColor = MyColor.Opponent();
@@ -149,13 +148,17 @@ namespace ChessClient.State
                 newPlayerNames[computerColor] = computerName;
             }
             PlayerNames = newPlayerNames;
-
             CurrentTurnPlayer = Player.White;
             IsGameSpecificDataInitialized = false;
             EndGameMessage = "";
-            UpdateDisplayedTimes(TimeSpan.FromMinutes(args.TimeMinutes), TimeSpan.FromMinutes(args.TimeMinutes), Player.White);
+            UpdateDisplayedTimes(TimeSpan.FromMinutes(args.InitialMinutes), TimeSpan.FromMinutes(args.InitialMinutes), Player.White);
             _isGameRunning = false;
             SetExtraTurnSequenceActive(false);
+
+            PendingMove = null;
+            _pieceCapturedInPendingMove = null;
+            IsAwaitingMoveConfirmation = false;
+
             OnStateChanged();
         }
 

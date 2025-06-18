@@ -19,15 +19,14 @@ namespace ChessServer.Services.CardEffects
         }
 
         // Führt den Teleport-Effekt aus.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
-                                            IHistoryManager historyManager,
-                                            string cardTypeId,
-                                            string? fromSquareAlg,
-                                            string? toSquareAlg)
+        public CardActivationResult Execute(CardExecutionContext context)
         {
-            if (cardTypeId != CardConstants.Teleport)
+            var fromSquareAlg = context.RequestDto.FromSquare;
+            var toSquareAlg = context.RequestDto.ToSquare;
+
+            if (context.RequestDto.CardTypeId != CardConstants.Teleport)
             {
-                return new CardActivationResult(false, ErrorMessage: $"TeleportEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+                return new CardActivationResult(false, ErrorMessage: $"TeleportEffect fälschlicherweise für Karte {context.RequestDto.CardTypeId} aufgerufen.");
             }
 
             if (string.IsNullOrEmpty(fromSquareAlg) || string.IsNullOrEmpty(toSquareAlg))
@@ -39,53 +38,49 @@ namespace ChessServer.Services.CardEffects
             Position toPos;
             try
             {
-                fromPos = GameSession.ParsePos(fromSquareAlg);
-                toPos = GameSession.ParsePos(toSquareAlg);
+                fromPos = PositionParser.ParsePos(fromSquareAlg);
+                toPos = PositionParser.ParsePos(toSquareAlg);
             }
             catch (ArgumentException ex)
             {
                 return new CardActivationResult(false, ErrorMessage: $"Ungültige Koordinaten für Teleport: {ex.Message}");
             }
 
-            // Validiert, dass eine eigene Figur auf dem Startfeld steht.
-            Piece? pieceToMove = session.CurrentGameState.Board[fromPos];
-            if (pieceToMove == null || pieceToMove.Color != playerDataColor)
+            Piece? pieceToMove = context.Session.CurrentGameState.Board[fromPos];
+            if (pieceToMove == null || pieceToMove.Color != context.PlayerColor)
             {
                 return new CardActivationResult(false, ErrorMessage: "Ungültige Figur auf FromSquare für Teleport ausgewählt.");
             }
 
-            // Validiert, dass das Zielfeld leer ist.
-            if (!session.CurrentGameState.Board.IsEmpty(toPos))
+            if (!context.Session.CurrentGameState.Board.IsEmpty(toPos))
             {
                 return new CardActivationResult(false, ErrorMessage: "ToSquare für Teleport ist nicht leer.");
             }
 
-            // Verwendet eine spezielle Move-Klasse, um die Legalität zu prüfen (insbesondere Selbst-Schach).
             var teleportMove = new TeleportMove(fromPos, toPos);
-            if (!teleportMove.IsLegal(session.CurrentGameState.Board))
+            if (!teleportMove.IsLegal(context.Session.CurrentGameState.Board))
             {
                 return new CardActivationResult(false, ErrorMessage: "Teleport würde eigenen König ins Schach stellen oder ist anderweitig ungültig.");
             }
 
-            // Protokolliert die Aktion im Spielverlauf.
-            historyManager.AddMove(new PlayedMoveDto
+            context.HistoryManager.AddMove(new PlayedMoveDto
             {
-                PlayerId = playerId,
-                PlayerColor = playerDataColor,
+                PlayerId = context.PlayerId,
+                PlayerColor = context.PlayerColor,
                 From = fromSquareAlg,
                 To = toSquareAlg,
                 ActualMoveType = MoveType.Teleport,
                 PieceMoved = $"{pieceToMove.Color} {pieceToMove.Type}",
                 TimestampUtc = DateTime.UtcNow,
                 TimeTaken = TimeSpan.Zero,
-                RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
-                RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
+                RemainingTimeWhite = context.Session.TimerService.GetCurrentTimeForPlayer(Player.White),
+                RemainingTimeBlack = context.Session.TimerService.GetCurrentTimeForPlayer(Player.Black)
             });
-            // Führt den Teleport auf dem Brett aus.
-            teleportMove.Execute(session.CurrentGameState.Board);
 
-            _logger.LogTeleportEffectExecuted(fromSquareAlg, toSquareAlg, playerId, session.GameId);
-            // Definiert die betroffenen Felder für die visuelle Hervorhebung.
+            teleportMove.Execute(context.Session.CurrentGameState.Board);
+
+            _logger.LogTeleportEffectExecuted(fromSquareAlg, toSquareAlg, context.PlayerId, context.Session.GameId);
+
             var affectedSquares = new List<AffectedSquareInfo>
             {
                 new AffectedSquareInfo { Square = fromSquareAlg, Type = "card-teleport-from" },

@@ -16,35 +16,29 @@ namespace ChessServer.Services.CardEffects
         }
 
         // Führt den Effekt aus: Zieht dem Gegner 2 Minuten Zeit ab.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
-                                            IHistoryManager historyManager,
-                                            string cardTypeId,
-                                            string? fromSquareAlg,
-                                            string? toSquareAlg)
+        public CardActivationResult Execute(CardExecutionContext context)
         {
-            if (cardTypeId != CardConstants.SubtractTime)
+            if (context.RequestDto.CardTypeId != CardConstants.SubtractTime)
             {
-                return new CardActivationResult(false, ErrorMessage: $"SubtractTimeEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+                return new CardActivationResult(false, ErrorMessage: $"SubtractTimeEffect fälschlicherweise für Karte {context.RequestDto.CardTypeId} aufgerufen.");
             }
 
-            Player opponentColor = playerDataColor.Opponent();
-            Guid? opponentId = session.GetPlayerIdByColor(opponentColor);
+            Player opponentColor = context.PlayerColor.Opponent();
+            Guid? opponentId = context.Session.GetPlayerIdByColor(opponentColor);
             if (!opponentId.HasValue)
             {
                 return new CardActivationResult(false, ErrorMessage: "Gegner nicht gefunden für Zeitdiebstahl.");
             }
 
-            // Sonderregel: Die Karte kann nur eingesetzt werden, wenn der Gegner mehr als 3 Minuten Zeit hat.
-            TimeSpan opponentTime = session.TimerService.GetCurrentTimeForPlayer(opponentColor);
+            TimeSpan opponentTime = context.Session.TimerService.GetCurrentTimeForPlayer(opponentColor);
             if (opponentTime < TimeSpan.FromMinutes(3))
             {
                 return new CardActivationResult(false, ErrorMessage: "Zeitdiebstahl kann nur eingesetzt werden, wenn der Gegner 3 Minuten oder mehr Zeit hat.");
             }
 
-            // Versucht, die Zeit über den TimerService abzuziehen.
-            if (session.TimerService.SubtractTime(opponentColor, TimeSpan.FromMinutes(2)))
+            if (context.Session.TimerService.SubtractTime(opponentColor, TimeSpan.FromMinutes(2)))
             {
-                _logger.LogSubtractTimeEffectApplied(opponentColor, playerDataColor, playerId, session.GameId);
+                _logger.LogSubtractTimeEffectApplied(opponentColor, context.PlayerColor, context.PlayerId, context.Session.GameId);
                 return new CardActivationResult(true, BoardUpdatedByCardEffect: false);
             }
 

@@ -18,86 +18,81 @@ namespace ChessServer.Services.CardEffects
         }
 
         // Führt den Opfer-Effekt aus.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
-                                            IHistoryManager historyManager,
-                                            string cardTypeId,
-                                            string? fromSquareAlg,
-                                            string? toSquareAlg)
+        public CardActivationResult Execute(CardExecutionContext context)
         {
-            if (cardTypeId != CardConstants.SacrificeEffect)
+            var fromSquareAlg = context.RequestDto.FromSquare;
+
+            if (context.RequestDto.CardTypeId != CardConstants.SacrificeEffect)
             {
-                return new CardActivationResult(false, ErrorMessage: $"SacrificeEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+                return new CardActivationResult(false, ErrorMessage: $"SacrificeEffect fälschlicherweise für Karte {context.RequestDto.CardTypeId} aufgerufen.");
             }
 
             if (string.IsNullOrEmpty(fromSquareAlg))
             {
-                _logger.LogSacrificeEffectFailedPawnNotFound(session.GameId, playerId, fromSquareAlg ?? "NULL");
+                _logger.LogSacrificeEffectFailedPawnNotFound(context.Session.GameId, context.PlayerId, fromSquareAlg ?? "NULL");
                 return new CardActivationResult(false, ErrorMessage: "Kein Bauer für Opfergabe ausgewählt.");
             }
 
             Position pawnPos;
             try
             {
-                pawnPos = GameSession.ParsePos(fromSquareAlg);
+                pawnPos = PositionParser.ParsePos(fromSquareAlg);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogSacrificeEffectFailedPawnNotFound(session.GameId, playerId, fromSquareAlg);
+                _logger.LogSacrificeEffectFailedPawnNotFound(context.Session.GameId, context.PlayerId, fromSquareAlg);
                 return new CardActivationResult(false, ErrorMessage: $"Ungültige Koordinate für Bauernopfer: {ex.Message}");
             }
 
-            Piece? pieceToSacrifice = session.CurrentGameState.Board[pawnPos];
+            Piece? pieceToSacrifice = context.Session.CurrentGameState.Board[pawnPos];
 
             if (pieceToSacrifice == null)
             {
-                _logger.LogSacrificeEffectFailedPawnNotFound(session.GameId, playerId, fromSquareAlg);
+                _logger.LogSacrificeEffectFailedPawnNotFound(context.Session.GameId, context.PlayerId, fromSquareAlg);
                 return new CardActivationResult(false, ErrorMessage: $"Keine Figur auf dem Feld {fromSquareAlg} für Opfergabe gefunden.");
             }
 
-            // Validiert, dass die geopferte Figur ein Bauer der eigenen Farbe ist.
             if (pieceToSacrifice.Type != PieceType.Pawn)
             {
-                _logger.LogSacrificeEffectFailedNotAPawn(session.GameId, playerId, fromSquareAlg, pieceToSacrifice.Type);
+                _logger.LogSacrificeEffectFailedNotAPawn(context.Session.GameId, context.PlayerId, fromSquareAlg, pieceToSacrifice.Type);
                 return new CardActivationResult(false, ErrorMessage: $"Die Figur auf {fromSquareAlg} ist kein Bauer und kann nicht geopfert werden.");
             }
 
-            if (pieceToSacrifice.Color != playerDataColor)
+            if (pieceToSacrifice.Color != context.PlayerColor)
             {
-                _logger.LogSacrificeEffectFailedWrongColor(session.GameId, playerId, fromSquareAlg, pieceToSacrifice.Color);
+                _logger.LogSacrificeEffectFailedWrongColor(context.Session.GameId, context.PlayerId, fromSquareAlg, pieceToSacrifice.Color);
                 return new CardActivationResult(false, ErrorMessage: $"Der Bauer auf {fromSquareAlg} gehört nicht dir.");
             }
 
-            // Führt eine hypothetische Opferung durch, um auf Selbst-Schach zu prüfen.
-            Board boardCopy = session.CurrentGameState.Board.Copy();
+            Board boardCopy = context.Session.CurrentGameState.Board.Copy();
             boardCopy[pawnPos] = null;
-            if (boardCopy.IsInCheck(playerDataColor))
+            if (boardCopy.IsInCheck(context.PlayerColor))
             {
-                _logger.LogSacrificeEffectFailedWouldCauseCheck(session.GameId, playerId, fromSquareAlg);
+                _logger.LogSacrificeEffectFailedWouldCauseCheck(context.Session.GameId, context.PlayerId, fromSquareAlg);
                 return new CardActivationResult(false, ErrorMessage: "Opfergabe nicht möglich, da dies deinen König ins Schach stellen würde.");
             }
 
-            // Protokolliert die Aktion im Spielverlauf.
-            historyManager.AddMove(new PlayedMoveDto
+            context.HistoryManager.AddMove(new PlayedMoveDto
             {
-                PlayerId = playerId,
-                PlayerColor = playerDataColor,
+                PlayerId = context.PlayerId,
+                PlayerColor = context.PlayerColor,
                 From = fromSquareAlg,
-                To = "off-board", // Spezieller Wert für Opfergabe
+                To = "off-board",
                 ActualMoveType = MoveType.Sacrifice,
                 PieceMoved = $"{pieceToSacrifice.Color} {pieceToSacrifice.Type}",
                 TimestampUtc = DateTime.UtcNow,
                 TimeTaken = TimeSpan.Zero,
-                RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
-                RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
+                RemainingTimeWhite = context.Session.TimerService.GetCurrentTimeForPlayer(Player.White),
+                RemainingTimeBlack = context.Session.TimerService.GetCurrentTimeForPlayer(Player.Black)
             });
-            // Entfernt den Bauern vom Brett.
-            session.CurrentGameState.Board[pawnPos] = null;
-            _logger.LogSacrificeEffectExecuted(session.GameId, playerId, fromSquareAlg);
-            // Gibt ein erfolgreiches Ergebnis zurück und signalisiert, dass der Spieler eine neue Karte ziehen soll.
+
+            context.Session.CurrentGameState.Board[pawnPos] = null;
+            _logger.LogSacrificeEffectExecuted(context.Session.GameId, context.PlayerId, fromSquareAlg);
+
             return new CardActivationResult(
                 Success: true,
                 EndsPlayerTurn: true,
-                PlayerIdToSignalDraw: playerId,
+                PlayerIdToSignalDraw: context.PlayerId,
                 BoardUpdatedByCardEffect: true,
                 AffectedSquaresByCard: new List<AffectedSquareInfo> { new AffectedSquareInfo { Square = fromSquareAlg, Type = "card-sacrifice" } }
             );

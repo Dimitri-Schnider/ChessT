@@ -19,16 +19,14 @@ namespace ChessServer.Services.CardEffects
         }
 
         // Führt den Tauscheffekt aus.
-        public CardActivationResult Execute(GameSession session, Guid playerId, Player playerDataColor,
-                                            IHistoryManager historyManager,
-                                            string cardTypeId,
-                                            string? fromSquareAlg,
-                                            string? toSquareAlg)
+        public CardActivationResult Execute(CardExecutionContext context)
         {
-            // Validierungen
-            if (cardTypeId != CardConstants.Positionstausch)
+            var fromSquareAlg = context.RequestDto.FromSquare;
+            var toSquareAlg = context.RequestDto.ToSquare;
+
+            if (context.RequestDto.CardTypeId != CardConstants.Positionstausch)
             {
-                return new CardActivationResult(false, ErrorMessage: $"PositionSwapEffect fälschlicherweise für Karte {cardTypeId} aufgerufen.");
+                return new CardActivationResult(false, ErrorMessage: $"PositionSwapEffect fälschlicherweise für Karte {context.RequestDto.CardTypeId} aufgerufen.");
             }
 
             if (string.IsNullOrEmpty(fromSquareAlg) || string.IsNullOrEmpty(toSquareAlg))
@@ -43,59 +41,54 @@ namespace ChessServer.Services.CardEffects
 
             Position piece1Pos;
             Position piece2Pos;
-            // Parst die algebraischen Notationen in Positionsobjekte.
             try
             {
-                piece1Pos = GameSession.ParsePos(fromSquareAlg);
-                piece2Pos = GameSession.ParsePos(toSquareAlg);
+                piece1Pos = PositionParser.ParsePos(fromSquareAlg);
+                piece2Pos = PositionParser.ParsePos(toSquareAlg);
             }
             catch (ArgumentException ex)
             {
                 return new CardActivationResult(false, ErrorMessage: $"Ungültige Koordinaten für Positionstausch: {ex.Message}");
             }
 
-            Piece? piece1 = session.CurrentGameState.Board[piece1Pos];
-            Piece? piece2 = session.CurrentGameState.Board[piece2Pos];
+            Piece? piece1 = context.Session.CurrentGameState.Board[piece1Pos];
+            Piece? piece2 = context.Session.CurrentGameState.Board[piece2Pos];
             if (piece1 == null || piece2 == null)
             {
                 return new CardActivationResult(false, ErrorMessage: "Eines oder beide Felder für Positionstausch sind leer.");
             }
 
-            if (piece1.Color != playerDataColor || piece2.Color != playerDataColor)
+            if (piece1.Color != context.PlayerColor || piece2.Color != context.PlayerColor)
             {
                 return new CardActivationResult(false, ErrorMessage: "Nicht beide Figuren für Positionstausch gehören dem Spieler.");
             }
 
-            // Verwendet eine spezielle Move-Klasse, um die Legalität zu prüfen (insbesondere Selbst-Schach).
             var positionSwapMove = new PositionSwapMove(piece1Pos, piece2Pos);
-            if (!positionSwapMove.IsLegal(session.CurrentGameState.Board))
+            if (!positionSwapMove.IsLegal(context.Session.CurrentGameState.Board))
             {
                 return new CardActivationResult(false, ErrorMessage: "Positionstausch würde eigenen König ins Schach stellen.");
             }
 
-            // Führt den Tausch auf dem Brett aus.
-            positionSwapMove.Execute(session.CurrentGameState.Board);
-            // Protokolliert die Aktion im Spielverlauf.
-            historyManager.AddMove(new PlayedMoveDto
+            positionSwapMove.Execute(context.Session.CurrentGameState.Board);
+            context.HistoryManager.AddMove(new PlayedMoveDto
             {
-                PlayerId = playerId,
-                PlayerColor = playerDataColor,
+                PlayerId = context.PlayerId,
+                PlayerColor = context.PlayerColor,
                 From = fromSquareAlg,
                 To = toSquareAlg,
                 ActualMoveType = MoveType.PositionSwap,
                 PieceMoved = $"{piece1.Color} {piece1.Type} swapped with {piece2.Color} {piece2.Type}",
                 TimestampUtc = DateTime.UtcNow,
                 TimeTaken = TimeSpan.Zero,
-                RemainingTimeWhite = session.TimerService.GetCurrentTimeForPlayer(Player.White),
-                RemainingTimeBlack = session.TimerService.GetCurrentTimeForPlayer(Player.Black)
+                RemainingTimeWhite = context.Session.TimerService.GetCurrentTimeForPlayer(Player.White),
+                RemainingTimeBlack = context.Session.TimerService.GetCurrentTimeForPlayer(Player.Black)
             });
-            _logger.LogPositionSwapEffectExecuted(fromSquareAlg, toSquareAlg, playerId, session.GameId);
-            // Definiert die betroffenen Felder für die visuelle Hervorhebung auf dem Client.
+            _logger.LogPositionSwapEffectExecuted(fromSquareAlg, toSquareAlg, context.PlayerId, context.Session.GameId);
             var affectedSquares = new List<AffectedSquareInfo>
-            {
-                new AffectedSquareInfo { Square = fromSquareAlg, Type = "card-swap-1" },
-                new AffectedSquareInfo { Square = toSquareAlg, Type = "card-swap-2" }
-            };
+        {
+            new AffectedSquareInfo { Square = fromSquareAlg, Type = "card-swap-1" },
+            new AffectedSquareInfo { Square = toSquareAlg, Type = "card-swap-2" }
+        };
             return new CardActivationResult(true, BoardUpdatedByCardEffect: true, AffectedSquaresByCard: affectedSquares, EndsPlayerTurn: true);
         }
     }

@@ -151,15 +151,16 @@ namespace ChessClient.Pages
                     GameCoreState.ResetForNewGame();
                     var board1 = new BoardDto(new PieceDto?[8][] { new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8], new PieceDto?[8] });
                     var createResult = new CreateGameResultDto { GameId = Guid.NewGuid(), PlayerId = Guid.NewGuid(), Color = Player.White, Board = board1 };
-                    var tourGameParams = new CreateGameParameters
+                    var tourGameDto = new CreateGameDto
                     {
-                        Name = "Du",
+                        PlayerName = "Du",
                         Color = Player.White,
-                        TimeMinutes = 5,
-                        OpponentType = OpponentType.Computer,
-                        ComputerDifficulty = ComputerDifficulty.Medium
+                        InitialMinutes = 5,
+                        OpponentType = OpponentType.Computer, // Enum aus ChessNetwork.DTOs
+                        ComputerDifficulty = ComputerDifficulty.Medium // Enum aus ChessNetwork.DTOs
                     };
-                    GameCoreState.InitializeNewGame(createResult, tourGameParams);
+                    GameCoreState.InitializeNewGame(createResult, tourGameDto);
+
                     if (GameCoreState.BoardDto != null)
                     {
                         // Platziert manuell Figuren für die Demo.
@@ -264,7 +265,7 @@ namespace ChessClient.Pages
         }
 
         // Handler für das "Spiel erstellen"-Modal.
-        private async Task SubmitCreateGame(CreateGameParameters args)
+        private async Task SubmitCreateGame(CreateGameDto dto)
         {
             // Wenn bereits ein Spiel aktiv war, wird alles sauber zurückgesetzt.
             if (GameCoreState.GameId != Guid.Empty)
@@ -290,8 +291,10 @@ namespace ChessClient.Pages
             UiState.SetIsCreatingGame(true);
             try
             {
-                var createResult = await GameOrchestrationService.CreateGameOnServerAsync(args);
+                // Das DTO wird direkt an den OrchestrationService weitergegeben.
+                var createResult = await GameOrchestrationService.CreateGameOnServerAsync(dto);
                 if (createResult is null) return;
+
                 UiState.SetIsCreatingGame(false);
                 await GameOrchestrationService.ConnectAndRegisterPlayerToHubAsync(createResult.GameId, createResult.PlayerId);
                 MyMainLayout.UpdateActiveGameId(createResult.GameId);

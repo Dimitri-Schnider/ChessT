@@ -2,7 +2,6 @@
 using Moq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using System.Net.Http;
 using ChessServer.Services;
 using ChessServer.Hubs;
 using ChessLogic;
@@ -19,7 +18,8 @@ namespace ChessServer.Tests
         private readonly Mock<IHubContext<ChessHub>> _mockHubContext;
         private readonly Mock<IChessLogger> _mockLogger;
         private readonly Mock<ILoggerFactory> _mockLoggerFactory;
-        private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
+        private readonly Mock<IComputerMoveProvider> _mockComputerMoveProvider;
+        private readonly Mock<IConnectionMappingService> _mockConnectionMappingService;
         private readonly InMemoryGameManager _gameManager;
 
         // Konstruktor: Initialisiert die Mock-Objekte und die zu testende Instanz des Managers.
@@ -28,7 +28,8 @@ namespace ChessServer.Tests
             _mockHubContext = new Mock<IHubContext<ChessHub>>();
             _mockLogger = new Mock<IChessLogger>();
             _mockLoggerFactory = new Mock<ILoggerFactory>();
-            _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+            _mockComputerMoveProvider = new Mock<IComputerMoveProvider>();
+            _mockConnectionMappingService = new Mock<IConnectionMappingService>();
 
             // Sicherstellen, dass der LoggerFactory einen gültigen (aber leeren) Logger zurückgibt,
             // da die GameSession-Klasse dies beim Erstellen erwartet.
@@ -40,7 +41,8 @@ namespace ChessServer.Tests
                 _mockHubContext.Object,
                 _mockLogger.Object,
                 _mockLoggerFactory.Object,
-                _mockHttpClientFactory.Object
+                _mockComputerMoveProvider.Object,
+                _mockConnectionMappingService.Object
             );
         }
 

@@ -49,18 +49,21 @@ namespace ChessServer.Tests
             var pos2 = "h1";
             var piece1 = new Rook(playerColor);
             var piece2 = new Rook(playerColor);
-            board[GameSession.ParsePos(pos1)] = piece1;
-            board[GameSession.ParsePos(pos2)] = piece2;
+            board[PositionParser.ParsePos(pos1)] = piece1;
+            board[PositionParser.ParsePos(pos2)] = piece2;
             board[new Position(7, 4)] = new King(playerColor); // König wird für die Legalitätsprüfung benötigt.
 
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.Positionstausch, FromSquare = pos1, ToSquare = pos2 };
+            var context = new CardExecutionContext(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, requestDto);
+
             // Act: Führt den Effekt aus.
-            var result = effect.Execute(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, CardConstants.Positionstausch, pos1, pos2);
+            var result = effect.Execute(context);
 
             // Assert: Das Ergebnis muss erfolgreich sein und die Figuren müssen getauscht worden sein.
             Assert.True(result.Success);
             Assert.True(result.BoardUpdatedByCardEffect);
-            Assert.Same(piece2, board[GameSession.ParsePos(pos1)]);                             // Piece2 ist jetzt auf pos1.
-            Assert.Same(piece1, board[GameSession.ParsePos(pos2)]);                             // Piece1 ist jetzt auf pos2.
+            Assert.Same(piece2, board[PositionParser.ParsePos(pos1)]);                             // Piece2 ist jetzt auf pos1.
+            Assert.Same(piece1, board[PositionParser.ParsePos(pos2)]);                             // Piece1 ist jetzt auf pos2.
             mockHistoryManager.Verify(hm => hm.AddMove(It.IsAny<PlayedMoveDto>()), Times.Once); // Überprüft, ob der Zug protokolliert wurde.
         }
 
@@ -73,10 +76,13 @@ namespace ChessServer.Tests
             var playerColor = Player.White;
             var pos1 = "a1";
             var pos2 = "h1"; // Dieses Feld bleibt leer.
-            board[GameSession.ParsePos(pos1)] = new Rook(playerColor);
+            board[PositionParser.ParsePos(pos1)] = new Rook(playerColor);
+
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.Positionstausch, FromSquare = pos1, ToSquare = pos2 };
+            var context = new CardExecutionContext(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, requestDto);
 
             // Act: Führt den Effekt aus.
-            var result = effect.Execute(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, CardConstants.Positionstausch, pos1, pos2);
+            var result = effect.Execute(context);
 
             // Assert: Die Aktion muss fehlschlagen.
             Assert.False(result.Success);
@@ -92,11 +98,14 @@ namespace ChessServer.Tests
             var playerColor = Player.White;
             var pos1 = "a1";
             var pos2 = "h1";
-            board[GameSession.ParsePos(pos1)] = new Rook(playerColor);
-            board[GameSession.ParsePos(pos2)] = new Rook(playerColor.Opponent()); // Gegnerische Figur.
+            board[PositionParser.ParsePos(pos1)] = new Rook(playerColor);
+            board[PositionParser.ParsePos(pos2)] = new Rook(playerColor.Opponent()); // Gegnerische Figur.
+
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.Positionstausch, FromSquare = pos1, ToSquare = pos2 };
+            var context = new CardExecutionContext(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, requestDto);
 
             // Act: Führt den Effekt aus.
-            var result = effect.Execute(mockSession.Object, Guid.NewGuid(), playerColor, mockHistoryManager.Object, CardConstants.Positionstausch, pos1, pos2);
+            var result = effect.Execute(context);
 
             // Assert: Die Aktion muss fehlschlagen.
             Assert.False(result.Success);

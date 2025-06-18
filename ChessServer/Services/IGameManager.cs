@@ -16,7 +16,7 @@ namespace ChessServer.Services
         MoveResultDto ApplyMove(Guid gameId, MoveDto move, Guid playerId);
 
         // Erstellt ein neues Spiel und gibt die IDs für Spiel und Spieler zurück.
-        (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes, string opponentType = "Human", string computerDifficulty = "Medium");
+        (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes, OpponentType opponentType = OpponentType.Human, ComputerDifficulty computerDifficulty = ComputerDifficulty.Medium);
 
         // Ruft alle geschlagenen Figuren für einen bestimmten Spieler ab.
         Task<IEnumerable<CapturedPieceTypeDto>> GetCapturedPieces(Guid gameId, Guid playerId);

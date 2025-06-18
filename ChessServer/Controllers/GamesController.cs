@@ -19,15 +19,17 @@ namespace ChessServer.Controllers
     [Route("api/[controller]")]
     public class GamesController : ControllerBase
     {
-        private readonly IGameManager _mgr;                 // Dienst zur Verwaltung aller Spielsitzungen.
-        private readonly IChessLogger _logger;              // Dienst für das Logging von Spielereignissen.
-        private readonly IHubContext<ChessHub> _hubContext; // Kontext für die Echtzeit-Kommunikation via SignalR.
+        private readonly IGameManager _mgr;                                     // Dienst zur Verwaltung aller Spielsitzungen.
+        private readonly IChessLogger _logger;                                  // Dienst für das Logging von Spielereignissen.
+        private readonly IHubContext<ChessHub> _hubContext;                     // Kontext für die Echtzeit-Kommunikation via SignalR.
+        private readonly IConnectionMappingService _connectionMappingService;   // Dienst zur Verwaltung von Verbindungen zwischen Spielern und SignalR-Clients.
 
-        public GamesController(IGameManager mgr, IChessLogger logger, IHubContext<ChessHub> hubContext)
+        public GamesController(IGameManager mgr, IChessLogger logger, IHubContext<ChessHub> hubContext, IConnectionMappingService connectionMappingService)
         {
             _mgr = mgr;
             _logger = logger;
             _hubContext = hubContext;
+            _connectionMappingService = connectionMappingService;
         }
 
         #region Public API Endpoints
@@ -110,9 +112,9 @@ namespace ChessServer.Controllers
                     Color = assignedColor,
                     Board = boardDto
                 };
-                if (dto.OpponentType == "Computer")
+                if (dto.OpponentType == OpponentType.Computer)
                 {
-                    _logger.LogPvCGameCreated(gameId, dto.PlayerName, dto.Color, dto.ComputerDifficulty);
+                    _logger.LogPvCGameCreated(gameId, dto.PlayerName, dto.Color, dto.ComputerDifficulty.ToString());
                 }
                 else
                 {
@@ -360,68 +362,20 @@ namespace ChessServer.Controllers
             {
                 return BadRequest(new MoveResultDto { IsValid = false, ErrorMessage = "Die Anfrage ist ungültig.", NewBoard = new BoardDto(System.Array.Empty<PieceDto?[]>()), Status = GameStatusDto.None });
             }
+
             try
             {
+                // Ein einziger Aufruf Die Service-Schicht kümmert sich um den Rest.
                 MoveResultDto moveResult = _mgr.ApplyMove(gameId, dto, dto.PlayerId);
+
                 if (!moveResult.IsValid)
                 {
                     return BadRequest(moveResult);
                 }
 
                 _logger.LogApplyMoveInfo(gameId, dto.PlayerId, moveResult.IsValid);
-                Player nextPlayerTurn = _mgr.GetCurrentTurnPlayer(gameId);
-                Guid? nextPlayerId = _mgr.GetPlayerIdByColor(gameId, nextPlayerTurn);
-                GameStatusDto statusForNextPlayer;
-                if (nextPlayerId.HasValue)
-                {
-                    statusForNextPlayer = _mgr.GetGameStatus(gameId, nextPlayerId.Value);
-                }
-                else
-                {
-                    statusForNextPlayer = GameStatusDto.None;
-                    _logger.LogControllerCouldNotDeterminePlayerIdForStatus(gameId, nextPlayerTurn);
-                }
 
-                string? cardEffectSquareCountLog = moveResult.CardEffectSquares != null ? moveResult.CardEffectSquares.Count.ToString(CultureInfo.InvariantCulture) : "0";
-                _logger.LogSignalRUpdateInfo(gameId, nextPlayerTurn, statusForNextPlayer, moveResult.LastMoveFrom, moveResult.LastMoveTo, cardEffectSquareCountLog);
-
-                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTurnChanged",
-                    moveResult.NewBoard,
-                    nextPlayerTurn,
-                    statusForNextPlayer,
-                    moveResult.LastMoveFrom,
-                    moveResult.LastMoveTo,
-                    moveResult.CardEffectSquares);
-                _logger.LogOnTurnChangedSentToHub(gameId);
-
-                var timeUpdate = _mgr.GetTimeUpdate(gameId);
-                await _hubContext.Clients.Group(gameId.ToString()).SendAsync("OnTimeUpdate", timeUpdate);
-                _logger.LogOnTimeUpdateSentAfterMove(gameId);
-
-                if (moveResult.PlayerIdToSignalCardDraw.HasValue && moveResult.NewlyDrawnCard != null)
-                {
-                    Guid playerIdDrew = moveResult.PlayerIdToSignalCardDraw.Value;
-                    string? targetConnectionId = GetConnectionIdForPlayerViaHubMap(playerIdDrew);
-
-                    if (!string.IsNullOrEmpty(targetConnectionId))
-                    {
-                        int drawPileCount = _mgr.GetDrawPileCount(gameId, playerIdDrew);
-                        await _hubContext.Clients.Client(targetConnectionId)
-                                                 .SendAsync("CardAddedToHand", moveResult.NewlyDrawnCard, drawPileCount);
-                        _logger.LogControllerMoveSentCardToHand(moveResult.NewlyDrawnCard.Name, targetConnectionId, playerIdDrew);
-                    }
-                    else if (moveResult.NewlyDrawnCard.Name.Contains(CardConstants.NoMoreCardsName))
-                    {
-                        _logger.LogControllerConnectionIdNotFoundNoMoreCards("Move", playerIdDrew);
-                    }
-                    else
-                    {
-                        await _hubContext.Clients.Group(gameId.ToString())
-                                         .SendAsync("OnPlayerEarnedCardDraw", playerIdDrew);
-                        _logger.LogControllerConnectionIdNotFoundGeneric("Move", playerIdDrew);
-                    }
-                }
-
+                // Das Ergebnis wird an den Client zurückgegeben.
                 return Ok(moveResult);
             }
             catch (KeyNotFoundException ex)
@@ -461,67 +415,20 @@ namespace ChessServer.Controllers
 
         #endregion
 
-        #region Private Helper Methods
-
         // Findet die SignalR-Verbindungs-ID für eine gegebene Spieler-ID.
         private string? GetConnectionIdForPlayerViaHubMap(Guid playerId)
         {
-            if (ChessHub.PlayerIdToConnectionMap.TryGetValue(playerId, out string? connId))
+            // Direkter Aufruf des neuen Service
+            var connId = _connectionMappingService.GetConnectionId(playerId);
+
+            if (connId != null)
             {
                 return connId;
             }
+
             _logger.LogControllerConnectionIdForPlayerNotFound(playerId);
             return null;
         }
 
-        // Sendet die Animationsdetails für einen Kartentausch an beide beteiligten Spieler.
-        private async Task SendCardSwapAnimationDetails(Guid gameId, Guid activatingPlayerId, CardDto cardGivenByActivatingPlayer, CardDto cardReceivedByActivatingPlayer)
-        {
-            string? playerConnectionId = GetConnectionIdForPlayerViaHubMap(activatingPlayerId);
-            if (!string.IsNullOrEmpty(playerConnectionId))
-            {
-                await _hubContext.Clients.Client(playerConnectionId)
-                    .SendAsync("ReceiveCardSwapAnimationDetails", new CardSwapAnimationDetailsDto(activatingPlayerId, cardGivenByActivatingPlayer, cardReceivedByActivatingPlayer));
-            }
-
-            OpponentInfoDto? opponentInfo = _mgr.GetOpponentInfo(gameId, activatingPlayerId);
-            if (opponentInfo != null)
-            {
-                string? opponentConnectionId = GetConnectionIdForPlayerViaHubMap(opponentInfo.OpponentId);
-                if (!string.IsNullOrEmpty(opponentConnectionId))
-                {
-                    await _hubContext.Clients.Client(opponentConnectionId)
-                        .SendAsync("ReceiveCardSwapAnimationDetails", new CardSwapAnimationDetailsDto(opponentInfo.OpponentId, cardReceivedByActivatingPlayer, cardGivenByActivatingPlayer));
-                }
-            }
-        }
-
-        // Sendet nach einem Kartentausch die aktualisierten Handkarten an beide Spieler.
-        private async Task SendHandUpdatesAfterCardSwap(Guid gameId, Guid playerId, OpponentInfoDto? opponentInfo)
-        {
-            string? playerConnectionId = GetConnectionIdForPlayerViaHubMap(playerId);
-            if (!string.IsNullOrEmpty(playerConnectionId))
-            {
-                var playerHand = _mgr.GetPlayerHand(gameId, playerId);
-                int playerDrawPile = _mgr.GetDrawPileCount(gameId, playerId);
-                await _hubContext.Clients.Client(playerConnectionId).SendAsync("UpdateHandContents", new InitialHandDto(playerHand, playerDrawPile));
-                _logger.LogControllerMoveSentCardToHand("HandUpdate", playerConnectionId, playerId);
-            }
-
-            OpponentInfoDto? actualOpponentInfo = opponentInfo ?? _mgr.GetOpponentInfo(gameId, playerId);
-            if (actualOpponentInfo != null)
-            {
-                string? opponentConnectionId = GetConnectionIdForPlayerViaHubMap(actualOpponentInfo.OpponentId);
-                if (!string.IsNullOrEmpty(opponentConnectionId))
-                {
-                    var opponentHand = _mgr.GetPlayerHand(gameId, actualOpponentInfo.OpponentId);
-                    int opponentDrawPile = _mgr.GetDrawPileCount(gameId, actualOpponentInfo.OpponentId);
-                    await _hubContext.Clients.Client(opponentConnectionId).SendAsync("UpdateHandContents", new InitialHandDto(opponentHand, opponentDrawPile));
-                    _logger.LogControllerMoveSentCardToHand("HandUpdateOpponent", opponentConnectionId, actualOpponentInfo.OpponentId);
-                }
-            }
-        }
-
-        #endregion
     }
 }

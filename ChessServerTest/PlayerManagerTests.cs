@@ -4,6 +4,7 @@ using ChessServer.Services;
 using ChessLogic;
 using Chess.Logging;
 using System;
+using ChessNetwork.DTOs;
 
 namespace ChessServer.Tests
 {
@@ -23,7 +24,7 @@ namespace ChessServer.Tests
         public void JoinFirstPlayerAssignsCorrectColorAndId()
         {
             // Arrange: Erstellt eine neue Instanz des PlayerManager.
-            var playerManager = new PlayerManager(Guid.NewGuid(), "Human", "Medium", mockLogger.Object);
+            var playerManager = new PlayerManager(Guid.NewGuid(), OpponentType.Human, ComputerDifficulty.Medium, mockLogger.Object);
             var playerName = "Player One";
             var preferredColor = Player.White;
 
@@ -42,7 +43,7 @@ namespace ChessServer.Tests
         public void JoinSecondPlayerAssignsOppositeColor()
         {
             // Arrange: Erstellt einen Manager und lässt den ersten Spieler beitreten.
-            var playerManager = new PlayerManager(Guid.NewGuid(), "Human", "Medium", mockLogger.Object);
+            var playerManager = new PlayerManager(Guid.NewGuid(), OpponentType.Human, ComputerDifficulty.Medium, mockLogger.Object);
             playerManager.Join("Player One", Player.White);
 
             // Act: Lässt den zweiten Spieler beitreten.
@@ -59,7 +60,7 @@ namespace ChessServer.Tests
         public void JoinGameIsFullThrowsInvalidOperationException()
         {
             // Arrange: Füllt das Spiel mit zwei Spielern.
-            var playerManager = new PlayerManager(Guid.NewGuid(), "Human", "Medium", mockLogger.Object);
+            var playerManager = new PlayerManager(Guid.NewGuid(), OpponentType.Human, ComputerDifficulty.Medium, mockLogger.Object);
             playerManager.Join("Player One", Player.White);
             playerManager.Join("Player Two", Player.Black);
 
@@ -73,7 +74,7 @@ namespace ChessServer.Tests
         public void JoinComputerOpponentIsCreatedAutomaticallyWithOppositeColor()
         {
             // Arrange: Konfiguriert den Manager für ein Spiel gegen den Computer.
-            var playerManager = new PlayerManager(Guid.NewGuid(), "Computer", "Hard", mockLogger.Object);
+            var playerManager = new PlayerManager(Guid.NewGuid(), OpponentType.Computer, ComputerDifficulty.Hard, mockLogger.Object);
             var humanPlayerName = "Human Player";
             var humanPlayerColor = Player.Black;
 

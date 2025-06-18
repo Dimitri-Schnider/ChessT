@@ -21,25 +21,27 @@ namespace ChessServer.Services
         private readonly IHubContext<ChessHub> _hubContext;
         private readonly IChessLogger _logger;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IComputerMoveProvider _computerMoveProvider;
+        private readonly IConnectionMappingService _connectionMappingService;
 
         // Konstruktor: Initialisiert die Manager-Klasse mit den erforderlichen Diensten.
-        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory, IHttpClientFactory httpClientFactory)
+        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory, IComputerMoveProvider computerMoveProvider, IConnectionMappingService connectionMappingService) // NEUER PARAMETER
         {
             _hubContext = hubContext;
             _logger = logger;
             _loggerFactory = loggerFactory;
-            _httpClientFactory = httpClientFactory;
+            _computerMoveProvider = computerMoveProvider;
+            _connectionMappingService = connectionMappingService;
         }
 
         // Erstellt ein neues Spiel, initialisiert eine neue GameSession und fügt sie dem Dictionary hinzu.
-        public (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes, string opponentType = "Human", string computerDifficulty = "Medium")
+        public (Guid GameId, Guid PlayerId) CreateGame(string playerName, Player color, int initialMinutes, OpponentType opponentType = OpponentType.Human, ComputerDifficulty computerDifficulty = ComputerDifficulty.Medium)
         {
             if (string.IsNullOrWhiteSpace(playerName))
                 throw new ArgumentException("PlayerName darf nicht leer sein.", nameof(playerName));
             var gameId = Guid.NewGuid();
             var playerManager = new PlayerManager(gameId, opponentType, computerDifficulty, new ChessLogger<PlayerManager>(_loggerFactory.CreateLogger<PlayerManager>()));
-            var session = new GameSession(gameId, playerManager, initialMinutes, _hubContext, new ChessLogger<GameSession>(_loggerFactory.CreateLogger<GameSession>()), _loggerFactory, _httpClientFactory);
+            var session = new GameSession(gameId, playerManager, initialMinutes, _hubContext, new ChessLogger<GameSession>(_loggerFactory.CreateLogger<GameSession>()), _loggerFactory, _computerMoveProvider, _connectionMappingService);
 
             var (firstPlayerId, _) = session.Join(playerName, color);
             _games[gameId] = session;
@@ -47,7 +49,7 @@ namespace ChessServer.Services
             _logger.LogMgrGameCreated(gameId, playerName, firstPlayerId, color, initialMinutes);
 
             // Startet ein Spiel gegen den Computer sofort.
-            if (opponentType == "Computer")
+            if (opponentType == OpponentType.Computer)
             {
                 StartGame(gameId);
             }

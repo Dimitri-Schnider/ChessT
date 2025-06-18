@@ -1,12 +1,14 @@
 ﻿using Chess.Logging;
 using ChessLogic;
 using ChessNetwork.Configuration;
+using ChessNetwork.DTOs;
 using ChessServer.Services;
 using ChessServer.Services.CardEffects;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using Xunit;
+
 namespace ChessServer.Tests
 {
     // Testklasse für die verschiedenen Karteneffekte.
@@ -17,6 +19,7 @@ namespace ChessServer.Tests
         private readonly Mock<IChessLogger> mockLogger;
         private readonly Mock<GameSession> mockSession;
         private readonly Mock<GameTimerService> mockTimerService;
+
         // Konstruktor: Richtet die Mocks für jeden Test ein.
         public CardEffectsTests()
         {
@@ -38,11 +41,17 @@ namespace ChessServer.Tests
             var addTimeEffect = new AddTimeEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
+
+            // DTO und Kontext erstellen
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.AddTime };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, null!, requestDto);
+
             // Konfiguriere den Mock so, dass AddTime erfolgreich ist.
             mockTimerService.Setup(t => t.AddTime(playerColor, TimeSpan.FromMinutes(2))).Returns(true);
 
             // Act: Führt den Karteneffekt aus.
-            var result = addTimeEffect.Execute(mockSession.Object, playerId, playerColor, null!, CardConstants.AddTime, null, null);
+            var result = addTimeEffect.Execute(context);
+
             // Assert: Überprüft, ob das Ergebnis erfolgreich ist und die erwarteten Aktionen ausgeführt wurden.
             Assert.True(result.Success);
             Assert.False(result.BoardUpdatedByCardEffect);
@@ -59,11 +68,17 @@ namespace ChessServer.Tests
             var addTimeEffect = new AddTimeEffect(mockLogger.Object);
             var playerId = Guid.NewGuid();
             var playerColor = Player.White;
+
+            // DTO und Kontext erstellen
+            var requestDto = new ActivateCardRequestDto { CardTypeId = CardConstants.AddTime };
+            var context = new CardExecutionContext(mockSession.Object, playerId, playerColor, null!, requestDto);
+
             // Konfiguriere den Mock so, dass AddTime fehlschlägt.
             mockTimerService.Setup(t => t.AddTime(playerColor, TimeSpan.FromMinutes(2))).Returns(false);
 
             // Act: Führt den Effekt aus.
-            var result = addTimeEffect.Execute(mockSession.Object, playerId, playerColor, null!, CardConstants.AddTime, null, null);
+            var result = addTimeEffect.Execute(context);
+
             // Assert: Das Ergebnis muss fehlschlagen und eine passende Fehlermeldung enthalten.
             Assert.False(result.Success);
             Assert.Contains("Timer-Fehler", result.ErrorMessage);
