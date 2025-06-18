@@ -1,5 +1,5 @@
 ﻿using Bunit;
-using ChessClient.Pages.Components;
+using ChessClient.Pages.Components.Info;
 using ChessLogic;
 using System.Collections.Generic;
 using Xunit;

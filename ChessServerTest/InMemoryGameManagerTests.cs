@@ -2,11 +2,13 @@
 using Moq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using ChessServer.Services;
 using ChessServer.Hubs;
 using ChessLogic;
 using ChessNetwork.DTOs;
 using Chess.Logging;
+using ChessServer.Services.Connectivity;
+using ChessServer.Services.ComputerPlayer;
+using ChessServer.Services.Management;
 
 namespace ChessServer.Tests
 {

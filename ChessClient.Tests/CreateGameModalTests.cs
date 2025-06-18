@@ -1,6 +1,6 @@
 ﻿using Bunit;
 using ChessClient.Models;
-using ChessClient.Pages.Components;
+using ChessClient.Pages.Components.Dialogs;
 using ChessLogic;
 using ChessNetwork.DTOs;
 using Microsoft.AspNetCore.Components.Web;

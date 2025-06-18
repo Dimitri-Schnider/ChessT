@@ -2,7 +2,9 @@
 using ChessClient.Configuration;
 using ChessClient.Layout;
 using ChessClient.Models;
-using ChessClient.Services;
+using ChessClient.Services.Connectivity;
+using ChessClient.Services.Game;
+using ChessClient.Services.UI;
 using ChessClient.State;
 using ChessClient.Utils;
 using ChessLogic;

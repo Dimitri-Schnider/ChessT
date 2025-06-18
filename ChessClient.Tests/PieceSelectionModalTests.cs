@@ -1,10 +1,10 @@
 ﻿using Bunit;
 using Xunit;
-using ChessClient.Pages.Components;
 using ChessClient.Models;
 using ChessLogic;
 using System.Collections.Generic;
 using System.Linq;
+using ChessClient.Pages.Components.Dialogs;
 
 namespace ChessClient.Tests
 {

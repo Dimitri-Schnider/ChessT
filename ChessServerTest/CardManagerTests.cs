@@ -2,7 +2,8 @@
 using ChessLogic;
 using ChessNetwork.Configuration;
 using ChessNetwork.DTOs;
-using ChessServer.Services;
+using ChessServer.Services.Cards;
+using ChessServer.Services.Session;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;

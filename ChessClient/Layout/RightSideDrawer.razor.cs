@@ -1,11 +1,11 @@
 ﻿using ChessClient.Configuration;
-using ChessClient.Services;
 using ChessClient.State;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using ChessClient.Services.Logging;
 
 namespace ChessClient.Layout
 {

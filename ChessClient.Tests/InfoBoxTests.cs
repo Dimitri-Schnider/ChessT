@@ -1,7 +1,8 @@
 ﻿using Bunit;
 using Xunit;
-using ChessClient.Pages.Components;
 using System.Threading.Tasks;
+using ChessClient.Pages.Components.Info;
+using ChessClient.Pages.Components.Dialogs;
 
 namespace ChessClient.Tests
 {

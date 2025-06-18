@@ -1,5 +1,4 @@
 using ChessClient;
-using ChessClient.Services;
 using ChessNetwork;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -11,6 +10,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Chess.Logging;
 using Microsoft.Extensions.Logging;
+using ChessClient.Services.Logging;
+using ChessClient.Services.Game;
+using ChessClient.Services.UI;
+using ChessClient.Services.Connectivity;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 

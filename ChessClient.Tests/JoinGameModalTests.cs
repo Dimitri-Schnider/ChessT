@@ -1,6 +1,6 @@
 ﻿using Bunit;
 using Xunit;
-using ChessClient.Pages.Components;
+using ChessClient.Pages.Components.Dialogs;
 using ChessClient.Models;
 using System;
 

@@ -1,6 +1,6 @@
 ﻿using Xunit;
 using Moq;
-using ChessServer.Services;
+using ChessServer.Services.Session;
 using ChessLogic;
 using Chess.Logging;
 using System;
