@@ -49,6 +49,9 @@
         transition: transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
         transform-style: preserve-3d;
         position: relative;
+        /* Hardware-Beschleunigung für flüssigere Animationen erzwingen. "Mobile Fix" */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
     }
 
         /* Klasse, die die 3D-Drehung auslöst. */
@@ -68,6 +71,9 @@
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
+        /* Hardware-Beschleunigung für flüssigere Animationen erzwingen. "Mobile Fix" */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
     }
 
     .swapping-card .card-back {
