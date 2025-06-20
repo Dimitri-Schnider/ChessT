@@ -19,44 +19,28 @@ namespace ChessClient.State
         // Löst das StateChanged-Event sicher aus, um UI-Updates anzustossen.
         protected virtual void OnStateChanged() => StateChanged?.Invoke();
 
-        // --- Injizierte Abhängigkeiten zu anderen State-Containern ---
+        // Injizierte Abhängigkeiten zu anderen State-Containern 
         private readonly IModalState _modalState;
         private readonly IUiState _uiState;
         private readonly IHighlightState _highlightState;
 
-        // Die aktuell im Info-Panel angezeigte Karte.
-        public CardDto? SelectedCardForInfoPanel { get; private set; }
-        // Gibt an, ob gerade eine Kartenaktivierung läuft (z.B. auf eine Feldauswahl gewartet wird).
-        public bool IsCardActivationPending { get; private set; }
-        // Die Liste der Karten, die der Spieler aktuell auf der Hand hat.
-        public List<CardDto> PlayerHandCards { get; private set; } = [];
-        // Die Anzahl der verbleibenden Karten im Nachziehstapel des Spielers.
-        public int MyDrawPileCount { get; private set; }
-        // Gibt an, ob die Karten aufgedeckt sind (nach dem Spielstart-Countdown).
-        public bool AreCardsRevealed { get; private set; }
-        // Die Historie der vom eigenen Spieler gespielten Karten.
-        public List<PlayedCardInfo> MyPlayedCardsForHistory { get; private set; } = [];
-        // Die Historie der vom Gegner gespielten Karten.
-        public List<PlayedCardInfo> OpponentPlayedCardsForHistory { get; private set; } = [];
-        // Gibt an, ob eine Karte aus der Historie nur zur Vorschau angezeigt wird.
-        public bool IsPreviewingPlayedCard { get; private set; }
-        // Die Instanz-ID der aktuell in der Hand ausgewählten Karte.
-        public Guid? SelectedCardInstanceIdInHand { get; private set; }
-        // Eine Liste der geschlagenen Figuren, die für die "Wiedergeburt"-Karte relevant sind.
-        public List<CapturedPieceTypeDto>? CapturedPiecesForRebirth { get; private set; }
+        public CardDto? SelectedCardForInfoPanel { get; private set; }                          // Die aktuell im Info-Panel angezeigte Karte.
+        public bool IsCardActivationPending { get; private set; }                               // Gibt an, ob gerade eine Kartenaktivierung läuft (z.B. auf eine Feldauswahl gewartet wird).
+        public List<CardDto> PlayerHandCards { get; private set; } = [];                        // Die Liste der Karten, die der Spieler aktuell auf der Hand hat.
+        public int MyDrawPileCount { get; private set; }                                        // Die Anzahl der verbleibenden Karten im Nachziehstapel des Spielers.
+        public bool AreCardsRevealed { get; private set; }                                      // Gibt an, ob die Karten aufgedeckt sind (nach dem Spielstart-Countdown).
+        public List<PlayedCardInfo> MyPlayedCardsForHistory { get; private set; } = [];         // Die Historie der vom eigenen Spieler gespielten Karten.
+        public List<PlayedCardInfo> OpponentPlayedCardsForHistory { get; private set; } = [];   // Die Historie der vom Gegner gespielten Karten.
+        public bool IsPreviewingPlayedCard { get; private set; }                                // Gibt an, ob eine Karte aus der Historie nur zur Vorschau angezeigt wird.
+        public Guid? SelectedCardInstanceIdInHand { get; private set; }                         // Die Instanz-ID der aktuell in der Hand ausgewählten Karte.
+        public List<CapturedPieceTypeDto>? CapturedPiecesForRebirth { get; private set; }       // Eine Liste der geschlagenen Figuren, die für die "Wiedergeburt"-Karte relevant sind.
+        public CardDto? ActiveCardForBoardSelection { get; private set; }                       // Die Karte, für die gerade eine Brettinteraktion (z.B. Feldauswahl) erforderlich ist.
+        public bool IsAwaitingRebirthTargetSquareSelection { get; private set; }                // Gibt an, ob auf die Auswahl eines Zielfeldes für die Wiedergeburt gewartet wird.
+        public string? FirstSquareSelectedForTeleportOrSwap { get; private set; }               // Speichert das erste ausgewählte Feld für Karten wie Teleport oder Positionstausch.
+        public bool IsAwaitingSacrificePawnSelection { get; private set; }                      // Gibt an, ob auf die Auswahl eines Bauern für die Opfergabe gewartet wird.
+        public PieceType? PieceTypeSelectedForRebirth { get; private set; }                     // Der Figurentyp, der für die Wiedergeburt ausgewählt wurde.
+        public bool IsAwaitingTurnConfirmation { get; private set; }                            // Gibt an, ob der Client auf die Bestätigung des Servers wartet, dass ein Zug abgeschlossen ist.
 
-        // Die Karte, für die gerade eine Brettinteraktion (z.B. Feldauswahl) erforderlich ist.
-        public CardDto? ActiveCardForBoardSelection { get; private set; }
-        // Gibt an, ob auf die Auswahl eines Zielfeldes für die Wiedergeburt gewartet wird.
-        public bool IsAwaitingRebirthTargetSquareSelection { get; private set; }
-        // Speichert das erste ausgewählte Feld für Karten wie Teleport oder Positionstausch.
-        public string? FirstSquareSelectedForTeleportOrSwap { get; private set; }
-        // Gibt an, ob auf die Auswahl eines Bauern für die Opfergabe gewartet wird.
-        public bool IsAwaitingSacrificePawnSelection { get; private set; }
-        // Der Figurentyp, der für die Wiedergeburt ausgewählt wurde.
-        public PieceType? PieceTypeSelectedForRebirth { get; private set; }
-        // Gibt an, ob der Client auf die Bestätigung des Servers wartet, dass ein Zug abgeschlossen ist.
-        public bool IsAwaitingTurnConfirmation { get; private set; }
 
         // Konstruktor, der die Abhängigkeiten zu anderen State-Managern injiziert.
         public CardState(IModalState modalState, IUiState uiState, IHighlightState highlightState)

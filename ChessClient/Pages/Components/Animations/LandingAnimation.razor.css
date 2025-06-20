@@ -32,7 +32,7 @@
     justify-content: center;
 }
 
-/* --- KARTEN-STYLING --- */
+/* Karten Styles */
 .cards-container {
     position: relative;
     width: 150px;
@@ -86,7 +86,7 @@
 }
 
 
-/* --- TEXT-ANIMATION --- */
+/* Text-Animation */
 
 .text-container {
     margin-top: 40px;

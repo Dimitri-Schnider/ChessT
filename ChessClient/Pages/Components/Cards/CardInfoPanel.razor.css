@@ -39,7 +39,7 @@
     margin: 0 auto 20px auto; /* Zentriert die Karte und schafft Abstand nach unten. */
 }
 
-/* --- Layer-Styling für den Aufbau der Karte --- */
+/* Layer-Styling für den Aufbau der Karte */
 
 /* Die Ebene für die eigentliche Kartenkunst. */
 .card-art-layer {
@@ -84,7 +84,7 @@
     pointer-events: none;
 }
 
-/* --- Positionierung der Text-Elemente auf der Karte --- */
+/* Positionierung der Text-Elemente auf der Karte */
 
 .card-title-section {
     position: absolute;

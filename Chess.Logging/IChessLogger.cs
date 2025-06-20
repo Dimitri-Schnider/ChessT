@@ -7,7 +7,7 @@ namespace Chess.Logging
 {
     public interface IChessLogger
     {
-        // --- ChessClient.Pages.Chess.razor.cs Logs ---
+        // ChessClient.Pages.Chess.razor.cs Logs
         void LogStartingGenericCardSwapAnimation(Guid playerId, string cardGivenName, string cardReceivedName);
         void LogCardActivationAnimationFinishedClient();
         void LogSpecificCardSwapAnimationFinishedClient();
@@ -27,7 +27,7 @@ namespace Chess.Logging
         void LogClientAttemptedToAddDuplicateCardInstance(Guid instanceId, string cardName);
         void LogCardsRevealed(Guid? gameId);
 
-        // --- ChessServer.Controllers.GamesController.cs Logs ---
+        // ChessServer.Controllers.GamesController.cs Logs
         void LogMoveProcessingError(Guid gameId, string fromSquare, string toSquare, Exception? ex);
         void LogGameCreated(Guid gameId, string playerName, int initialMinutes);
         void LogPlayerJoinedGame(string playerName, Guid gameId);
@@ -62,7 +62,7 @@ namespace Chess.Logging
         void LogControllerErrorGettingLegalMoves(Guid gameId, Guid playerId, string fromSquare, Exception? ex);
         void LogControllerConnectionIdForPlayerNotFound(Guid playerId);
 
-        // --- ChessServer.Hubs.ChessHub.cs Logs ---
+        // ChessServer.Hubs.ChessHub.cs Logs 
         void LogHubClientConnected(string connectionId);
         void LogHubClientDisconnected(string connectionId, string? errorMessage, Exception? ex);
         void LogHubClientJoiningGameGroup(string connectionId, string gameIdString);
@@ -82,7 +82,7 @@ namespace Chess.Logging
         void LogHubErrorSendingInitialHand(Guid playerId, Guid gameId, Exception? ex);
         void LogStartGameCountdown(Guid gameId);
 
-        // --- ChessServer.Services.GameSession.cs Logs ---
+        // ChessServer.Services.GameSession.cs Logs
         void LogSessionErrorGetNameByColor(Guid gameId, Exception? ex);
         void LogSessionSendTimeUpdate(Guid gameId, TimeSpan whiteTime, TimeSpan blackTime, Player? activePlayer);
         void LogSessionErrorIsPlayerTurn(Guid gameId, Exception? ex);
@@ -122,7 +122,7 @@ namespace Chess.Logging
         void LogComputerTimerResumedAfterAnimation(Guid gameId, Player computerColor);
         void LogComputerSkippingTurnAfterAnimationDelay(Guid gameId, string cardTypeId);
 
-        // --- ChessServer.Services.CardEffects Logs ---
+        // ChessServer.Services.CardEffects Logs
         void LogAddTimeEffectApplied(Player playerColor, Guid playerId, Guid gameId);
         void LogCardSwapEffectExecuted(Guid swappedOutPlayerCardInstanceId, Guid swappedInOpponentCardInstanceId, Guid playerId, Guid gameId);
         void LogCardSwapEffectOpponentNoCards(Guid playerId, Guid gameId);
@@ -141,7 +141,7 @@ namespace Chess.Logging
         void LogSacrificeEffectFailedWrongColor(Guid gameId, Guid playerId, string attemptedSquare, Player pieceColor);
         void LogSacrificeEffectFailedWouldCauseCheck(Guid gameId, Guid playerId, string sacrificedPawnSquare);
 
-        // --- ChessServer.Services.InMemoryGameManager.cs Logs ---
+        // ChessServer.Services.InMemoryGameManager.cs Logs 
         void LogMgrGameCreated(Guid gameId, string playerName, Guid playerId, Player color, int initialMinutes);
         void LogMgrPlayerJoinedGameTimerStart(string playerName, Guid gameId, Player startPlayer);
         void LogMgrGameOverTimerStop(Guid gameId);
@@ -153,7 +153,7 @@ namespace Chess.Logging
         void LogMgrPlayerHubConnectionUnregistered(string connectionId, Guid gameId);
         void LogMgrGameNotFoundForRegisterPlayerHub(Guid gameId);
 
-        // --- ChessServer PvC Logs ---
+        // ChessServer PvC Logs
         void LogPvCGameCreated(Guid gameId, string playerName, Player playerColor, string computerDifficulty);
         void LogComputerFetchingMove(Guid gameId, string fen, int depth);
         void LogComputerReceivedMove(Guid gameId, string move, string fen, int depth);
@@ -161,7 +161,7 @@ namespace Chess.Logging
         void LogComputerMakingMove(Guid gameId, string from, string toSquare);
         void LogComputerStartingInitialMove(Guid gameId, Player computerColor, Player currentPlayer);
 
-        // --- ChessServer.Services.GameTimerService.cs Logs ---
+        // ChessServer.Services.GameTimerService.cs Logs
         void LogTimerStarting(Guid gameId, Player? player, TimeSpan whiteTime, TimeSpan blackTime);
         void LogTimerSwitching(Guid gameId, Player? player);
         void LogTimerStoppedAndCalculated(Player? player, double elapsedSeconds, Guid gameId);

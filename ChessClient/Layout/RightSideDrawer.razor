@@ -21,7 +21,7 @@
             <hr />
         }
 
-        @* ------ NEU: DEBUG PANEL HIER EINGEFÜGT ------ *@
+        @* START DEBUG PANEL *@
         @if (_cardState != null && _gameCoreState != null && _modalState != null && _highlightState != null)
         {
             <div class="drawer-section debug-panel-in-drawer">
@@ -37,19 +37,10 @@
                     </strong>
                 </p>
                 <p>_highlightState.CardTargetSquaresForSelection: <strong>@(string.Join(", ", _highlightState.CardTargetSquaresForSelection ?? new List<string>()))</strong></p>
-                @*
-                    Die folgenden Eigenschaften sind nicht direkt in den injizierten States verfügbar,
-                    sondern lokale Variablen in Chess.razor.cs. Wenn du diese auch hier anzeigen willst,
-                    müssten sie entweder auch Teil eines States werden oder du musst auf ihre Anzeige
-                    an dieser Stelle verzichten. Fürs Erste lasse ich sie auskommentiert.
-
-                    <p>_firstSquareSelectedForTeleportOrSwap: <strong>@(_firstSquareSelectedForTeleportOrSwap ?? "null")</strong></p>
-                    <p>_isAwaitingRebirthTargetSquareSelection: <strong>@_isAwaitingRebirthTargetSquareSelection</strong></p>
-                *@
             </div>
             <hr />
         }
-        @* ------ ENDE DEBUG PANEL ------ *@
+        @* ENDE DEBUG PANEL *@
 
 
         @* Abschnitt für API-Logs. *@

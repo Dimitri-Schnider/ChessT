@@ -3,8 +3,11 @@
 @using ChessClient.Pages.Components.Animations
 @implements IDisposable
 
+@* Dies ist das Hauptlayout der Anwendung. Es definiert die globale Struktur mit *@
+@* dem Navigationsmenü und dem Hauptinhaltsbereich. *@
 <div class="page d-flex @(isMobileView && isNavMenuOverlayOpen ? "mobile-nav-is-open" : "") @GameStatusCssClass">
 
+    @* Der "Burger"-Button wird global angezeigt, wenn das Menü nicht fixiert und aktuell geschlossen ist. *@
     @if (ShouldShowGlobalBurgerButton())
     {
         <button class="btn btn-outline-secondary global-burger-button" @onclick="ToggleNavMenuOverlay" title="Menü öffnen">
@@ -12,11 +15,16 @@
         </button>
     }
 
+    @* Die NavMenu-Komponente wird hier eingebunden. *@
+    @* Ihr Verhalten (fixiert vs. Overlay) wird durch Parameter gesteuert, die vom Code-Behind dieser Komponente berechnet werden. *@
     <NavMenu IsPinnedModeRequest="@GetIsNavMenuPinned()"
              IsOpenAsOverlayRequest="@isNavMenuOverlayOpen"
              OnRequestCloseMenu="HandleRequestCloseMenuFromNav" />
 
+    @* Der Haupt-Wrapper für den Seiteninhalt. *@
     <div class="main-content-wrapper flex-grow-1">
+        @* Dieser Button öffnet die rechte Seitenleiste (RightSideDrawer) mit Einstellungen und Logs. *@
+        @* Er wird nur angezeigt, wenn ein Spiel aktiv ist. *@
         @if (ActiveGameIdForDrawer != Guid.Empty)
         {
             <button class="btn btn-outline-secondary btn-sm settings-button-relocated" @onclick="ToggleRightDrawer" title="Einstellungen und Logs">
@@ -24,10 +32,10 @@
             </button>
         }
 
+        @* Der eigentliche Inhaltsbereich, der die aktuelle Seite (@Body) rendert. *@
         <div class="content-area d-flex">
-
-
             <article class="content px-4 flex-grow-1">
+                @* CascadingValue stellt eine Referenz auf diese MainLayout-Instanz für untergeordnete Komponenten (wie Chess.razor) bereit. *@
                 <CascadingValue Value="this" Name="MyMainLayout">
                     @Body
                 </CascadingValue>
@@ -36,8 +44,11 @@
     </div>
 </div>
 
+@* Ein Overlay für globale Effekte wie Sieg/Niederlage-Animationen. *@
 <GlobalEffectsOverlay />
 
+@* Die rechte Seitenleiste (Drawer), die bei Bedarf ein- und ausgeblendet wird. *@
+@* Sie erhält die ID des aktiven Spiels, um kontextbezogene Optionen anzuzeigen. *@
 <RightSideDrawer @ref="rightSideDrawerInstance"
                  CurrentGameId="@ActiveGameIdForDrawer"
                  CanDownloadHistory="CanDownloadGameHistory" />

@@ -12,12 +12,12 @@ namespace ChessClient.Pages.Components.Dialogs
     // Events aus, um mit der übergeordneten Komponente zu kommunizieren.
     public partial class CreateGameModal
     {
-        // --- PARAMETER ---
+        // Parameter, die von der übergeordneten Komponente gesetzt werden können.
         [Parameter] public bool IsVisible { get; set; }                                     // Steuert die Sichtbarkeit des Modals.
         [Parameter] public EventCallback OnClose { get; set; }                              // Event-Callback, der aufgerufen wird, wenn das Modal geschlossen wird.
         [Parameter] public EventCallback<CreateGameDto> OnCreateGame { get; set; }          // Event-Callback, der die gesammelten Spieldaten an den Aufrufer übergibt.
 
-        // --- PRIVATE PROPERTIES (ZUSTAND) ---
+        // Eingabefelder für die Spielparameter.
         private string PlayerName { get; set; } = "";                                       // Gebundener Wert für das Spielernamen-Eingabefeld.
         private Player SelectedColor { get; set; } = Player.White;                          // Gebundener Wert für die Farbauswahl.
         private int InitialTimeMinutes { get; set; } = 15;                                  // Gebundener Wert für die Bedenkzeit-Auswahl.
@@ -25,7 +25,7 @@ namespace ChessClient.Pages.Components.Dialogs
 
         private bool _isSubmitting;                                                         // Flag, um mehrfaches Absenden des Formulars zu verhindern.
 
-        // Neue Properties für die Auswahl des Gegners.
+        // Properties für die Auswahl des Gegners.
         private OpponentType SelectedOpponentType { get; set; } = OpponentType.Human;                   // Gebundener Wert für die Auswahl des Gegnertyps.
         private ComputerDifficulty SelectedComputerDifficulty { get; set; } = ComputerDifficulty.Medium; // Gebundener Wert für die Auswahl der Computerstärke.
 

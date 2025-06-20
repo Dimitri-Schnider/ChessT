@@ -15,48 +15,48 @@ namespace ChessClient.State
     {
         // Event, das ausgelöst wird, wenn sich ein beliebiger Wert in diesem State ändert.
         public event Action? StateChanged;
+
         // Methode, um das StateChanged-Event sicher auszulösen und die UI zum Neu-Rendern zu veranlassen.
         protected virtual void OnStateChanged() => StateChanged?.Invoke();
 
-        // --- Private Felder für den internen Zustand ---
-        private bool _isPvCGame;
-        private bool _isGameRunning;
-        private bool _isExtraTurnSequenceActive;
-        private int _extraTurnMovesMade;
-        private PieceDto? _pieceCapturedInPendingMove;
+        // Private Felder für den internen Zustand
+        private bool _isPvCGame;                        // Internes Feld für die Eigenschaft IsPvCGame.
+        private bool _isGameRunning;                    // Internes Feld für die Eigenschaft IsGameRunning.
+        private bool _isExtraTurnSequenceActive;        // Internes Feld für die Eigenschaft IsExtraTurnSequenceActive.
+        private int _extraTurnMovesMade;                // Internes Feld für die Eigenschaft ExtraTurnMovesMade.
+        private PieceDto? _pieceCapturedInPendingMove;  // Speichert eine geschlagene Figur bei einem optimistischen Zug für einen eventuellen Rollback.
 
-        // --- Öffentliche Properties (Zustand) ---
-        public PlayerDto? CurrentPlayerInfo { get; private set; }
-        public BoardDto? BoardDto { get; private set; }
-        public Player MyColor { get; private set; } = Player.White;
-        public Guid GameId { get; private set; }
-        public string? GameIdFromQueryString { get; private set; }
-        public bool IsGameIdFromQueryValidAndExists { get; private set; }
-        public Player? CurrentTurnPlayer { get; private set; }
-        public bool OpponentJoined { get; private set; }
-        public string EndGameMessage { get; private set; } = "";
-        public Dictionary<Player, string> PlayerNames { get; private set; } = new();
-        public bool IsGameSpecificDataInitialized { get; private set; }
-        public string WhiteTimeDisplay { get; private set; } = "00:00";
-        public string BlackTimeDisplay { get; private set; } = "00:00";
-        public bool IsPvCGame => _isPvCGame;
-        public bool IsGameRunning => _isGameRunning;
-        public bool IsExtraTurnSequenceActive => _isExtraTurnSequenceActive;
+        // Public Properties für den Spielzustand
+        public PlayerDto? CurrentPlayerInfo { get; private set; }                       // Informationen über den lokalen Spieler.
+        public BoardDto? BoardDto { get; private set; }                                 // Das aktuelle Schachbrett.
+        public Player MyColor { get; private set; } = Player.White;                     // Die Farbe des lokalen Spielers.
+        public Guid GameId { get; private set; }                                        // Die ID des aktuellen Spiels.
+        public string? GameIdFromQueryString { get; private set; }                      // Die Spiel-ID aus der URL.
+        public bool IsGameIdFromQueryValidAndExists { get; private set; }               // Gibt an, ob die Spiel-ID aus der URL gültig ist.
+        public Player? CurrentTurnPlayer { get; private set; }                          // Der Spieler, der gerade am Zug ist.
+        public bool OpponentJoined { get; private set; }                                // Gibt an, ob ein Gegner beigetreten ist.
+        public string EndGameMessage { get; private set; } = "";                        // Nachricht bei Spielende.
+        public Dictionary<Player, string> PlayerNames { get; private set; } = new();    // Namen der Spieler.
+        public bool IsGameSpecificDataInitialized { get; private set; }                 // Gibt an, ob alle Spieldaten geladen sind.
+        public string WhiteTimeDisplay { get; private set; } = "00:00";                 // Angezeigte Zeit für Weiss.
+        public string BlackTimeDisplay { get; private set; } = "00:00";                 // Angezeigte Zeit für Schwarz.
+        public bool IsPvCGame => _isPvCGame;                                            // Gibt an, ob es sich um ein Spiel gegen den Computer handelt.
+        public bool IsGameRunning => _isGameRunning;                                    // Gibt an, ob das Spiel aktiv läuft (nach dem Countdown).
+        public bool IsExtraTurnSequenceActive => _isExtraTurnSequenceActive;            // Gibt an, ob eine "Extrazug"-Sequenz aktiv ist.
         public int ExtraTurnMovesMade => _extraTurnMovesMade;
 
-        // --- Properties für Optimistic UI ---
-        public bool IsAwaitingMoveConfirmation { get; private set; }
-        public MoveDto? PendingMove { get; private set; }
+        // Properties für Optimistic UI
+        public bool IsAwaitingMoveConfirmation { get; private set; } // Gibt an, ob auf Server-Bestätigung für einen Zug gewartet wird.
+        public MoveDto? PendingMove { get; private set; } // Der Zug, der auf Bestätigung wartet.
 
         public GameCoreState() { }
 
-        // --- Methoden für Optimistic UI ---
+        // Methoden für Optimistic UI
 
         // Führt einen Zug optimistisch auf dem Client aus, bevor die Server-Bestätigung eintrifft.
         public void ApplyOptimisticMove(MoveDto move)
         {
             if (BoardDto == null || IsAwaitingMoveConfirmation) return;
-
             var from = PositionHelper.ToIndices(move.From);
             var to = PositionHelper.ToIndices(move.To);
 
@@ -79,7 +79,6 @@ namespace ChessClient.State
         public void RevertOptimisticMove()
         {
             if (BoardDto == null || !IsAwaitingMoveConfirmation || PendingMove == null) return;
-
             var from = PositionHelper.ToIndices(PendingMove.From);
             var to = PositionHelper.ToIndices(PendingMove.To);
 
@@ -92,7 +91,6 @@ namespace ChessClient.State
             PendingMove = null;
             _pieceCapturedInPendingMove = null;
             IsAwaitingMoveConfirmation = false;
-
             OnStateChanged();
         }
 
@@ -109,7 +107,7 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
-        // --- Methoden für den Spiel-Lebenszyklus ---
+        // Methoden für den Spiel-Lebenszyklus
 
         // Setzt den "Extrazug"-Modus aktiv oder inaktiv.
         public void SetExtraTurnSequenceActive(bool isActive)

@@ -20,7 +20,6 @@ namespace ChessClient.Pages.Components.Board
     // und kommuniziert mit der übergeordneten Komponente (Chess.razor) über EventCallbacks.
     public partial class ChessBoard : ComponentBase
     {
-        // --- PARAMETER ---
         // Die folgenden Properties werden von der übergeordneten Komponente (Chess.razor) befüllt.
 
         [Parameter] public Guid GameId { get; set; }                                            // Die eindeutige ID des aktuellen Spiels.
@@ -39,13 +38,11 @@ namespace ChessClient.Pages.Components.Board
         [Parameter] public List<string>? HighlightedCardTargetSquaresForSelection { get; set; } // Liste der Felder, die als gültige Ziele für eine Kartenaktion markiert sind.
 
 
-        // --- INJECTIONS ---
         // Injizierte Dienste für Serverkommunikation und JavaScript-Interop.
 
         [Inject] private IGameSession Game { get; set; } = null!;       // Dienst für die Kommunikation mit der Game-API.
         [Inject] private IJSRuntime JSRuntime { get; set; } = null!;    // Für die Interaktion mit JavaScript (z.B. für Drag-and-Drop).
 
-        // --- PRIVATE FELDER ---
         // Interner Zustand der Komponente.
 
         private string? selectedFrom;                                   // Speichert die Koordinate des Feldes, von dem aus ein Zug gestartet wird (z.B. "e2").
@@ -128,7 +125,7 @@ namespace ChessClient.Pages.Components.Board
         {
             if (_isCurrentlyDragging || !IsEnabled || Board?.Squares == null) return; // Ignoriert Klicks während eines Drags oder wenn das Brett deaktiviert ist.
 
-            // --- Logik für Karteneffekte ---
+            // Logik für Karteneffekte
             if (IsSquareSelectionModeActiveForCard)
             {
                 // Wenn ein Karteneffekt aktiv ist, werden Klicks an einen speziellen Handler weitergeleitet.
@@ -141,7 +138,7 @@ namespace ChessClient.Pages.Components.Board
                 return;
             }
 
-            // --- Logik für normale Züge ---
+            // Logik für normale Züge
             (int rank, int file) = PositionHelper.ToIndices(coord);
             PieceDto? pieceOnSquare = (rank >= 0 && rank < 8 && file >= 0 && file < 8) ? Board.Squares[rank][file] : null;
 

@@ -28,7 +28,7 @@ namespace ChessServer.Services.Management
         private readonly IConnectionMappingService _connectionMappingService;
 
         // Konstruktor: Initialisiert die Manager-Klasse mit den erforderlichen Diensten.
-        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory, IComputerMoveProvider computerMoveProvider, IConnectionMappingService connectionMappingService) // NEUER PARAMETER
+        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory, IComputerMoveProvider computerMoveProvider, IConnectionMappingService connectionMappingService)
         {
             _hubContext = hubContext;
             _logger = logger;

@@ -49,7 +49,7 @@
     color: #B0B0B0;
 }
 
-/* --- Responsive Anpassungen für Mobile-Ansichten --- */
+/* Responsive Anpassungen für Mobile-Ansichten */
 
 @media (max-width: 992px) {
     .timers-container {

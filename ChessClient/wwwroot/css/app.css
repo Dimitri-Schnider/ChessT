@@ -8,7 +8,7 @@ html, body {
     color: #E0E0E0;
 }
 
-/* --- Custom Scrollbar Styles --- */
+/* Custom Scrollbar Styles */
 /* Für Firefox */
 * {
     scrollbar-width: thin;
@@ -75,7 +75,7 @@ a, .btn-link {
         border-color: #844738;
     }
 
-    /* NEU: Active-Zustand für den Klick-Effekt */
+    /* Active-Zustand für den Klick-Effekt */
     .btn-primary:active {
         color: #fff;
         background-color: #703A2F !important; /* Noch dunklerer Ton für den Klick */
@@ -152,7 +152,7 @@ a, .btn-link {
     display: block;
 }
 
-/* --- Dark Theme Modal Styles --- */
+/* Dark Theme Modal Styles */
 .modal-content {
     background-color: #2C2C2C;
     color: #E0E0E0;
@@ -395,13 +395,13 @@ code {
     background-color: transparent;
 }
 
-/* ------ Einheitliche Ladeanimation mit Karten-Flip ------ */
+/* Einheitliche Ladeanimation mit Karten-Flip */
 .unified-loader-container {
     width: 120px;
     height: 120px;
     position: relative;
     margin: 20vh auto 1rem auto; /* Für index.html */
-    perspective: 800px; /* NEU: 3D-Perspektive für den Flip-Effekt */
+    perspective: 800px; /* 3D-Perspektive für den Flip-Effekt */
 }
 
 .loader-card {
@@ -411,9 +411,9 @@ code {
     left: 50%;
     bottom: 0;
     transform-origin: bottom center;
-    animation: swing-and-fan-and-flip 1.8s ease-in-out infinite; /* GEÄNDERT: längere Dauer, neuer Name */
-    animation-delay: calc(0.2s * var(--i)); /* GEÄNDERT: etwas mehr Verzögerung */
-    transform-style: preserve-3d; /* NEU: Erlaubt 3D-Transformationen */
+    animation: swing-and-fan-and-flip 1.8s ease-in-out infinite;
+    animation-delay: calc(0.2s * var(--i)); /* Verzögerung */
+    transform-style: preserve-3d; /* Erlaubt 3D-Transformationen */
 }
 
 .loader-text {
@@ -430,16 +430,14 @@ code {
 }
 
 
-/* Keyframes für die Lade-Animation mit Glow-Effekt */
+/* Keyframes für die Lade-Animation */
 @keyframes swing-and-fan-and-flip {
     0%, 100% {
         transform: translateX(-50%) translateY(0) rotateZ(0deg) rotateY(0deg);
-        box-shadow: none; /* Kein Leuchten am Start/Ende */
+        box-shadow: none;
     }
 
     50% {
         transform: translateX(calc(-50% + (25px * (var(--i) - 2.5)))) translateY(-60px) rotateZ(calc(15deg * (var(--i) - 2.5))) rotateY(360deg);
-        /* NEU: Leuchteffekt am höchsten Punkt der Animation */
-        box-shadow: 0 0 15px rgba(165, 91, 75, 0.5), 0 0 25px rgba(165, 91, 75, 0.3);
     }
 }

@@ -130,7 +130,7 @@
     color: #E0E0E0;
 }
 
-/* --- MOBILE LAYOUT ANPASSUNGEN --- */
+/* Mobile Layout Anpassungen */
 @media (max-width: 992px) {
     /* Zeigt die mobilen Timer an. */
     .global-timers-mobile {
@@ -230,7 +230,7 @@
     justify-content: center;
 }
 
-/* --- Keyframes für Animationen auf dem Willkommens-Bildschirm --- */
+/* Keyframes für Animationen auf dem Willkommens-Bildschirm */
 @keyframes fadeIn {
     from {
         opacity: 0;

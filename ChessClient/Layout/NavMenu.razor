@@ -1,7 +1,11 @@
 ﻿@using ChessClient.Services
 @implements IDisposable
 
+@* Die Haupt-Komponente für das Navigationsmenü. *@
+@* Sie wird im MainLayout platziert und passt ihr Verhalten an (fixiert vs. Overlay), *@
+@* basierend auf dem Bildschirm und ob ein Spiel aktiv ist. *@
 <div class="nav-menu-component @NavMenuCssClasses">
+    @* Die oberste Zeile des Menüs, die den Markennamen und das Logo enthält. *@
     <div class="top-row ps-3 navbar navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="">
@@ -11,21 +15,25 @@
         </div>
     </div>
 
+    @* Der scrollbare Inhaltsbereich, der die eigentlichen Navigations-Buttons enthält. *@
+    @* Ein Klick auf diesen Bereich schliesst das Menü, wenn es als Overlay angezeigt wird. *@
     <div class="nav-scrollable-content" @onclick="HandleContentClickAndRequestClose">
         <nav class="flex-column">
+            @* Button zum Erstellen eines neuen Spiels. Ruft eine Methode auf, die das entsprechende Modal anfordert. *@
             <div class="nav-item px-3">
                 <button class="nav-link btn btn-link" @onclick="RequestCreateGame" @onclick:stopPropagation="true">
                     <i class="bi bi-plus-square-fill me-2"></i>
                     Neues Spiel
                 </button>
             </div>
+            @* Button zum Beitreten eines bestehenden Spiels. *@
             <div class="nav-item px-3">
                 <button class="nav-link btn btn-link" @onclick="RequestJoinGame" @onclick:stopPropagation="true">
                     <i class="bi bi-box-arrow-in-right me-2"></i>
                     Spiel beitreten
                 </button>
             </div>
-
+            @* Button zum Starten der interaktiven Tour. *@
             <div class="nav-item px-3">
                 <button class="nav-link btn btn-link" @onclick="StartTour" @onclick:stopPropagation="true">
                     <i class="bi bi-magic me-2"></i>
@@ -36,6 +44,8 @@
     </div>
 </div>
 
+@* Dieses Overlay wird nur angezeigt, wenn das Menü als "off-canvas" (nicht fixiert) fungiert. *@
+@* Es dunkelt den restlichen Bildschirm ab und fängt Klicks ab, um das Menü zu schliessen. *@
 @if (!IsPinnedModeRequest && IsOpenAsOverlayRequest)
 {
     <div class="nav-overlay-external-control show" @onclick="async () => await OnRequestCloseMenu.InvokeAsync()"></div>

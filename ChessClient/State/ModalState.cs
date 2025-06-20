@@ -12,45 +12,43 @@ namespace ChessClient.State
     // Stellt sicher, dass immer nur ein Modal zur gleichen Zeit aktiv sein kann.
     public class ModalState : IModalState
     {
-        public event Action? StateChanged;
-        protected virtual void OnStateChanged() => StateChanged?.Invoke();
+        public event Action? StateChanged;                                  // Event zur Benachrichtigung über Zustandsänderungen.
+        protected virtual void OnStateChanged() => StateChanged?.Invoke();  // Löst das Event sicher aus.
 
-        // --- CreateGameModal ---
-        public bool ShowCreateGameModal { get; private set; }
-        public string PlayerNameForCreateModal { get; private set; } = "";
-        public Player SelectedColorForCreateModal { get; private set; } = Player.White;
-        public int SelectedInitialTimeMinutesForCreateModal { get; private set; } = 15;
+        // Zustand für CreateGameModal
+        public bool ShowCreateGameModal { get; private set; }                           // Sichtbarkeit des "Spiel erstellen"-Modals.
+        public string PlayerNameForCreateModal { get; private set; } = "";              // Spielername im "Spiel erstellen"-Modal.
+        public Player SelectedColorForCreateModal { get; private set; } = Player.White; // Farbe im "Spiel erstellen"-Modal.
+        public int SelectedInitialTimeMinutesForCreateModal { get; private set; } = 15; // Bedenkzeit im "Spiel erstellen"-Modal.
 
-        // --- JoinGameModal ---
-        public bool ShowJoinGameModal { get; private set; }
-        public string PlayerNameForJoinModal { get; private set; } = "";
-        public string GameIdInputForJoinModal { get; private set; } = "";
+        // Zustand für JoinGameModal
+        public bool ShowJoinGameModal { get; private set; }                 // Sichtbarkeit des "Spiel beitreten"-Modals.
+        public string PlayerNameForJoinModal { get; private set; } = "";    // Spielername im "Spiel beitreten"-Modal.
+        public string GameIdInputForJoinModal { get; private set; } = "";   // Spiel-ID im "Spiel beitreten"-Modal.
 
-        // --- InviteLinkModal ---
-        public bool ShowInviteLinkModal { get; private set; }
-        public string InviteLink { get; private set; } = "";
+        // Zustand für InviteLinkModal
+        public bool ShowInviteLinkModal { get; private set; }   // Sichtbarkeit des "Einladungslink"-Modals.
+        public string InviteLink { get; private set; } = "";    // Der zu teilende Einladungslink.
 
-        // --- PieceSelectionModal (für Bauernumwandlung & Wiedergeburt) ---
-        public bool ShowPieceSelectionModal { get; private set; }
-        public string PieceSelectionModalTitle { get; private set; } = "";
-        public string PieceSelectionModalPrompt { get; private set; } = "";
-        public List<PieceSelectionChoiceInfo>? PieceSelectionModalChoices { get; private set; }
-        public Player PieceSelectionModalPlayerColor { get; private set; }
-        public bool PieceSelectionModalShowCancelButton { get; private set; } = true;
+        // Zustand für PieceSelectionModal
+        public bool ShowPieceSelectionModal { get; private set; }                               // Sichtbarkeit des "Figurenauswahl"-Modals.
+        public string PieceSelectionModalTitle { get; private set; } = "";                      // Titel des Modals.
+        public string PieceSelectionModalPrompt { get; private set; } = "";                     // Aufforderungstext im Modal.
+        public List<PieceSelectionChoiceInfo>? PieceSelectionModalChoices { get; private set; } // Die wählbaren Figuren.
+        public Player PieceSelectionModalPlayerColor { get; private set; }                      // Farbe der wählbaren Figuren.
+        public bool PieceSelectionModalShowCancelButton { get; private set; } = true;           // Sichtbarkeit des Abbrechen-Buttons.
+        public bool ShowPawnPromotionModalSpecifically { get; private set; }                    // Flag für Bauernumwandlung.
+        public MoveDto? PendingPromotionMove { get; private set; }                              // Der auf die Umwandlung wartende Zug.
 
-        // --- Spezifische Zustände für Modals ---
-        public bool ShowPawnPromotionModalSpecifically { get; private set; }
-        public MoveDto? PendingPromotionMove { get; private set; }
+        // Zustand für CardInfoPanel-Modal
+        public bool ShowCardInfoPanelModal { get; private set; }            // Sichtbarkeit des Karten-Info-Panels.
+        public CardDto? CardForInfoPanelModal { get; private set; }         // Die anzuzeigende Karte.
+        public bool IsCardInInfoPanelModalActivatable { get; private set; } // Gibt an, ob die Karte aktivierbar ist.
+        public bool IsCardInInfoPanelModalPreviewOnly { get; private set; } // Gibt an, ob die Karte nur eine Vorschau ist.
 
-        // --- CardInfoPanel-Modal ---
-        public bool ShowCardInfoPanelModal { get; private set; }
-        public CardDto? CardForInfoPanelModal { get; private set; }
-        public bool IsCardInInfoPanelModalActivatable { get; private set; }
-        public bool IsCardInInfoPanelModalPreviewOnly { get; private set; }
-
-        // --- ErrorModal ---
-        public bool ShowErrorModal { get; private set; }
-        public string ErrorModalMessage { get; private set; } = "";
+        // Zustand für ErrorModal
+        public bool ShowErrorModal { get; private set; }            // Sichtbarkeit des Fehler-Modals.
+        public string ErrorModalMessage { get; private set; } = ""; // Die anzuzeigende Fehlermeldung.
 
         public ModalState() { }
 

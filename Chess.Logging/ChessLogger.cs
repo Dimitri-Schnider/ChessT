@@ -8,6 +8,7 @@ namespace Chess.Logging
     public class ChessLogger<TCategoryName> : IChessLogger
     {
         private readonly ILogger<TCategoryName> _msLogger;
+
         // Event-ID Basiswerte für verschiedene Log-Kategorien
         // Diese helfen, die Event-IDs organisiert und eindeutig zu halten.
         private const int ClientLogBaseId = 20000;
@@ -19,7 +20,7 @@ namespace Chess.Logging
         private const int PvcLogBaseId = 26000;
         private const int TimerLogBaseId = 27000;
 
-        // --- ChessClient.Pages.Chess.razor.cs Logs ---
+        // ChessClient.Pages.Chess.razor.cs Logs
         private static readonly Action<ILogger, Guid, string, string, Exception?> _logStartingGenericCardSwapAnimationAction =
             LoggerMessage.Define<Guid, string, string>(LogLevel.Information, new EventId(ClientLogBaseId + 1, "ClientStartingGenericCardSwapAnimationLog"), "Starte CardSwapSpecificAnimation für Spieler {PlayerId}. Gegeben: {CardGivenName}, Erhalten: {CardReceivedName}");
         private static readonly Action<ILogger, Exception?> _logCardActivationAnimationFinishedClientAction =
@@ -55,9 +56,9 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, string, Exception?> _logClientAttemptedToAddDuplicateCardInstanceAction =
             LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(ClientLogBaseId + 17, "ClientAttemptedDuplicateCardInstanceLog"), "[CardState] Client hat versucht, Karte mit bereits vorhandener InstanceId {InstanceId} ('{CardName}') hinzuzufügen. Hinzufügen übersprungen.");
         private static readonly Action<ILogger, Guid?, Exception?> _logCardsRevealedAction =
-            LoggerMessage.Define<Guid?>(LogLevel.Information, new EventId(ClientLogBaseId + 18, "ClientCardsRevealedLog"), "[ChessPage] Countdown beendet, Karten für Spiel {GameId} werden aufgedeckt."); // NEU
+            LoggerMessage.Define<Guid?>(LogLevel.Information, new EventId(ClientLogBaseId + 18, "ClientCardsRevealedLog"), "[ChessPage] Countdown beendet, Karten für Spiel {GameId} werden aufgedeckt.");
 
-        // --- ChessServer.Controllers.GamesController.cs Logs ---
+        // ChessServer.Controllers.GamesController.cs Logs
         private static readonly Action<ILogger, Guid, string, string, Exception?> _logMoveErrorAction =
             LoggerMessage.Define<Guid, string, string>(LogLevel.Error, new EventId(ControllerLogBaseId + 1, "CtrlMoveProcessingErrorLog"), "Fehler beim Verarbeiten des Zugs in Spiel {GameId}: {FromSquare}->{ToSquare}");
         private static readonly Action<ILogger, Guid, string, int, Exception?> _logGameCreatedAction =
@@ -122,7 +123,8 @@ namespace Chess.Logging
             LoggerMessage.Define<Guid, Guid, string>(LogLevel.Warning, new EventId(ControllerLogBaseId + 31, "CtrlErrorGettingLegalMovesLog"), "Fehler bei LegalMoves für Spiel {GameId}, Spieler {PlayerId}, Von {FromSquare}");
         private static readonly Action<ILogger, Guid, Exception?> _logCtrlConnIdForPlayerNotFoundAction =
             LoggerMessage.Define<Guid>(LogLevel.Warning, new EventId(ControllerLogBaseId + 32, "CtrlConnIdForPlayerNotFoundLog"), "[GamesController] GetConnectionIdForPlayerViaHubMap: Konnte ConnectionId für PlayerId {PlayerId} nicht finden.");
-        // --- ChessServer.Hubs.ChessHub.cs Logs ---
+        
+        // ChessServer.Hubs.ChessHub.cs Logs
         private static readonly Action<ILogger, string, Exception?> _logHubClientConnectedAction =
             LoggerMessage.Define<string>(LogLevel.Information, new EventId(HubLogBaseId + 1, "HubClientConnectedLog"), "SignalR Hub: Client verbunden: {ConnectionId}");
         private static readonly Action<ILogger, string, string?, Exception?> _logHubClientDisconnectedAction =
@@ -158,8 +160,9 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, Guid, Exception?> _logHubErrorSendingInitialHandAction =
             LoggerMessage.Define<Guid, Guid>(LogLevel.Error, new EventId(HubLogBaseId + 17, "HubErrorSendingInitialHandLog"), "[ChessHub] Fehler beim Senden der Starthand an Spieler {PlayerId} in Spiel {GameId}.");
         private static readonly Action<ILogger, Guid, Exception?> _logStartGameCountdownAction =
-            LoggerMessage.Define<Guid>(LogLevel.Information, new EventId(HubLogBaseId + 18, "HubStartGameCountdownLog"), "[ChessHub] Beide Spieler sind beigetreten. Starte Countdown für Spiel {GameId}."); // NEU
-                                                                                                                                                                                                             // --- ChessServer.Services.GameSession.cs Logs ---
+            LoggerMessage.Define<Guid>(LogLevel.Information, new EventId(HubLogBaseId + 18, "HubStartGameCountdownLog"), "[ChessHub] Beide Spieler sind beigetreten. Starte Countdown für Spiel {GameId}.");
+        
+        // ChessServer.Services.GameSession.cs Logs
         private static readonly Action<ILogger, Guid, Exception?> _logSessionErrorGetNameByColorAction =
             LoggerMessage.Define<Guid>(LogLevel.Warning, new EventId(SessionLogBaseId + 1, "SessionErrorGetNameByColorLog"), "[GameSession] Fehler in MakeMove (GetPlayerColor) für Spiel {GameId}");
         private static readonly Action<ILogger, Guid, TimeSpan, TimeSpan, Player?, Exception?> _logSessionSendTimeUpdateAction =
@@ -242,7 +245,7 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, string, Exception?> _logComputerSkippingTurnAfterAnimationDelayAction =
             LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(SessionLogBaseId + 41, "LogComputerSkippingTurnAfterAnimationDelay"), "[GameSession] Spiel: {GameId} beendet oder nicht mehr Computer-Zug nach Animations-Delay für Karte {CardTypeId}. Computerzug wird nicht ausgeführt.");
 
-        // --- ChessServer.Services.CardEffects Logs ---
+        // ChessServer.Services.CardEffects Logs
         private static readonly Action<ILogger, Player, Guid, Guid, Exception?> _logAddTimeEffectAppliedAction =
             LoggerMessage.Define<Player, Guid, Guid>(LogLevel.Information, new EventId(CardEffectsLogBaseId + 1, "AddTimeEffectAppliedLog"), "[AddTimeEffect] Zeitgutschrift (+2 Min) für Spieler {PlayerColor} ({PlayerId}) in Spiel {GameId} angewendet.");
         private static readonly Action<ILogger, Guid, Guid, Guid, Guid, Exception?> _logCardSwapEffectExecutedGuidAction =
@@ -278,7 +281,7 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, Guid, string, Exception?> _logSacrificeEffectFailedWouldCauseCheckAction =
             LoggerMessage.Define<Guid, Guid, string>(LogLevel.Warning, new EventId(CardEffectsLogBaseId + 17, "SacrificeEffectFailedWouldCauseCheckLog"), "[SacrificeEffect] Spiel {GameId}: Opfergabe von Bauer auf {SacrificedPawnSquare} für Spieler {PlayerId} nicht möglich, da eigener König dadurch ins Schach geraten würde.");
 
-        // --- ChessServer.Services.InMemoryGameManager.cs Logs ---
+        // ChessServer.Services.InMemoryGameManager.cs Logs
         private static readonly Action<ILogger, Guid, string, Guid, Player, int, Exception?> _logMgrGameCreatedAction =
             LoggerMessage.Define<Guid, string, Guid, Player, int>(LogLevel.Information, new EventId(GameManagerLogBaseId + 1, "MgrGameCreatedLog"), "Spiel {GameId} erstellt von Spieler {PlayerName} ({PlayerId}) mit Farbe {Color} und Startzeit {InitialMinutes} Minuten");
         private static readonly Action<ILogger, string, Guid, Player, Exception?> _logMgrPlayerJoinedGameTimerStartAction =
@@ -300,7 +303,7 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, Exception?> _logMgrGameNotFoundForRegisterPlayerHubAction =
             LoggerMessage.Define<Guid>(LogLevel.Warning, new EventId(GameManagerLogBaseId + 10, "MgrGameNotFoundForRegisterPlayerHubLog"), "[InMemoryGameManager] Spiel {GameId} nicht gefunden für RegisterPlayerHubConnection.");
 
-        // --- ChessServer PvC Logs ---
+        // ChessServer PvC Logs
         private static readonly Action<ILogger, Guid, string, Player, string, Exception?> _logPvCGameCreatedAction =
             LoggerMessage.Define<Guid, string, Player, string>(LogLevel.Information, new EventId(PvcLogBaseId + 1, "CtrlPvCGameCreatedLog"), "PvC Spiel {GameId} erstellt für Spieler {PlayerName} (Farbe: {PlayerColor}) gegen Computer (Stärke: {ComputerDifficulty})");
         private static readonly Action<ILogger, Guid, string, int, Exception?> _logComputerFetchingMoveAction =
@@ -314,7 +317,7 @@ namespace Chess.Logging
         private static readonly Action<ILogger, Guid, Player, Player, Exception?> _logComputerStartingInitialMoveAction =
             LoggerMessage.Define<Guid, Player, Player>(LogLevel.Debug, new EventId(PvcLogBaseId + 6, "SessionComputerStartingInitialMoveLog"), "[GameSession] Spiel {GameId}: Computer (Farbe: {ComputerColor}, aktuell am Zug: {CurrentPlayer}) startet. Planne initialen Zug.");
 
-        // --- ChessServer.Services.GameTimerService.cs Logs ---
+        // ChessServer.Services.GameTimerService.cs Logs
         private static readonly Action<ILogger, Guid, Player?, TimeSpan, TimeSpan, Exception?> _logTimerStartingAction =
             LoggerMessage.Define<Guid, Player?, TimeSpan, TimeSpan>(LogLevel.Information, new EventId(TimerLogBaseId + 1, "TimerStartingLog"), "[GameTimerService] Timer für Spiel {GameId}, Spieler {Player} wird gestartet. W: {WhiteTime}, B: {BlackTime}");
         private static readonly Action<ILogger, Guid, Player?, Exception?> _logTimerSwitchingAction =
@@ -346,7 +349,6 @@ namespace Chess.Logging
         }
 
         // Implementierungen der IChessLogger-Methoden
-
         public void LogStartingGenericCardSwapAnimation(Guid playerId, string cardGivenName, string cardReceivedName) => _logStartingGenericCardSwapAnimationAction(_msLogger, playerId, cardGivenName, cardReceivedName, null);
         public void LogCardActivationAnimationFinishedClient() => _logCardActivationAnimationFinishedClientAction(_msLogger, null);
         public void LogSpecificCardSwapAnimationFinishedClient() => _logSpecificCardSwapAnimationFinishedClientAction(_msLogger, null);
@@ -488,7 +490,7 @@ namespace Chess.Logging
         public void LogCardsRevealed(Guid? gameId) => _logCardsRevealedAction(_msLogger, gameId, null);
         public void LogStartGameCountdown(Guid gameId) => _logStartGameCountdownAction(_msLogger, gameId, null);
 
-        // --- ChessServer.Services.GameTimerService.cs Logs Implementations ---
+        // ChessServer.Services.GameTimerService.cs Logs Implementations
         public void LogTimerStarting(Guid gameId, Player? player, TimeSpan whiteTime, TimeSpan blackTime) => _logTimerStartingAction(_msLogger, gameId, player, whiteTime, blackTime, null);
         public void LogTimerSwitching(Guid gameId, Player? player) => _logTimerSwitchingAction(_msLogger, gameId, player, null);
         public void LogTimerStoppedAndCalculated(Player? player, double elapsedSeconds, Guid gameId) => _logTimerStoppedAndCalculatedAction(_msLogger, player, elapsedSeconds, gameId, null);

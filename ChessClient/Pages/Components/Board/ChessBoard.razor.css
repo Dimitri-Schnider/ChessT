@@ -71,7 +71,7 @@
         cursor: default !important;
     }
 
-    /* --- HIGHLIGHT-STILE --- */
+    /* HIGHLIGHT-STYLES */
 
     /* Hervorhebung für legale Züge. */
     .square.highlight {
@@ -97,7 +97,7 @@
         transition: none; /* Deaktiviert die Transition, um ruckelfreies Dragging zu gewährleisten. */
     }
 
-    /* --- KARTENEFFEKT-HIGHLIGHTS --- */
+    /* KARTENEFFEKT-HIGHLIGHTS */
 
     /* Hebt das erste für einen Karteneffekt ausgewählte Feld hervor (z.B. bei Teleport). */
     .square.highlight-card-first-selection {
@@ -134,7 +134,7 @@
             cursor: pointer !important;
         }
 
-    /* --- LETZTER-ZUG-HIGHLIGHTS --- */
+    /* LETZTER-ZUG-HIGHLIGHTS */
 
     .square.highlight-last-move-to-strong {
         background-color: rgba(255, 255, 0, 0.6); /* Starke Hervorhebung für das Zielfeld. */
@@ -152,7 +152,7 @@
         background-color: rgba(255, 255, 0, 0.3);
     }
 
-    /* --- SPEZIFISCHE KARTENEFFEKT-HIGHLIGHTS --- */
+    /* SPEZIFISCHE KARTENEFFEKT-HIGHLIGHTS */
 
     .square.highlight-card-teleport-from {
         background-color: rgba(0, 191, 255, 0.3);
@@ -173,7 +173,7 @@
         outline-offset: -2px;
     }
 
-    /* --- RANK & FILE BESCHRIFTUNGEN --- */
+    /* RANK & FILE BESCHRIFTUNGEN */
 
     .square .rank-label,
     .square .file-label {

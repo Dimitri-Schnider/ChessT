@@ -53,9 +53,7 @@
         cursor: default !important;
     }
 
-    /* --- HIGHLIGHT-STILE --- */
-    /* Die Hervorhebungen werden durch das Auflegen eines halbtransparenten Farbverlaufs realisiert. */
-    /* Dies funktioniert besser als 'background-color', da es die ursprüngliche Feld-Farbe (hell/dunkel) durchscheinen lässt. */
+    /* HIGHLIGHT-STYLES */
 
     /* Normaler Zug oder Drag-Over (Rotbraun) */
     .square.highlight,
@@ -76,7 +74,7 @@
         background-image: linear-gradient(rgba(205, 209, 102, 0.4), rgba(205, 209, 102, 0.4));
     }
 
-    /* --- ANDERE KARTENEFFEKT-STILE --- */
+    /* ANDERE KARTENEFFEKT-STILE */
 
     /* Auswahl eines Zielfeldes oder einer Figur für einen Karteneffekt (Rotbraun mit Rahmen) */
     .square.highlight-card-actionable-target {
@@ -119,7 +117,7 @@
         outline-offset: -2px;
     }
 
-    /* --- RANK & FILE BESCHRIFTUNGEN --- */
+    /* RANK & FILE BESCHRIFTUNGEN */
     .square .rank-label,
     .square .file-label {
         position: absolute;

@@ -102,7 +102,7 @@
     box-sizing: border-box;
 }
 
-/* --- 3D Flip-Animation für die Karten --- */
+/* 3D Flip-Animation für die Karten */
 
 .hand-card-perspective {
     width: 100%;
@@ -169,7 +169,7 @@
         transform: translateY(-4px) scale(1.03);
     }
 
-/* --- Aufbau der Karten-Visualisierung (ähnlich wie CardInfoPanel, aber kleiner) --- */
+/* Aufbau der Karten-Visualisierung (ähnlich wie CardInfoPanel, aber kleiner) */
 
 .card-visual-representation-hand {
     position: relative;
@@ -251,7 +251,7 @@
     padding: 0 15px;
 }
 
-/* --- Responsive Anpassungen --- */
+/* Responsive Anpassungen */
 
 @media (max-width: 420px) {
     .hand-cards-container {

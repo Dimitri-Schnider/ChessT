@@ -6,21 +6,20 @@ namespace ChessClient.State
     // Definiert den Vertrag für den State-Container, der alle visuellen Hervorhebungen auf dem Schachbrett verwaltet.
     public interface IHighlightState
     {
-        // Event, das bei Änderungen ausgelöst wird.
-        event Action? StateChanged;
+        event Action? StateChanged; // Event, das bei Änderungen ausgelöst wird.
 
-        // --- Properties für die Hervorhebung des letzten Zugs ---
-        string? MostRecentMoveFrom { get; }
-        string? MostRecentMoveTo { get; }
-        string? PenultimateMoveFrom { get; } // Vorletzter Zug, wichtig für "Extrazug"-Sequenzen
-        string? PenultimateMoveTo { get; }
-        bool IsThirdMoveOfSequence { get; } // Spezial-Flag für den 2. Zug des Extrazugs
+        // Properties für die Hervorhebung des letzten Zugs
+        string? MostRecentMoveFrom { get; }     // Das Startfeld des letzten Zuges.
+        string? MostRecentMoveTo { get; }       // Das Zielfeld des letzten Zuges.
+        string? PenultimateMoveFrom { get; }    // Vorletzter Zug, wichtig für "Extrazug"-Sequenzen.
+        string? PenultimateMoveTo { get; }      // Vorletzter Zug, wichtig für "Extrazug"-Sequenzen.
+        bool IsThirdMoveOfSequence { get; }     // Spezial-Flag für den 2. Zug des Extrazugs.
 
-        // --- Properties für Karteneffekte ---
-        List<(string Square, string Type)> HighlightCardEffectSquares { get; }
-        List<string> CardTargetSquaresForSelection { get; } // Felder, die für eine Kartenaktion ausgewählt werden können
+        // Properties für Karteneffekte
+        List<(string Square, string Type)> HighlightCardEffectSquares { get; }  // Felder, die durch einen direkten Karteneffekt hervorgehoben werden.
+        List<string> CardTargetSquaresForSelection { get; }                     // Felder, die für eine Kartenaktion ausgewählt werden können (z.B. Wiedergeburts-Ziele).
 
-        // --- Methoden zur Steuerung der Highlights ---
+        // Methoden zur Steuerung der Highlights
 
         // Setzt die Highlights für den letzten Zug.
         void SetHighlights(string? currentFrom, string? currentTo, bool isPartOfSequenceContinuing, bool isCurrentMoveTheThirdInSequence = false);

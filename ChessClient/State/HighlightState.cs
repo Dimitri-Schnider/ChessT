@@ -4,26 +4,26 @@ using System.Linq;
 
 namespace ChessClient.State
 {
-    // Implementiert die IHighlightState-Schnittstelle.
+    // Implementiert die IHighlightState-Schnittstelle und verwaltet alle visuellen Hervorhebungen.
     public class HighlightState : IHighlightState
     {
-        public event Action? StateChanged;
-        protected virtual void OnStateChanged() => StateChanged?.Invoke();
+        public event Action? StateChanged; // Wird ausgelöst, wenn sich ein Highlight-Zustand ändert.
+        protected virtual void OnStateChanged() => StateChanged?.Invoke();  // Löst das Event sicher aus.
 
-        public string? MostRecentMoveFrom { get; private set; }
-        public string? MostRecentMoveTo { get; private set; }
-        public string? PenultimateMoveFrom { get; private set; }
-        public string? PenultimateMoveTo { get; private set; }
-        public bool IsThirdMoveOfSequence { get; private set; }
-        public List<(string Square, string Type)> HighlightCardEffectSquares { get; private set; } = new();
-        public List<string> CardTargetSquaresForSelection { get; private set; } = new();
+        public string? MostRecentMoveFrom { get; private set; }             // Startfeld des letzten Zuges.
+        public string? MostRecentMoveTo { get; private set; }               // Zielfeld des letzten Zuges.
+        public string? PenultimateMoveFrom { get; private set; }            // Startfeld des vorletzten Zuges (für Sequenzen).
+        public string? PenultimateMoveTo { get; private set; }              // Zielfeld des vorletzten Zuges (für Sequenzen).
+        public bool IsThirdMoveOfSequence { get; private set; }             // Spezial-Flag für den zweiten Zug eines "Extrazugs".
+        public List<(string Square, string Type)> HighlightCardEffectSquares { get; private set; } = new(); // Highlights durch direkte Karteneffekte.
+        public List<string> CardTargetSquaresForSelection { get; private set; } = new();    // Felder, die als Ziel für eine Kartenaktion wählbar sind.
 
         public HighlightState() { }
 
         // Setzt die Highlights für einen normalen oder einen Extrazug.
         public void SetHighlights(string? currentFrom, string? currentTo, bool isPartOfSequenceContinuing, bool isCurrentMoveTheThirdInSequence = false)
         {
-            // Wenn der Zug Teil einer Sequenz ist (Extrazug), wird der vorherige Zug als "vorletzter" gespeichert.
+            // Wenn der Zug Teil einer Sequenz ist, wird der vorherige Zug als "vorletzter" gespeichert.
             if (isPartOfSequenceContinuing)
             {
                 PenultimateMoveFrom = MostRecentMoveFrom;

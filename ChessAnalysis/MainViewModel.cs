@@ -505,7 +505,7 @@ namespace ChessAnalysis
                 string baseName = pieceLabel.Split(' ')[1];  // z.B. "Queen"
                 string imageFile = $"Items/{baseName}{suffix}.png";
 
-                // neuen Stein erzeugen
+                // neues Piece erzeugen
                 Pieces.Add(new PieceVieweModel
                 {
                     File = tx,
