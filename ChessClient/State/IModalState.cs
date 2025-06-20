@@ -17,6 +17,7 @@ namespace ChessClient.State
         bool ShowPawnPromotionModalSpecifically { get; }                    // Gibt an, ob das Figurenauswahl-Modal speziell für eine Bauernumwandlung offen ist.
         bool ShowCardInfoPanelModal { get; }                                // Zeigt das "Karten-Info"-Panel.
         bool ShowErrorModal { get; }                                        // Zeigt das "Fehler"-Modal.
+        string GameIdInputForJoinModal { get; }                             // Die Spiel-ID im "Spiel beitreten"-Modal.
         string InviteLink { get; }                                          // Der zu teilende Einladungslink.
         string ErrorModalMessage { get; }                                   // Die im Fehler-Modal angezeigte Nachricht.
         string PieceSelectionModalTitle { get; }                            // Der Titel des Figurenauswahl-Modals.
@@ -34,8 +35,10 @@ namespace ChessClient.State
         void CloseErrorModal(); // Schliesst das Fehler-Modal.
         void OpenCreateGameModal(); // Öffnet das "Spiel erstellen"-Modal.
         void CloseCreateGameModal(); // Schliesst das "Spiel erstellen"-Modal.
+        void UpdateCreateGameModalArgs(string name, Player color, int timeMinutes); // Aktualisiert die Argumente des "Spiel erstellen"-Modals.
         void OpenJoinGameModal(string? initialGameId = null); // Öffnet das "Spiel beitreten"-Modal.
         void CloseJoinGameModal(); // Schliesst das "Spiel beitreten"-Modal.
+        void UpdateJoinGameModalArgs(string name, string gameId); // Aktualisiert die Argumente des "Spiel beitreten"-Modals.
         void OpenInviteLinkModal(string inviteLink); // Öffnet das Einladungs-Modal.
         void CloseInviteLinkModal(); // Schliesst das Einladungs-Modal.
         void OpenPieceSelectionModal(string title, string prompt, List<PieceSelectionChoiceInfo> choices, Player playerColor, bool showCancelButton = true); // Öffnet das Figurenauswahl-Modal.

@@ -60,6 +60,7 @@ namespace ChessClient.State
             OnStateChanged();
         }
 
+        // Schliesst das "Spiel erstellen"-Modal und setzt die Sichtbarkeit zurück.
         public void CloseCreateGameModal()
         {
             ShowCreateGameModal = false;
