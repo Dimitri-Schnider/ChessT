@@ -65,6 +65,7 @@ builder.Services.AddScoped<IChessLogger>(sp =>
         sp.GetRequiredService<ILogger<ChessClient.Pages.Chess>>()
     )
 );
+
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 await builder.Build().RunAsync();

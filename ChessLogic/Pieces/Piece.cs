@@ -22,12 +22,14 @@ namespace ChessLogic
         {
             for (Position pos = from + dir; Board.IsInside(pos); pos += dir)
             {
+                // Wenn die Position leer ist, kann die Figur dorthin ziehen.
                 if (board.IsEmpty(pos))
                 {
                     yield return pos;
                     continue;
                 }
 
+                // Wenn die Position besetzt ist, kann die Figur nur schlagen, wenn die Figur eine gegnerische ist.
                 if (board[pos]?.Color != Color)
                 {
                     yield return pos;
