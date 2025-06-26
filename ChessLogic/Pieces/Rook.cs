@@ -11,13 +11,13 @@ namespace ChessLogic
         public override Player Color { get; }
 
         // Die horizontalen und vertikalen Bewegungsrichtungen für einen Turm.
-        private static readonly Direction[] dirs = new Direction[]
-        {
+        private static readonly Direction[] dirs =
+        [
             Direction.North,
             Direction.South,
             Direction.East,
             Direction.West
-        };
+        ];
 
         public Rook(Player color)
         {

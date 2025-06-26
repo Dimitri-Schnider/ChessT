@@ -1,6 +1,4 @@
 ﻿using ChessLogic.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChessLogic
 {
@@ -11,13 +9,13 @@ namespace ChessLogic
         public override Player Color { get; }
 
         // Die möglichen diagonalen Bewegungsrichtungen für einen Läufer.
-        private static readonly Direction[] dirs = new Direction[]
-        {
+        private static readonly Direction[] dirs =
+        [
             Direction.NorthWest,
             Direction.NorthEast,
             Direction.SouthWest,
             Direction.SouthEast
-        };
+        ];
 
         public Bishop(Player color)
         {

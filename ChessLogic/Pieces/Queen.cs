@@ -11,11 +11,17 @@ namespace ChessLogic
         public override Player Color { get; }
 
         // Alle 8 Richtungen, in die sich eine Dame bewegen kann.
-        private static readonly Direction[] dirs = new Direction[]
-        {
-            Direction.North, Direction.South, Direction.East, Direction.West,
-            Direction.NorthWest, Direction.NorthEast, Direction.SouthWest, Direction.SouthEast
-        };
+        private static readonly Direction[] dirs =
+        [
+            Direction.North,
+            Direction.South,
+            Direction.East,
+            Direction.West,
+            Direction.NorthWest,
+            Direction.NorthEast,
+            Direction.SouthWest,
+            Direction.SouthEast
+        ];
 
         public Queen(Player color)
         {

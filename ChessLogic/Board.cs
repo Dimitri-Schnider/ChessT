@@ -1,6 +1,4 @@
 ﻿using ChessLogic.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChessLogic
 {
@@ -12,7 +10,7 @@ namespace ChessLogic
 
         // Speichert für jeden Spieler die Position, auf die ein Bauer ziehen würde, um En Passant zu schlagen.
         // Null, wenn kein En Passant für den Spieler möglich ist.
-        private readonly Dictionary<Player, Position?> pawnSkipPositions = new Dictionary<Player, Position?>
+        private readonly Dictionary<Player, Position?> pawnSkipPositions = new()
         {
             { Player.White, null },
             { Player.Black, null }
@@ -21,15 +19,15 @@ namespace ChessLogic
         // Indexer für den Zugriff auf Figuren über Zeilen- und Spaltenindizes (0-7).
         public Piece? this[int row, int col]
         {
-            get { return pieces[row, col]; }
-            set { pieces[row, col] = value; }
+            get => pieces[row, col];
+            set => pieces[row, col] = value;
         }
 
         // Indexer für den Zugriff auf Figuren über ein Positionsobjekt.
         public Piece? this[Position pos]
         {
-            get { return this[pos.Row, pos.Column]; }
-            set { this[pos.Row, pos.Column] = value; }
+            get => this[pos.Row, pos.Column];
+            set => this[pos.Row, pos.Column] = value;
         }
 
         // Gibt die für En Passant relevante Sprungposition des gegnerischen Bauern zurück.
@@ -48,7 +46,7 @@ namespace ChessLogic
         // Erstellt ein neues Schachbrett mit der initialen Figurenaufstellung.
         public static Board Initial()
         {
-            Board board = new Board();
+            Board board = new();
             board.AddStartPieces();
             return board;
         }
@@ -98,7 +96,7 @@ namespace ChessLogic
             {
                 for (int c = 0; c < 8; c++)
                 {
-                    Position pos = new Position(r, c);
+                    Position pos = new(r, c);
                     if (!IsEmpty(pos))
                     {
                         yield return pos;
@@ -129,7 +127,7 @@ namespace ChessLogic
         // Alle Figuren und En-Passant-Informationen werden ebenfalls kopiert.
         public Board Copy()
         {
-            Board copy = new Board();
+            Board copy = new();
             foreach (Position pos in PiecePositions())
             {
                 Piece? originalPiece = this[pos];
@@ -139,15 +137,15 @@ namespace ChessLogic
                 }
             }
             // Kopiert die En-Passant-Zustände.
-            copy.pawnSkipPositions[Player.White] = this.pawnSkipPositions[Player.White];
-            copy.pawnSkipPositions[Player.Black] = this.pawnSkipPositions[Player.Black];
+            copy.pawnSkipPositions[Player.White] = pawnSkipPositions[Player.White];
+            copy.pawnSkipPositions[Player.Black] = pawnSkipPositions[Player.Black];
             return copy;
         }
 
         // Zählt alle Figuren auf dem Brett und gibt ein Counting-Objekt zurück.
         public Counting CountPieces()
         {
-            Counting counting = new Counting();
+            Counting counting = new();
             foreach (Position pos in PiecePositions())
             {
                 Piece? piece = this[pos];
@@ -169,7 +167,10 @@ namespace ChessLogic
         }
 
         // Hilfsmethode: Prüft, ob nur noch zwei Könige auf dem Brett sind.
-        private static bool IsKingVKing(Counting counting) => counting.TotalCount == 2;
+        private static bool IsKingVKing(Counting counting)
+        {
+            return counting.TotalCount == 2;
+        }
 
         // Hilfsmethode: Prüft, ob ein Spieler König + Läufer gegen einen nackten König hat.
         private static bool IsKingBishopVKing(Counting counting)
@@ -186,8 +187,15 @@ namespace ChessLogic
         // Hilfsmethode: Prüft, ob beide Spieler König + Läufer haben und die Läufer auf Feldern gleicher Farbe stehen.
         private bool IsKingBishopVKingBishop(Counting counting)
         {
-            if (counting.TotalCount != 4) return false;
-            if (counting.White(PieceType.Bishop) != 1 || counting.Black(PieceType.Bishop) != 1) return false;
+            if (counting.TotalCount != 4)
+            {
+                return false;
+            }
+
+            if (counting.White(PieceType.Bishop) != 1 || counting.Black(PieceType.Bishop) != 1)
+            {
+                return false;
+            }
 
             Position? wBishopPos = FindPiece(Player.White, PieceType.Bishop);
             Position? bBishopPos = FindPiece(Player.Black, PieceType.Bishop);
@@ -205,7 +213,11 @@ namespace ChessLogic
         // Prüft, ob König und der entsprechende Turm für die Rochade noch unbewegt sind.
         private bool IsUnmovedKingAndRook(Position kingPos, Position rookPos)
         {
-            if (IsEmpty(kingPos) || IsEmpty(rookPos)) return false;
+            if (IsEmpty(kingPos) || IsEmpty(rookPos))
+            {
+                return false;
+            }
+
             Piece? king = this[kingPos];
             Piece? rook = this[rookPos];
             return king != null && rook != null &&

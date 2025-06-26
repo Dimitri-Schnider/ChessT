@@ -13,7 +13,7 @@ namespace ChessServer.Services.Session
     {
         private readonly Guid _gameId;
         private readonly IChessLogger _logger;
-        private readonly object _lock = new object();
+        private readonly Lock _lock = new();
 
         // Speichert alle Spieler der Sitzung (ID -> (Name, Farbe))
         private readonly Dictionary<Guid, (string Name, Player Color)> _players = new();

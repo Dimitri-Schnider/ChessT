@@ -11,11 +11,17 @@ namespace ChessLogic
         public override Player Color { get; }
 
         // Alle 8 möglichen Richtungen, in die sich ein König bewegen kann.
-        private static readonly Direction[] dirs = new Direction[]
-        {
-            Direction.North, Direction.South, Direction.East, Direction.West,
-            Direction.NorthWest, Direction.NorthEast, Direction.SouthWest, Direction.SouthEast
-        };
+        private static readonly Direction[] dirs =
+        [
+            Direction.North,
+            Direction.South,
+            Direction.East,
+            Direction.West,
+            Direction.NorthWest,
+            Direction.NorthEast,
+            Direction.SouthWest,
+            Direction.SouthEast
+        ];
 
         public King(Player color)
         {
