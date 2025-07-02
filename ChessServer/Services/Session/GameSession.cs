@@ -164,28 +164,38 @@ namespace ChessServer.Services.Session
                 moveResult = _moveExecutionService.ExecuteMove(context);
             }
 
-            // Die Orchestrierung der "Nach-dem-Zug"-Aktionen bleibt hier
             if (moveResult.IsValid)
             {
+                // Daten für den nächsten Spielzug vorbereiten.
                 Player nextPlayerTurn = GetCurrentTurnPlayerLogic();
                 Guid? nextPlayerId = GetPlayerIdByColor(nextPlayerTurn);
                 var statusForNextPlayer = nextPlayerId.HasValue ? GetStatus(nextPlayerId.Value) : GameStatusDto.None;
 
+                // Asynchrones "Feuer und Vergiss"-Paket für Client-Updates schnüren
                 Task.Run(async () =>
                 {
+                    // Haupt-Update an alle Clients senden (neues Brett, nächster Spieler etc.)
                     await SendOnTurnChangedNotification(moveResult.NewBoard, nextPlayerTurn, statusForNextPlayer, moveResult.LastMoveFrom, moveResult.LastMoveTo, moveResult.CardEffectSquares);
+                    
+                    // Zeit-Update an alle senden.
                     await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", TimerService.GetCurrentTimeUpdateDto());
+                    
+                    // Eine eventuell gezogene Karte nur an den betroffenen Spieler senden
                     if (moveResult.PlayerIdToSignalCardDraw.HasValue && moveResult.NewlyDrawnCard != null)
                     {
                         await SignalCardDrawnToPlayer(moveResult.PlayerIdToSignalCardDraw.Value, moveResult.NewlyDrawnCard, "PlayerMove");
                     }
                 });
 
+                // Extrazug prüfen
                 bool isExtraTurn = moveResult.IsYourTurn;
+
+                // Prüfen, ob der Computergegner am Zug ist
                 if (_playerManager.OpponentType == OpponentType.Computer &&
                     _playerManager.ComputerPlayerId != playerIdCalling && !isExtraTurn &&
                     !_state.IsGameOver())
                 {
+                    // Computerzug in einem neuen Thread starten, um die Antwort nicht zu blockieren.
                     Task.Run(() => ProcessComputerTurnIfNeeded());
                 }
             }

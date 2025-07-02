@@ -366,7 +366,7 @@ namespace ChessServer.Controllers
 
             try
             {
-                // Ein einziger Aufruf Die Service-Schicht kümmert sich um den Rest.
+                // Zug wird an den IMGameManager weitergeleitet, der die Logik für die Zugverarbeitung enthält.
                 MoveResultDto moveResult = _mgr.ApplyMove(gameId, dto, dto.PlayerId);
 
                 if (!moveResult.IsValid)
@@ -376,7 +376,7 @@ namespace ChessServer.Controllers
 
                 _logger.LogApplyMoveInfo(gameId, dto.PlayerId, moveResult.IsValid);
 
-                // Das Ergebnis wird an den Client zurückgegeben.
+                // Das Ergebnis wird an den Client zurückgegeben
                 return Ok(moveResult);
             }
             catch (KeyNotFoundException ex)

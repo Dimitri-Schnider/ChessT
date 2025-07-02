@@ -18,6 +18,7 @@ public class MoveExecutionService : IMoveExecutionService
         _logger = logger;
     }
 
+
     public MoveResultDto ExecuteMove(MoveExecutionContext context)
     {
         var playerColor = context.PlayerManager.GetPlayerColor(context.PlayerId);
