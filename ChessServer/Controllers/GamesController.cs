@@ -357,7 +357,7 @@ namespace ChessServer.Controllers
         [ProducesResponseType(typeof(MoveResultDto), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(MoveResultDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(MoveResultDto), StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<MoveResultDto>> Move(Guid gameId, [FromBody] MoveDto dto)
+        public ActionResult<MoveResultDto> Move(Guid gameId, [FromBody] MoveDto dto)
         {
             if (!ModelState.IsValid)
             {

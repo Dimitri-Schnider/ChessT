@@ -4,6 +4,7 @@ using ChessServer.Hubs;
 using ChessServer.Services.ComputerPlayer;
 using ChessServer.Services.Connectivity;
 using ChessServer.Services.Management;
+using ChessServer.Services.Session;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -48,8 +49,10 @@ builder.Services.AddSignalR();
 // Registriert den GameManager als Singleton (eine Instanz für die gesamte Anwendung).
 builder.Services.AddSingleton<IGameManager, InMemoryGameManager>();
 
-// Registriere IChessLogger so, dass wenn InMemoryGameManager danach fragt,
-// ein ChessLogger<InMemoryGameManager> bereitgestellt wird.
+// Registriert den MoveExecutionService
+builder.Services.AddSingleton<IMoveExecutionService, MoveExecutionService>();
+
+// Registriere IChessLogger so, dass wenn InMemoryGameManager danach fragt, ein ChessLogger<InMemoryGameManager> bereitgestellt wird.
 builder.Services.AddSingleton<IChessLogger>(sp =>
     new ChessLogger<InMemoryGameManager>(
         sp.GetRequiredService<ILogger<InMemoryGameManager>>()

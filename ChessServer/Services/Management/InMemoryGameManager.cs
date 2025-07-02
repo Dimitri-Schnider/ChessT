@@ -26,15 +26,19 @@ namespace ChessServer.Services.Management
         private readonly ILoggerFactory _loggerFactory;
         private readonly IComputerMoveProvider _computerMoveProvider;
         private readonly IConnectionMappingService _connectionMappingService;
+        private readonly IMoveExecutionService _moveExecutionService;
 
         // Konstruktor: Initialisiert die Manager-Klasse mit den erforderlichen Diensten.
-        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory, IComputerMoveProvider computerMoveProvider, IConnectionMappingService connectionMappingService)
+        public InMemoryGameManager(IHubContext<ChessHub> hubContext, IChessLogger logger, 
+            ILoggerFactory loggerFactory, IComputerMoveProvider computerMoveProvider, 
+            IConnectionMappingService connectionMappingService, IMoveExecutionService moveExecutionService)
         {
             _hubContext = hubContext;
             _logger = logger;
             _loggerFactory = loggerFactory;
             _computerMoveProvider = computerMoveProvider;
             _connectionMappingService = connectionMappingService;
+            _moveExecutionService = moveExecutionService;
         }
 
         // Erstellt ein neues Spiel, initialisiert eine neue GameSession und fügt sie dem Dictionary hinzu.
@@ -44,7 +48,7 @@ namespace ChessServer.Services.Management
                 throw new ArgumentException("PlayerName darf nicht leer sein.", nameof(playerName));
             var gameId = Guid.NewGuid();
             var playerManager = new PlayerManager(gameId, opponentType, computerDifficulty, new ChessLogger<PlayerManager>(_loggerFactory.CreateLogger<PlayerManager>()));
-            var session = new GameSession(gameId, playerManager, initialMinutes, _hubContext, new ChessLogger<GameSession>(_loggerFactory.CreateLogger<GameSession>()), _loggerFactory, _computerMoveProvider, _connectionMappingService);
+            var session = new GameSession(gameId, playerManager, initialMinutes, _hubContext, new ChessLogger<GameSession>(_loggerFactory.CreateLogger<GameSession>()), _loggerFactory, _computerMoveProvider, _connectionMappingService, _moveExecutionService);
 
             var (firstPlayerId, _) = session.Join(playerName, color);
             _games[gameId] = session;

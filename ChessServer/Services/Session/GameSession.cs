@@ -34,6 +34,7 @@ namespace ChessServer.Services.Session
         private readonly IChessLogger _logger;                                  // Dienst für das Logging.
         private readonly IComputerMoveProvider _computerMoveProvider;           // Dienst, der die Züge des Computergegners generiert.
         private readonly object _sessionLock = new();                           // Sperrobjekt, um Thread-Sicherheit bei Zugriffen auf den Spielzustand zu gewährleisten.
+        private readonly IMoveExecutionService _moveExecutionService;           // Dienst, der die Logik für die Ausführung von Zügen kapselt.
         private Move? lastMoveForHistory;                                       // Speichert den letzten Zug für die FEN-Generierung in der Historie.
 
         // Manager-Komponenten, die spezifische Aspekte der Sitzung verwalten.
@@ -56,7 +57,8 @@ namespace ChessServer.Services.Session
         public GameSession(Guid gameId, IPlayerManager playerManager, int initialMinutes,
                            IHubContext<ChessHub> hubContext, IChessLogger logger, ILoggerFactory loggerFactory,
                            IComputerMoveProvider computerMoveProvider,
-                           IConnectionMappingService connectionMappingService)
+                           IConnectionMappingService connectionMappingService,
+                           IMoveExecutionService moveExecutionService)
         {
             _gameIdInternal = gameId;
             _playerManager = playerManager;
@@ -65,6 +67,7 @@ namespace ChessServer.Services.Session
             _logger = logger;
             _computerMoveProvider = computerMoveProvider;
             _connectionMappingService = connectionMappingService;
+            _moveExecutionService = moveExecutionService;
             _historyManager = new HistoryManager(gameId, initialMinutes);
             // Initialisiert die spezialisierten Manager mit Referenzen auf diese Session.
             CardManager = new CardManager(this, _sessionLock, _historyManager, new ChessLogger<CardManager>(loggerFactory.CreateLogger<CardManager>()), loggerFactory);
@@ -89,8 +92,29 @@ namespace ChessServer.Services.Session
             return (playerId, assignedColor);
         }
 
+        // Hilfsmethode, damit der Service den letzten Zug setzen kann
+        public void SetLastMoveForHistory(Move move)
+        {
+            lastMoveForHistory = move;
+        }
+
         // Dieser parameterlose Konstruktor wird für Moq in den Tests benötigt.
-        public GameSession() { }
+        public GameSession()
+        {
+            // Den Feldern einen "null-forgiving" Wert zuweisen, um den Compiler zufrieden zu stellen.
+            // Durch das Mocking-Framework (Moq) werden diese Felder später initialisiert.
+            _gameIdInternal = Guid.Empty;
+            _state = null!;
+            _timerServiceInternal = null!;
+            _hubContext = null!;
+            _logger = null!;
+            _computerMoveProvider = null!;
+            _moveExecutionService = null!;
+            _playerManager = null!;
+            _historyManager = null!;
+            _connectionMappingService = null!;
+            CardManager = null!;
+        }
         public bool IsGameReallyOver() { lock (_sessionLock) { return _state.IsGameOver(); } }
         public virtual Player GetPlayerColor(Guid playerId) => _playerManager.GetPlayerColor(playerId);
         public virtual Guid? GetPlayerIdByColor(Player color) => _playerManager.GetPlayerIdByColor(color);
@@ -123,82 +147,50 @@ namespace ChessServer.Services.Session
         // Verarbeitet einen vom Client gesendeten Zug.
         public MoveResultDto MakeMove(MoveDto dto, Guid playerIdCalling)
         {
+            MoveResultDto moveResult;
             lock (_sessionLock)
             {
-                var playerColor = GetPlayerColor(playerIdCalling);
-                // Validierung: Ist der Spieler am Zug?
-                if (playerColor != _state.CurrentPlayer)
-                    return new MoveResultDto { IsValid = false, ErrorMessage = "Nicht dein Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
+                var context = new MoveExecutionContext(
+                    this,
+                    _state,
+                    _playerManager,
+                    CardManager,
+                    _historyManager,
+                    _timerServiceInternal,
+                    dto,
+                    playerIdCalling
+                );
 
-                // Prüft, ob ein "Extrazug" durch eine Karte aktiv ist.
-                var extraTurn = CardManager.PeekPendingCardEffect(playerIdCalling) == CardConstants.ExtraZug;
-
-                var fromPos = PositionParser.ParsePos(dto.From);
-                var toPos = PositionParser.ParsePos(dto.To);    
-                Move? legalMove = null;
-                // Sonderfall: Bauernumwandlung ohne Bewegung (kann auf dem Client auftreten).
-                if (fromPos == toPos && dto.PromotionTo.HasValue)
-                {
-                    var piece = _state.Board[fromPos];
-                    int promotionRank = playerColor == Player.White ? 0 : 7;
-                    if (piece is Pawn && piece.Color == playerColor && fromPos.Row == promotionRank)
-                    {
-                        var promotionMove = new PawnPromotion(fromPos, toPos, dto.PromotionTo.Value);
-                        if (promotionMove.IsLegal(_state.Board))
-                        {
-                            legalMove = promotionMove;
-                        }
-                    }
-                }
-                else
-                {
-                    // Findet den legalen Zug in der Liste der möglichen Züge.
-                    legalMove = FindLegalMove(dto, fromPos, toPos);
-                }
-
-                if (legalMove == null)
-                {
-                    if (_state.Board.IsInCheck(playerColor))
-                    {
-                        if (fromPos == toPos && dto.PromotionTo.HasValue)
-                        {
-                            _logger.LogPlayerTriedMoveThatDidNotResolveCheck(GameId, playerIdCalling, playerColor, dto.From, dto.To);
-                            return new MoveResultDto { IsValid = false, ErrorMessage = "Umwandlung nicht möglich, da der König danach im Schach stehen würde.", NewBoard = ToBoardDto(), IsYourTurn = true, Status = GameStatusDto.Check };
-                        }
-                        _logger.LogPlayerInCheckTriedInvalidMove(GameId, playerIdCalling, playerColor, dto.From, dto.To);
-                    }
-                    return new MoveResultDto { IsValid = false, ErrorMessage = "Ungültiger Zug.", NewBoard = ToBoardDto(), IsYourTurn = IsPlayerTurn(playerIdCalling), Status = GameStatusDto.None };
-                }
-
-                // Sonderregel für Extrazug: Der erste Zug darf den Gegner nicht ins Schach setzen.
-                if (extraTurn)
-                {
-                    Board boardCopy = _state.Board.Copy();
-                    legalMove.Execute(boardCopy);
-                    if (boardCopy.IsInCheck(playerColor.Opponent()))
-                    {
-                        _logger.LogExtraTurnFirstMoveCausesCheck(GameId, playerIdCalling, dto.From, dto.To);
-                        return new MoveResultDto { IsValid = false, ErrorMessage = "Erster Zug der Extrazug-Karte darf den gegnerischen König nicht ins Schach setzen.", NewBoard = ToBoardDto(), IsYourTurn = true, Status = GetStatus(playerIdCalling) };
-                    }
-                }
-
-                // Führt eine hypothetische Ausführung durch, um sicherzustellen, dass der eigene König nicht im Schach landet.
-                Board boardCopyForCheck = _state.Board.Copy();
-                legalMove.Execute(boardCopyForCheck);
-                if (boardCopyForCheck.IsInCheck(playerColor))
-                {
-                    _logger.LogPlayerTriedMoveThatDidNotResolveCheck(GameId, playerIdCalling, playerColor, dto.From, dto.To);
-                    return new MoveResultDto { IsValid = false, ErrorMessage = "Dieser Zug ist ungültig, da du danach immer noch im Schach stehst.", NewBoard = ToBoardDto(), IsYourTurn = true, Status = GameStatusDto.Check };
-                }
-
-                if (extraTurn)
-                {
-                    CardManager.ClearPendingCardEffect(playerIdCalling);
-                }
-
-                // Führt den Zug endgültig aus und finalisiert den Zustand.
-                return ExecuteAndFinalizeMove(legalMove, dto, playerIdCalling, playerColor, extraTurn);
+                moveResult = _moveExecutionService.ExecuteMove(context);
             }
+
+            // Die Orchestrierung der "Nach-dem-Zug"-Aktionen bleibt hier
+            if (moveResult.IsValid)
+            {
+                Player nextPlayerTurn = GetCurrentTurnPlayerLogic();
+                Guid? nextPlayerId = GetPlayerIdByColor(nextPlayerTurn);
+                var statusForNextPlayer = nextPlayerId.HasValue ? GetStatus(nextPlayerId.Value) : GameStatusDto.None;
+
+                Task.Run(async () =>
+                {
+                    await SendOnTurnChangedNotification(moveResult.NewBoard, nextPlayerTurn, statusForNextPlayer, moveResult.LastMoveFrom, moveResult.LastMoveTo, moveResult.CardEffectSquares);
+                    await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", TimerService.GetCurrentTimeUpdateDto());
+                    if (moveResult.PlayerIdToSignalCardDraw.HasValue && moveResult.NewlyDrawnCard != null)
+                    {
+                        await SignalCardDrawnToPlayer(moveResult.PlayerIdToSignalCardDraw.Value, moveResult.NewlyDrawnCard, "PlayerMove");
+                    }
+                });
+
+                bool isExtraTurn = moveResult.IsYourTurn;
+                if (_playerManager.OpponentType == OpponentType.Computer &&
+                    _playerManager.ComputerPlayerId != playerIdCalling && !isExtraTurn &&
+                    !_state.IsGameOver())
+                {
+                    Task.Run(() => ProcessComputerTurnIfNeeded());
+                }
+            }
+
+            return moveResult;
         }
 
         // Verarbeitet das Ergebnis einer Kartenaktivierung und koordiniert die Folgeaktionen.
@@ -409,140 +401,6 @@ namespace ChessServer.Services.Session
         #endregion
 
         #region Private Hilfsmethoden
-        // Private Helfermethode: Führt einen validierten Zug aus und finalisiert den Spielzustand.
-        private MoveResultDto ExecuteAndFinalizeMove(Move legalMove, MoveDto dto, Guid playerId, Player playerColor, bool isExtraTurn)
-        {
-            Piece? pieceBeingMoved;
-            Piece? pieceAtDestination;
-            bool captureOrPawn;
-            DateTime moveTimestamp = DateTime.UtcNow;
-            TimeSpan timeTaken = TimerService.StopAndCalculateElapsedTime();
-
-            pieceBeingMoved = _state.Board[legalMove.FromPos];
-            pieceAtDestination = _state.Board[legalMove.ToPos];
-            captureOrPawn = legalMove.Execute(_state.Board);
-
-            if (isExtraTurn)
-            {
-                _state.GrantExtraMove(playerColor);
-                _logger.LogExtraTurnEffectApplied(GameId, playerId, CardConstants.ExtraZug);
-            }
-            else
-            {
-                _state.UpdateStateAfterMove(captureOrPawn, true, legalMove);
-            }
-
-            lastMoveForHistory = legalMove;
-            if (pieceAtDestination != null) CardManager.AddCapturedPiece(pieceAtDestination.Color, pieceAtDestination.Type);
-            else if (legalMove is EnPassant) CardManager.AddCapturedPiece(playerColor.Opponent(), PieceType.Pawn);
-
-            CardManager.IncrementPlayerMoveCount(playerId);
-            var (shouldDraw, newlyDrawnCard) = CardManager.CheckAndProcessCardDraw(playerId);
-            var moveResultDto = CreateMoveResultDto(dto, isExtraTurn, shouldDraw ? playerId : null, newlyDrawnCard);
-
-            AddMoveToHistory(dto, legalMove, playerId, playerColor, pieceBeingMoved, pieceAtDestination, moveTimestamp, timeTaken);
-
-            if (_state.IsGameOver())
-            {
-                _historyManager.UpdateOnGameOver(_state.Result!);
-                NotifyTimerGameOver();
-            }
-            else
-            {
-                if (!isExtraTurn) SwitchPlayerTimer();
-                else StartGameTimer();
-            }
-
-            Player nextPlayerTurn = GetCurrentTurnPlayerLogic();
-            Guid? nextPlayerId = GetPlayerIdByColor(nextPlayerTurn);
-            var statusForNextPlayer = nextPlayerId.HasValue ? GetStatus(nextPlayerId.Value) : GameStatusDto.None;
-
-            string? cardEffectSquareCountLog = moveResultDto.CardEffectSquares != null ? moveResultDto.CardEffectSquares.Count.ToString(CultureInfo.InvariantCulture) : "0";
-            _logger.LogSignalRUpdateInfo(GameId, nextPlayerTurn, statusForNextPlayer, moveResultDto.LastMoveFrom, moveResultDto.LastMoveTo, cardEffectSquareCountLog);
-
-            // Das Task.Run ist wichtig, damit wir den 'lock' der GameSession nicht blockieren, während wir auf das Senden warten.
-            Task.Run(async () =>
-            {
-                await SendOnTurnChangedNotification(moveResultDto.NewBoard, nextPlayerTurn, statusForNextPlayer, moveResultDto.LastMoveFrom, moveResultDto.LastMoveTo, moveResultDto.CardEffectSquares);
-                await _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", TimerService.GetCurrentTimeUpdateDto());
-
-                if (moveResultDto.PlayerIdToSignalCardDraw.HasValue && moveResultDto.NewlyDrawnCard != null)
-                {
-                    await SignalCardDrawnToPlayer(moveResultDto.PlayerIdToSignalCardDraw.Value, moveResultDto.NewlyDrawnCard, "PlayerMove");
-                }
-            });
-
-            if (_playerManager.OpponentType == OpponentType.Computer &&
-                _playerManager.ComputerPlayerId != playerId && !isExtraTurn &&
-                !_state.IsGameOver())
-            {
-                Task.Run(() => ProcessComputerTurnIfNeeded());
-            }
-
-            return moveResultDto;
-        }
-
-        // Prüft, ob eine Karte das Brett verändert.
-        private bool IsCardBoardAltering(string cardTypeId)
-        {
-            return cardTypeId switch
-            {
-                CardConstants.Teleport => true,
-                CardConstants.Positionstausch => true,
-                CardConstants.Wiedergeburt => true,
-                CardConstants.SacrificeEffect => true,
-                _ => false
-            };
-        }
-
-        // Findet einen legalen Zug in der Liste der möglichen Züge für eine Figur.
-        private Move? FindLegalMove(MoveDto dto, Position from, Position to)
-        {
-            var candidateMoves = _state.LegalMovesForPiece(from);
-            // Berücksichtigt Bauernumwandlungen.
-            if (dto.PromotionTo.HasValue)
-                return candidateMoves.OfType<PawnPromotion>().FirstOrDefault(m => m.ToPos == to && m.PromotionTo == dto.PromotionTo.Value);
-            return candidateMoves.FirstOrDefault(m => m.ToPos == to && m is not PawnPromotion);
-        }
-
-        // Fügt einen ausgeführten Zug zur Historie hinzu.
-        private void AddMoveToHistory(MoveDto dto, Move legalMove, Guid playerId, Player playerColor, Piece? moved, Piece? captured, DateTime timestamp, TimeSpan timeTaken)
-        {
-            _historyManager.AddMove(new PlayedMoveDto
-            {
-                PlayerId = playerId,
-                PlayerColor = playerColor,
-                From = dto.From,
-                To = dto.To,
-                ActualMoveType = legalMove.Type,
-                PromotionPiece = legalMove is PawnPromotion promoMove ? promoMove.PromotionTo : null,
-                TimestampUtc = timestamp,
-                TimeTaken = timeTaken,
-                RemainingTimeWhite = TimerService.GetCurrentTimeForPlayer(Player.White),
-                RemainingTimeBlack = TimerService.GetCurrentTimeForPlayer(Player.Black),
-                PieceMoved = moved != null ? $"{moved.Color} {moved.Type}" : "Unknown",
-                CapturedPiece = legalMove is EnPassant ? $"{playerColor.Opponent()} Pawn (EP)" : captured != null ? $"{captured.Color} {captured.Type}" : null
-            });
-        }
-
-        // Erstellt das MoveResultDto, das an den Client zurückgesendet wird.
-        private MoveResultDto CreateMoveResultDto(MoveDto dto, bool isExtraTurn, Guid? drawPlayerId, CardDto? drawnCard)
-        {
-            return new MoveResultDto
-            {
-                IsValid = true,
-                ErrorMessage = null,
-                NewBoard = ToBoardDto(),
-                IsYourTurn = isExtraTurn,
-                Status = GetStatusForPlayer(GetPlayerColor(dto.PlayerId)),
-                PlayerIdToSignalCardDraw = drawPlayerId,
-                NewlyDrawnCard = drawnCard,
-                LastMoveFrom = dto.From,
-                LastMoveTo = dto.To,
-                CardEffectSquares = null
-            };
-        }
-
         // Ermittelt den Spielstatus aus der Perspektive eines bestimmten Spielers.
         private GameStatusDto GetStatusForPlayer(Player color)
         {
@@ -584,7 +442,7 @@ namespace ChessServer.Services.Session
         }
 
         // Prüft, ob ein bestimmter Spieler gerade am Zug ist.
-        private bool IsPlayerTurn(Guid playerId)
+        internal bool IsPlayerTurn(Guid playerId)
         {
             try
             {
@@ -598,9 +456,9 @@ namespace ChessServer.Services.Session
         }
 
         // Timer-Steuerung und Event-Handler
-        private void SwitchPlayerTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
-        private void StartGameTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
-        private void NotifyTimerGameOver() => TimerService.SetGameOver();
+        internal void SwitchPlayerTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
+        internal void StartGameTimer() => TimerService.StartPlayerTimer(_state.CurrentPlayer, _state.IsGameOver());
+        internal void NotifyTimerGameOver() => TimerService.SetGameOver();
         private void HandleTimeUpdated(TimeUpdateDto dto) => _hubContext.Clients.Group(GameId.ToString()).SendAsync("OnTimeUpdate", dto);
         private void HandleTimeExpired(Player p)
         {
@@ -608,7 +466,7 @@ namespace ChessServer.Services.Session
             {
                 if (_state.IsGameOver()) return;
                 _state.Timeout(p);
-                _historyManager.UpdateOnGameOver(_state.Result);
+                _historyManager.UpdateOnGameOver(_state.Result!);
                 var currentBoardDto = ToBoardDto();
                 var winner = p.Opponent();
                 var finalTimeUpdate = TimerService.GetCurrentTimeUpdateDto();

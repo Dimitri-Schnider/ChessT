@@ -407,10 +407,10 @@ namespace ChessServer.Services.Cards
             new() { InstanceId = Guid.Empty, Id = CardConstants.Teleport, Name = "Teleportation", Description = "Eine eigene Figur darf auf ein beliebiges leeres Feld auf dem Schachbrett gestellt werden.", ImageUrl = "img/cards/art/2-Teleportation_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay },
             new() { InstanceId = Guid.Empty, Id = CardConstants.Positionstausch, Name = "Positionstausch", Description = "Zwei eigene Figuren tauschen ihre Plätze.", ImageUrl = "img/cards/art/3-Positionstausch_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay },
             new() { InstanceId = Guid.Empty, Id = CardConstants.AddTime, Name = "Zeitgutschrift", Description = "Fügt deiner Bedenkzeit 2 Minuten hinzu.", ImageUrl = "img/cards/art/11-AddTime_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (minimal 1 Minute Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.TimeSwap, Name = "Zeittausch", Description = "Tauscht die aktuellen Restbedenkzeiten mit deinem Gegner (minimal 1 Minute Restzeit für jeden).", ImageUrl = "img/cards/art/13-Zeittausch_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.Wiedergeburt, Name = "Wiedergeburt", Description = "Eine eigene, geschlagene Nicht-Bauern-Figur wird auf einem ihrer ursprünglichen Startfelder wiederbelebt. Ist das gewählte Feld besetzt, schlägt der Effekt fehl und die Karte ist verbraucht.", ImageUrl = "img/cards/art/5-Wiedergeburt_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay },
-            new() { InstanceId = Guid.Empty, Id = CardConstants.CardSwap, Name = "Kartentausch", Description = "Wähle eine deiner Handkarten. Diese wird mit einer zufälligen Handkarte deines Gegners getauscht. Hat der Gegner keine Karten, verfällt deine Karte ohne Effekt.", ImageUrl = "img/cards/art/14-Kartentausch_Art.png", AnimationDelayMs = 5000, Category = CardCategory.Utility },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.SubtractTime, Name = "Zeitdiebstahl", Description = "Zieht der gegnerischen Bedenkzeit 2 Minuten ab (Gegner benötigt min. 3 Minuten Restzeit).", ImageUrl = "img/cards/art/12-SubtractTime_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.TimeSwap, Name = "Zeittausch", Description = "Tauscht die aktuellen Restbedenkzeiten mit deinem Gegner (Du musst min. 1 Min Restzeit haben).", ImageUrl = "img/cards/art/13-Zeittausch_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Time },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.Wiedergeburt, Name = "Wiedergeburt", Description = "Wähle eine eigene geschlagene Figur aus (keine Bauern). Diese wird auf einem ihrer ursprünglichen Startfelder wiederbelebt.", ImageUrl = "img/cards/art/5-Wiedergeburt_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay },
+            new() { InstanceId = Guid.Empty, Id = CardConstants.CardSwap, Name = "Kartentausch", Description = "Wähle eine deiner Handkarten. Diese wird mit einer zufälligen Handkarte deines Gegners getauscht (Du und Dein Gegner müssen min. 1 Karte haben", ImageUrl = "img/cards/art/14-Kartentausch_Art.png", AnimationDelayMs = 5000, Category = CardCategory.Utility },
             new() { InstanceId = Guid.Empty, Id = CardConstants.SacrificeEffect, Name = "Opfergabe", Description = "Wähle einen eigenen Bauern. Entferne ihn vom Spiel. Du darfst sofort eine neue Karte ziehen.", ImageUrl = "img/cards/art/15-Opergabe_Art.png", AnimationDelayMs = 3000, Category = CardCategory.Gameplay }
         };
 
@@ -429,7 +429,7 @@ namespace ChessServer.Services.Cards
         };
 
         // Prüft, ob eine Karte das Schachbrett verändert (relevant für die Schach-Regel).
-        private bool IsCardBoardAltering(string cardTypeId)
+        private static bool IsCardBoardAltering(string cardTypeId)
         {
             return cardTypeId switch
             {

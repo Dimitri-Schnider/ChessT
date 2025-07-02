@@ -24,15 +24,8 @@ namespace ChessServer.Services.ComputerPlayer
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-            // URL aus der Konfiguration lesen
             _chessApiUrl = configuration.GetValue<string>("ChessApi:Url")
                            ?? throw new InvalidOperationException("Chess API URL is not configured in appsettings.json.");
-        }
-
-        public ApiComputerMoveProvider(IHttpClientFactory httpClientFactory, IChessLogger logger)
-        {
-            _httpClientFactory = httpClientFactory;
-            _logger = logger;
         }
 
         public async Task<string?> GetNextMoveAsync(Guid gameId, string fen, int depth)
