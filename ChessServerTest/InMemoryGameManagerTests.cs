@@ -9,6 +9,7 @@ using Chess.Logging;
 using ChessServer.Services.Connectivity;
 using ChessServer.Services.ComputerPlayer;
 using ChessServer.Services.Management;
+using ChessServer.Services.Session;
 
 namespace ChessServer.Tests
 {
@@ -22,6 +23,7 @@ namespace ChessServer.Tests
         private readonly Mock<ILoggerFactory> _mockLoggerFactory;
         private readonly Mock<IComputerMoveProvider> _mockComputerMoveProvider;
         private readonly Mock<IConnectionMappingService> _mockConnectionMappingService;
+        private readonly Mock<IMoveExecutionService> _mockMoveExecutionService;
         private readonly InMemoryGameManager _gameManager;
 
         // Konstruktor: Initialisiert die Mock-Objekte und die zu testende Instanz des Managers.
@@ -32,6 +34,7 @@ namespace ChessServer.Tests
             _mockLoggerFactory = new Mock<ILoggerFactory>();
             _mockComputerMoveProvider = new Mock<IComputerMoveProvider>();
             _mockConnectionMappingService = new Mock<IConnectionMappingService>();
+            _mockMoveExecutionService = new Mock<IMoveExecutionService>();
 
             // Sicherstellen, dass der LoggerFactory einen gültigen (aber leeren) Logger zurückgibt,
             // da die GameSession-Klasse dies beim Erstellen erwartet.
@@ -44,7 +47,8 @@ namespace ChessServer.Tests
                 _mockLogger.Object,
                 _mockLoggerFactory.Object,
                 _mockComputerMoveProvider.Object,
-                _mockConnectionMappingService.Object
+                _mockConnectionMappingService.Object,
+                _mockMoveExecutionService.Object
             );
         }
 
