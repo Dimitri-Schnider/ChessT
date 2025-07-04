@@ -32,7 +32,7 @@ namespace ChessServer.Services.Cards
         private readonly Dictionary<Guid, HashSet<string>> _usedGlobalCardsPerPlayer = new();   // Verfolgt global limitierte Karten (z.B. Extrazug).
         private readonly Dictionary<Guid, int> _playerMoveCounts = new();                       // Zählt die Züge jedes Spielers, um das Kartenziehen auszulösen.
         private readonly SemaphoreSlim _activateCardSemaphore = new(1, 1);                      // Stellt sicher, dass immer nur eine Kartenaktivierung gleichzeitig verarbeitet wird.
-        private const int InitialHandSize = 6;                                                  // Anzahl der Karten auf der Starthand.
+        private const int InitialHandSize = 3;                                                  // Anzahl der Karten auf der Starthand.
 
         // Konstruktor: Initialisiert alle Dienste und erstellt die Karten- und Effekt-Definitionen.
         public CardManager(GameSession session, object sessionLock, IHistoryManager historyManager, IChessLogger logger, ILoggerFactory loggerFactory)
